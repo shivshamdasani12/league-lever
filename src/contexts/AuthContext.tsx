@@ -38,6 +38,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Ensure a profile row exists for the user (RLS-safe)
+  useEffect(() => {
+    if (!user) return;
+    const t = setTimeout(() => {
+      supabase.from('profiles').upsert({ id: user.id }, { onConflict: 'id' });
+    }, 0);
+    return () => clearTimeout(t);
+  }, [user]);
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
