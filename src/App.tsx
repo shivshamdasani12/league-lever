@@ -9,6 +9,8 @@ import Auth from "./pages/Auth";
 import RequireAuth from "./components/RequireAuth";
 import { AuthProvider } from "./contexts/AuthContext";
 import Layout from "./components/Layout";
+import LeagueDetail from "./pages/LeagueDetail";
+import Join from "./pages/Join";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +23,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<RequireAuth><Layout><Index /></Layout></RequireAuth>} />
+            <Route path="/leagues/:id" element={<RequireAuth><Layout><LeagueDetail /></Layout></RequireAuth>} />
+            <Route path="/join" element={<RequireAuth><Layout><Join /></Layout></RequireAuth>} />
             <Route path="/auth" element={<Auth />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

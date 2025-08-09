@@ -1,4 +1,4 @@
-import { Home, Trophy } from "lucide-react";
+import { Home, Trophy, UserPlus } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -13,7 +13,7 @@ import {
 
 const items = [
   { title: "Dashboard", url: "/", icon: Home },
-  { title: "Leagues", url: "/", icon: Trophy },
+  { title: "Join League", url: "/join", icon: UserPlus },
 ];
 
 export function AppSidebar() {
