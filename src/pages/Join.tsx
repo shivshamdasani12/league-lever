@@ -37,26 +37,13 @@ export default function Join() {
     }
     setLoading(true);
     try {
-      // Mark invitation accepted and get league_id in one step
-      const { data, error } = await supabase
-        .from("invitations")
-        .update({ accepted_by: user.id, accepted_at: new Date().toISOString(), status: "accepted" })
-        .eq("code", code.trim())
-        .select("id, league_id")
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("accept_invite", { _invite_code: code.trim() });
       if (error) throw error;
-      if (!data) throw new Error("Invalid or already used code.");
-
-      // Join the league
-      const { error: memErr } = await supabase
-        .from("league_members")
-        .insert({ league_id: data.league_id, user_id: user.id });
-      if (memErr) throw memErr;
-
+      const leagueId = (data as any)?.league_id as string | undefined;
       toast({ title: "Joined league", description: "Welcome!" });
-      navigate(`/leagues/${data.league_id}`);
+      if (leagueId) navigate(`/leagues/${leagueId}`);
     } catch (err: any) {
-      toast({ title: "Join failed", description: err.message });
+      toast({ title: "Join failed", description: err.message ?? "Invalid or expired invite." });
     } finally {
       setLoading(false);
     }

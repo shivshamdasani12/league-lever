@@ -379,6 +379,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invite: {
+        Args: { _invite_code: string }
+        Returns: Json
+      }
+      is_league_creator: {
+        Args: { _league_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_league_member: {
         Args: { _league_id: string; _user_id: string }
         Returns: boolean

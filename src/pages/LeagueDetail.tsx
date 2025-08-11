@@ -87,7 +87,7 @@ export default function LeagueDetail() {
 
   const [betType, setBetType] = useState("");
   const [betAmount, setBetAmount] = useState<number>(10);
-  const creating = useState(false)[0];
+  const [creatingBet, setCreatingBet] = useState(false);
 
   // Invitations
   const [inviteEmail, setInviteEmail] = useState("");
@@ -98,6 +98,7 @@ export default function LeagueDetail() {
   const createBet = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !betType.trim()) return;
+    setCreatingBet(true);
     try {
       const { error } = await supabase.from("bets").insert({
         league_id: leagueId,
@@ -112,6 +113,8 @@ export default function LeagueDetail() {
       await qc.invalidateQueries({ queryKey: ["bets", leagueId] });
     } catch (err: any) {
       toast({ title: "Error creating bet", description: err.message });
+    } finally {
+      setCreatingBet(false);
     }
   };
 
@@ -200,7 +203,9 @@ export default function LeagueDetail() {
                 <Label htmlFor="betAmount">Token amount</Label>
                 <Input id="betAmount" type="number" min={1} value={betAmount} onChange={(e) => setBetAmount(parseInt(e.target.value || "0", 10))} />
               </div>
-              <Button type="submit" disabled={!betType.trim() || creating}>Offer bet</Button>
+              <Button type="submit" disabled={!betType.trim() || creatingBet}>
+                {creatingBet ? "Offering..." : "Offer bet"}
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -221,7 +226,7 @@ export default function LeagueDetail() {
             </Button>
             {createdCode && (
               <p className="text-sm text-muted-foreground">
-                Code: <span className="font-mono">{createdCode}</span> — share it or ask them to use the Join page.
+                Code: <span className="font-mono">{createdCode}</span> — Share link: <a href={`/join/${createdCode}`} className="underline">/join/{createdCode}</a>
               </p>
             )}
           </form>

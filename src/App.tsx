@@ -12,6 +12,7 @@ import Layout from "./components/Layout";
 import LeagueDetail from "./pages/LeagueDetail";
 import Join from "./pages/Join";
 import ImportSleeper from "./pages/ImportSleeper";
+import JoinAccept from "./pages/JoinAccept";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<RequireAuth><Layout><Index /></Layout></RequireAuth>} />
             <Route path="/leagues/:id" element={<RequireAuth><Layout><LeagueDetail /></Layout></RequireAuth>} />
             <Route path="/join" element={<RequireAuth><Layout><Join /></Layout></RequireAuth>} />
+            <Route path="/join/:invite_code" element={<RequireAuth><Layout><JoinAccept /></Layout></RequireAuth>} />
             <Route path="/import/sleeper" element={<RequireAuth><Layout><ImportSleeper /></Layout></RequireAuth>} />
             <Route path="/auth" element={<Auth />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
