@@ -1,1 +1,13 @@
 project_id = "dcqxqetlbgtaceyospij"
+
+[functions.sleeper-lookup-user]
+verify_jwt = true
+
+[functions.sleeper-user-leagues]
+verify_jwt = true
+
+[functions.sleeper-league-snapshot]
+verify_jwt = true
+
+[functions.sleeper-import]
+verify_jwt = true
