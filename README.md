@@ -71,3 +71,31 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+---
+
+## Import from Sleeper (MVP)
+
+This app supports importing Sleeper leagues via Supabase Edge Functions (no token required).
+
+Flow:
+- Go to /import/sleeper (also available via “Import from Sleeper” button on Dashboard/Sidebar)
+- Choose “By Username” (enter Sleeper username + season) or “By League ID”
+- Select a league (username path) → Review → Import
+- On success you’ll be redirected to the League page populated with teams/rosters (and matchups if provided).
+
+Edge Functions used:
+- sleeper-lookup-user → resolve Sleeper user_id from username
+- sleeper-user-leagues → list user leagues for a season
+- sleeper-league-snapshot → fetch league, users, rosters (and optional week matchups)
+- sleeper-import → upsert data into Supabase tables
+
+Notes:
+- Authentication is required (uses current Supabase session automatically)
+- Imports are idempotent via unique constraints
+- No client env vars needed for Sleeper (open API)
+
+Run locally:
+- npm i && npm run dev
+- Open the preview URL shown by Lovable; sign in, then go to /import/sleeper
+

@@ -66,6 +66,11 @@ const Index = () => {
   return (
     <section className="container mx-auto px-4">
       <h1 className="text-2xl font-bold mb-4">Your Leagues</h1>
+      <div className="mb-4 flex gap-2 flex-wrap">
+        <Link to="/import/sleeper">
+          <Button variant="secondary">Import from Sleeper</Button>
+        </Link>
+      </div>
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Create a new league</CardTitle>

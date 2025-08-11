@@ -1,4 +1,4 @@
-import { Home, Trophy, UserPlus } from "lucide-react";
+import { Home, UserPlus, Download } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -13,6 +13,7 @@ import {
 
 const items = [
   { title: "Dashboard", url: "/", icon: Home },
+  { title: "Import from Sleeper", url: "/import/sleeper", icon: Download },
   { title: "Join League", url: "/join", icon: UserPlus },
 ];
 
