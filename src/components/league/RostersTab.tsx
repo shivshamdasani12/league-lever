@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { fetchRosters, LeagueRosterRow } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props { leagueId: string }
 
@@ -37,6 +38,21 @@ export default function RostersTab({ leagueId }: Props) {
   });
 
   const playerMap = (playersQ.data || {}) as Record<string, PlayerRow>;
+
+  // Attempt to sync missing players automatically
+  useEffect(() => {
+    if (!leagueId || allPlayerIds.length === 0) return;
+    const missing = allPlayerIds.filter((id) => !playerMap[id]?.full_name);
+    if (missing.length === 0) return;
+    (async () => {
+      try {
+        await supabase.functions.invoke("sleeper-sync-players", { body: { player_ids: missing } });
+        await playersQ.refetch();
+      } catch (e) {
+        console.error("Failed to sync players", e);
+      }
+    })();
+  }, [leagueId, allPlayerIds.join(","), Object.keys(playerMap).length]);
 
   if (isLoading) return <p className="text-muted-foreground">Loading rosters...</p>;
   if (isError) return <p className="text-destructive">{(error as any)?.message || "Failed to load rosters."}</p>;
