@@ -415,22 +415,6 @@ export type Database = {
           roster_id: number | null
           week: number | null
         }
-        Insert: {
-          league_id?: string | null
-          opp_points?: never
-          opp_roster_id?: never
-          points?: number | null
-          roster_id?: number | null
-          week?: number | null
-        }
-        Update: {
-          league_id?: string | null
-          opp_points?: never
-          opp_roster_id?: never
-          points?: number | null
-          roster_id?: number | null
-          week?: number | null
-        }
         Relationships: [
           {
             foreignKeyName: "sleeper_matchups_league_id_fkey"
