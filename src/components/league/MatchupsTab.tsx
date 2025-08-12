@@ -25,13 +25,14 @@ export default function MatchupsTab({ leagueId }: Props) {
   const [week, setWeek] = useState<number | null>(initialWeek);
 
   useEffect(() => {
-    if (weeksQ.data && weeksQ.data.length > 0 && week == null) {
+    if (weeksQ.data && weeksQ.data.length > 0 && (week == null || !params.get("week"))) {
       const latest = weeksQ.data.find((w) => w.is_latest) || weeksQ.data[weeksQ.data.length - 1];
       setWeek(latest.week);
-      params.set("week", String(latest.week));
-      setParams(params, { replace: true });
+      const nextParams = new URLSearchParams(params);
+      nextParams.set("week", String(latest.week));
+      setParams(nextParams, { replace: true });
     }
-  }, [weeksQ.data, week]);
+  }, [weeksQ.data, week, params, setParams]);
 
   const rostersQ = useQuery({
     queryKey: ["league-rosters", leagueId],
@@ -75,15 +76,25 @@ export default function MatchupsTab({ leagueId }: Props) {
 
   const weeks = weeksQ.data as LeagueWeekRow[];
 
+  // Debug logs for investigating data flow
+  console.log('=== MATCHUPS DEBUG ===');
+  console.log('League ID:', leagueId);
+  console.log('Weeks data:', weeksQ.data);
+  console.log('Current week:', week);
+  console.log('Matchups data:', matchupsQ.data);
+  console.log('Matchup pairs:', matchupPairs);
+
   return (
     <div className="space-y-4">
       <div className="max-w-xs">
         <Select value={week?.toString()} onValueChange={(v) => {
           const next = parseInt(v, 10);
           setWeek(next);
-          const nextParams = new URLSearchParams(params);
-          nextParams.set("week", String(next));
-          setParams(nextParams, { replace: true });
+          setParams((prev) => {
+            const newParams = new URLSearchParams(prev);
+            newParams.set("week", String(next));
+            return newParams;
+          }, { replace: true });
         }}>
           <SelectTrigger aria-label="Select week">
             <SelectValue placeholder="Select week" />
