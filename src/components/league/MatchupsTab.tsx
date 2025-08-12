@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,18 +9,27 @@ import { fetchMatchups, fetchRosters, fetchWeeks, LeagueMatchupRow, LeagueRoster
 interface Props { leagueId: string }
 
 export default function MatchupsTab({ leagueId }: Props) {
+  const [params, setParams] = useSearchParams();
+
   const weeksQ = useQuery({
     queryKey: ["league-weeks", leagueId],
     enabled: !!leagueId,
     queryFn: () => fetchWeeks(leagueId),
   });
 
-  const [week, setWeek] = useState<number | null>(null);
+  const initialWeek = (() => {
+    const w = params.get("week");
+    return w ? parseInt(w, 10) : null;
+  })();
+
+  const [week, setWeek] = useState<number | null>(initialWeek);
 
   useEffect(() => {
     if (weeksQ.data && weeksQ.data.length > 0 && week == null) {
       const latest = weeksQ.data.find((w) => w.is_latest) || weeksQ.data[weeksQ.data.length - 1];
       setWeek(latest.week);
+      params.set("week", String(latest.week));
+      setParams(params, { replace: true });
     }
   }, [weeksQ.data, week]);
 
@@ -68,7 +78,13 @@ export default function MatchupsTab({ leagueId }: Props) {
   return (
     <div className="space-y-4">
       <div className="max-w-xs">
-        <Select value={week?.toString()} onValueChange={(v) => setWeek(parseInt(v, 10))}>
+        <Select value={week?.toString()} onValueChange={(v) => {
+          const next = parseInt(v, 10);
+          setWeek(next);
+          const nextParams = new URLSearchParams(params);
+          nextParams.set("week", String(next));
+          setParams(nextParams, { replace: true });
+        }}>
           <SelectTrigger aria-label="Select week">
             <SelectValue placeholder="Select week" />
           </SelectTrigger>
