@@ -20,11 +20,42 @@ export default function StandingsTab({ leagueId }: Props) {
       <span>Loading standings...</span>
     </div>
   );
+  
   if (isError) return <p className="text-destructive">{(error as any)?.message || "Failed to load standings."}</p>;
-  if (!data || data.length === 0) return <p className="text-muted-foreground">No standings available yet.</p>;
+  
+  if (!data || data.length === 0) {
+    return (
+      <div className="p-8 text-center space-y-4">
+        <div className="text-muted-foreground">
+          <h3 className="text-lg font-semibold mb-2">No Standings Available</h3>
+          <p className="mb-4">
+            This league doesn't have any standings yet. During preseason, standings will appear 
+            automatically once the regular season begins and games are played.
+          </p>
+          <p className="text-sm">
+            The system will automatically import matchup data from Sleeper when available.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if this is preseason (all teams have 0-0 records)
+  const isPreseason = data.every((row: LeagueStandingRow) => 
+    row.wins === 0 && row.losses === 0 && row.ties === 0
+  );
 
   return (
     <div className="w-full overflow-auto">
+      {isPreseason && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="text-sm text-blue-800">
+            <strong>Preseason Mode:</strong> No games have been played yet. 
+            Standings show team rosters and will update automatically when the season begins.
+          </div>
+        </div>
+      )}
+      
       <Table>
         <TableHeader>
           <TableRow>

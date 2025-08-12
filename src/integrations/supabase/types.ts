@@ -415,18 +415,7 @@ export type Database = {
       }
     }
     Views: {
-      league_matchup_pairs_v: {
-        Row: {
-          league_id: string | null
-          matchup_id: number | null
-          points_a: number | null
-          points_b: number | null
-          roster_a: number | null
-          roster_b: number | null
-          week: number | null
-        }
-        Relationships: []
-      }
+
       league_matchups_v: {
         Row: {
           league_id: string | null

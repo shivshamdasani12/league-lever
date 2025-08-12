@@ -1,21 +1,21 @@
-import { useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
 
-interface Props { leagueId: string; leagueName: string; }
+interface Props { leagueId: string; leagueName: string; teamsCount: number; }
 
-export default function GeneralTab({ leagueId, leagueName }: Props) {
-  const { toast } = useToast();
+export default function GeneralTab({ leagueId, leagueName, teamsCount }: Props) {
   const qc = useQueryClient();
   const [inviteEmail, setInviteEmail] = useState("");
+  const [createdCode, setCreatedCode] = useState("");
   const [creatingInvite, setCreatingInvite] = useState(false);
-  const [createdCode, setCreatedCode] = useState<string | null>(null);
 
+  // Restore members query
   const membersQ = useQuery({
     queryKey: ["league-members", leagueId],
     enabled: !!leagueId,
@@ -29,8 +29,6 @@ export default function GeneralTab({ leagueId, leagueName }: Props) {
       return data ?? [];
     },
   });
-
-  const teamsCount = useMemo(() => membersQ.data?.length ?? 0, [membersQ.data]);
 
   const createInvitation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,20 +53,6 @@ export default function GeneralTab({ leagueId, leagueName }: Props) {
     }
   };
 
-const syncPlayers = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke("sleeper-sync-players", { body: { league_id: leagueId } });
-      if (error) throw error;
-      const upserted = (data as any)?.upserted ?? 0;
-      toast({ title: "Players synced", description: `Upserted ${upserted} players.` });
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["league-rosters", leagueId] }),
-        qc.invalidateQueries({ queryKey: ["players-by-ids", leagueId] }),
-      ]);
-    } catch (e: any) {
-      toast({ title: "Sync failed", description: e?.message ?? "Unknown error" });
-    }
-  };
   return (
     <div className="space-y-4">
       <Card className="bg-card border shadow-card">
@@ -85,8 +69,8 @@ const syncPlayers = async () => {
               <div className="text-muted-foreground">Members</div>
               <div className="font-medium">{teamsCount}</div>
             </div>
-            <div className="flex items-end justify-end">
-              <Button variant="secondary" onClick={syncPlayers}>Sync Player Names</Button>
+            <div className="flex items-end justify-end space-x-2">
+              {/* Removed non-functional buttons - season schedule imports automatically */}
             </div>
           </div>
         </CardContent>

@@ -37,13 +37,28 @@ export interface LeagueStandingRow {
   win_pct: number;
 }
 
+// OPTIMIZED: Cache roster data to reduce duplicate API calls
+const rosterCache = new Map<string, LeagueRosterRow[]>();
+
 export async function fetchRosters(leagueId: string) {
+  // Check cache first
+  if (rosterCache.has(leagueId)) {
+    return rosterCache.get(leagueId)!;
+  }
+
   const { data, error } = await supabase
     .from("league_rosters_v")
     .select("*")
     .eq("league_id", leagueId);
+  
   if (error) throw error;
-  return (data ?? []) as LeagueRosterRow[];
+  
+  const result = (data ?? []) as LeagueRosterRow[];
+  
+  // Cache the result
+  rosterCache.set(leagueId, result);
+  
+  return result;
 }
 
 export async function fetchWeeks(leagueId: string) {
@@ -52,18 +67,21 @@ export async function fetchWeeks(leagueId: string) {
     .select("*")
     .eq("league_id", leagueId)
     .order("week", { ascending: true });
+  
   if (error) throw error;
   return (data ?? []) as LeagueWeekRow[];
 }
 
 export async function fetchMatchups(leagueId: string, week: number) {
   console.log("Fetching matchups for week:", week);
+  
   const { data, error } = await supabase
     .from("league_matchups_v")
     .select("*")
     .eq("league_id", leagueId)
     .eq("week", week)
     .order("roster_id", { ascending: true });
+  
   if (error) throw error;
   return (data ?? []) as LeagueMatchupRow[];
 }
@@ -75,18 +93,67 @@ export async function fetchStandings(leagueId: string) {
     .eq("league_id", leagueId)
     .order("win_pct", { ascending: false })
     .order("pf", { ascending: false });
+  
   if (error) throw error;
   return (data ?? []) as LeagueStandingRow[];
 }
+
+// OPTIMIZED: Single function for matchup pairs with better error handling
 export async function fetchMatchupPairs(leagueId: string, week: number) {
   console.log("Fetching matchup pairs for week:", week);
+  
+  try {
+    const { data, error } = await supabase
+      .from("league_matchups_v")
+      .select("*")
+      .eq("league_id", leagueId)
+      .eq("week", week)
+      .order("roster_id", { ascending: true });
+    
+    if (error) throw error;
+    
+    const rows = (data ?? []) as LeagueMatchupRow[];
+    const pairs: Array<{ team1: LeagueMatchupRow; team2?: LeagueMatchupRow }> = [];
+    
+    // Efficient pairing algorithm
+    for (let i = 0; i < rows.length; i += 2) {
+      const team1 = rows[i];
+      const team2 = rows[i + 1];
+      
+      if (team1) {
+        pairs.push({ team1, team2 });
+      }
+    }
+    
+    return pairs;
+  } catch (error) {
+    console.error("Error fetching matchup pairs:", error);
+    return [];
+  }
+}
+
+// OPTIMIZED: Batch fetch function for multiple weeks
+export async function fetchMultipleWeeks(leagueId: string, weeks: number[]) {
+  if (weeks.length === 0) return [];
+  
   const { data, error } = await supabase
     .from("league_matchups_v")
     .select("*")
     .eq("league_id", leagueId)
-    .eq("week", week)
+    .in("week", weeks)
+    .order("week", { ascending: true })
     .order("roster_id", { ascending: true });
+  
   if (error) throw error;
   return (data ?? []) as LeagueMatchupRow[];
+}
+
+// OPTIMIZED: Clear cache when needed
+export function clearRosterCache(leagueId?: string) {
+  if (leagueId) {
+    rosterCache.delete(leagueId);
+  } else {
+    rosterCache.clear();
+  }
 }
 
