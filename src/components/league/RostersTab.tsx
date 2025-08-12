@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { fetchRosters, LeagueRosterRow } from "@/lib/queries/league";
+import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
 
 interface Props { leagueId: string }
 
@@ -17,6 +19,24 @@ export default function RostersTab({ leagueId }: Props) {
     enabled: !!leagueId,
     queryFn: () => fetchRosters(leagueId),
   });
+
+  // Build unique list of player IDs across all rosters
+  const allPlayerIds = useMemo(() => {
+    const ids = new Set<string>();
+    (data || []).forEach((r: LeagueRosterRow) => {
+      (Array.isArray(r.players) ? r.players : []).forEach((id) => ids.add(id));
+      (Array.isArray(r.starters) ? r.starters : []).forEach((id) => ids.add(id));
+    });
+    return Array.from(ids);
+  }, [data]);
+
+  const playersQ = useQuery({
+    queryKey: ["players-by-ids", leagueId, allPlayerIds.join(",")],
+    enabled: !!leagueId && allPlayerIds.length > 0,
+    queryFn: () => fetchPlayersByIds(allPlayerIds),
+  });
+
+  const playerMap = (playersQ.data || {}) as Record<string, PlayerRow>;
 
   if (isLoading) return <p className="text-muted-foreground">Loading rosters...</p>;
   if (isError) return <p className="text-destructive">{(error as any)?.message || "Failed to load rosters."}</p>;
@@ -44,7 +64,7 @@ export default function RostersTab({ leagueId }: Props) {
                   <ul className="space-y-1 text-sm">
                     {starters.length === 0 && <li className="text-muted-foreground">None</li>}
                     {starters.map((pid, idx) => (
-                      <li key={pid + idx} className="font-mono">{pid}</li>
+                      <li key={pid + idx} className="">{playerMap[pid]?.full_name || pid}</li>
                     ))}
                   </ul>
                 </div>
@@ -53,7 +73,7 @@ export default function RostersTab({ leagueId }: Props) {
                   <ul className="space-y-1 text-sm">
                     {bench.length === 0 && <li className="text-muted-foreground">None</li>}
                     {bench.map((pid, idx) => (
-                      <li key={pid + idx} className="font-mono">{pid}</li>
+                      <li key={pid + idx} className="">{playerMap[pid]?.full_name || pid}</li>
                     ))}
                   </ul>
                 </div>
