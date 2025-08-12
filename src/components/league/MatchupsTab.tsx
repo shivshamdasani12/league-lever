@@ -43,11 +43,6 @@ export default function MatchupsTab({ leagueId }: Props) {
     return map;
   }, [rostersQ.data]);
 
-  if (weeksQ.isLoading) return <p className="text-muted-foreground">Loading weeks...</p>;
-  if (weeksQ.isError) return <p className="text-destructive">Failed to load weeks.</p>;
-
-  const weeks = weeksQ.data as LeagueWeekRow[];
-
   const matchupPairs = useMemo(() => {
     const pairs: Array<{ a: LeagueMatchupRow; b?: LeagueMatchupRow }> = [];
     const rows = (matchupsQ.data || []) as LeagueMatchupRow[];
@@ -64,6 +59,11 @@ export default function MatchupsTab({ leagueId }: Props) {
     });
     return pairs;
   }, [matchupsQ.data]);
+
+  if (weeksQ.isLoading) return <p className="text-muted-foreground">Loading weeks...</p>;
+  if (weeksQ.isError) return <p className="text-destructive">Failed to load weeks.</p>;
+
+  const weeks = weeksQ.data as LeagueWeekRow[];
 
   return (
     <div className="space-y-4">
