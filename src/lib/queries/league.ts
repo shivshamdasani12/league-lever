@@ -57,6 +57,7 @@ export async function fetchWeeks(leagueId: string) {
 }
 
 export async function fetchMatchups(leagueId: string, week: number) {
+  console.log("Fetching matchups for week:", week);
   const { data, error } = await supabase
     .from("league_matchups_v")
     .select("*")
@@ -78,6 +79,7 @@ export async function fetchStandings(leagueId: string) {
   return (data ?? []) as LeagueStandingRow[];
 }
 export async function fetchMatchupPairs(leagueId: string, week: number) {
+  console.log("Fetching matchup pairs for week:", week);
   const { data, error } = await supabase
     .from("league_matchups_v")
     .select("*")

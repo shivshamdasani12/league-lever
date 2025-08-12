@@ -110,6 +110,7 @@ serve(async (req) => {
           const state = await stateRes.json();
           seasonType = String(state?.season_type ?? "");
           currentWeekNum = Number(state?.week);
+          console.log("NFL state", { season_type: seasonType, current_week: currentWeekNum });
         } else {
           console.warn("NFL state fetch failed", { status: stateRes.status });
         }
