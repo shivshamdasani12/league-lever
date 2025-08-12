@@ -57,6 +57,8 @@ export function useEnsureLeagueMatchups(leagueId?: string | null) {
         setImporting(false);
         await Promise.all([
           qc.invalidateQueries({ queryKey: ["league-weeks", leagueId] }),
+          qc.invalidateQueries({ queryKey: ["matchup-pairs", leagueId] }),
+          qc.invalidateQueries({ queryKey: ["standings", leagueId] }),
           qc.invalidateQueries({ queryKey: ["league-standings", leagueId] }),
         ]);
 

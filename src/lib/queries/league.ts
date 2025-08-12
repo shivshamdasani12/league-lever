@@ -77,3 +77,14 @@ export async function fetchStandings(leagueId: string) {
   if (error) throw error;
   return (data ?? []) as LeagueStandingRow[];
 }
+export async function fetchMatchupPairs(leagueId: string, week: number) {
+  const { data, error } = await supabase
+    .from("league_matchups_v")
+    .select("*")
+    .eq("league_id", leagueId)
+    .eq("week", week)
+    .order("roster_id", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as LeagueMatchupRow[];
+}
+

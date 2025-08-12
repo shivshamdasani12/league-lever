@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { fetchMatchups, fetchRosters, fetchWeeks, LeagueMatchupRow, LeagueRosterRow, LeagueWeekRow } from "@/lib/queries/league";
+import { fetchMatchupPairs, fetchRosters, fetchWeeks, LeagueMatchupRow, LeagueRosterRow, LeagueWeekRow } from "@/lib/queries/league";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
@@ -54,9 +54,9 @@ export default function MatchupsTab({ leagueId }: Props) {
   });
 
   const matchupsQ = useQuery({
-    queryKey: ["league-matchups", leagueId, week],
+    queryKey: ["matchup-pairs", leagueId, week],
     enabled: !!leagueId && typeof week === "number",
-    queryFn: () => fetchMatchups(leagueId, week as number),
+    queryFn: () => fetchMatchupPairs(leagueId, week as number),
   });
 
   // Ensure selected week's data exists; fetch from Sleeper only if missing
@@ -79,8 +79,9 @@ export default function MatchupsTab({ leagueId }: Props) {
             toast({ title: "Sleeper import failed", description: `League ${sid}: weeks ${weeksStr}` });
           }
           await Promise.all([
-            qc.invalidateQueries({ queryKey: ["league-matchups", leagueId, week] }),
+            qc.invalidateQueries({ queryKey: ["matchup-pairs", leagueId, week] }),
             qc.invalidateQueries({ queryKey: ["league-weeks", leagueId] }),
+            qc.invalidateQueries({ queryKey: ["standings", leagueId] }),
             qc.invalidateQueries({ queryKey: ["league-standings", leagueId] }),
           ]);
         } catch (e: any) {
@@ -131,14 +132,14 @@ export default function MatchupsTab({ leagueId }: Props) {
   console.log('League ID:', leagueId);
   console.log('Weeks data:', weeksQ.data);
   console.log('Current week:', week);
-  console.log('Matchups data:', matchupsQ.data);
+  console.log('Matchups data for key', ["matchup-pairs", leagueId, week], matchupsQ.data);
   console.log('Matchup pairs:', matchupPairs);
 
   return (
     <div className="space-y-4">
       <div className="max-w-xs">
-        <Select value={week?.toString()} onValueChange={(v) => {
-          const next = parseInt(v, 10);
+        <Select value={week != null ? String(week) : ""} onValueChange={(v) => {
+          const next = Number(v);
           setWeek(next);
           setParams((prev) => {
             const newParams = new URLSearchParams(prev);
@@ -151,7 +152,7 @@ export default function MatchupsTab({ leagueId }: Props) {
           </SelectTrigger>
           <SelectContent>
             {weeks.map((w) => (
-              <SelectItem key={w.week} value={w.week.toString()}>
+              <SelectItem key={w.week} value={String(w.week)}>
                 Week {w.week}{w.is_latest ? " (latest)" : ""}
               </SelectItem>
             ))}
