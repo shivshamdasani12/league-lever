@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { fetchMatchups, fetchRosters, fetchWeeks, LeagueMatchupRow, LeagueRosterRow, LeagueWeekRow } from "@/lib/queries/league";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+import { Loader2 } from "lucide-react";
+import { useEnsureLeagueMatchups } from "@/hooks/useEnsureLeagueMatchups";
 
 interface Props { leagueId: string }
 
@@ -37,53 +38,14 @@ export default function MatchupsTab({ leagueId }: Props) {
     }
   }, [weeksQ.data, week, params, setParams]);
 
+  const { importing: importingAll } = useEnsureLeagueMatchups(leagueId);
   const qc = useQueryClient();
-  const [importing, setImporting] = useState(false);
+  const [importingWeek, setImportingWeek] = useState(false);
   const selectedWeek = typeof week === "number" ? week : 1;
 
-  const handleImportWeek = async () => {
-    if (!leagueId) return;
-    setImporting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("sleeper-import-matchups", {
-        body: { league_id: leagueId, weeks: [selectedWeek] },
-      });
-      if (error) throw new Error(error.message);
-      toast({ title: "Matchups imported", description: `Week ${selectedWeek} imported successfully.` });
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["league-weeks", leagueId] }),
-        qc.invalidateQueries({ queryKey: ["league-matchups", leagueId] }),
-        qc.invalidateQueries({ queryKey: ["league-matchups", leagueId, selectedWeek] }),
-        qc.invalidateQueries({ queryKey: ["league-standings", leagueId] }),
-      ]);
-    } catch (e: any) {
-      toast({ title: "Import failed", description: e?.message ?? "Unknown error" });
-    } finally {
-      setImporting(false);
-    }
-  };
+  // Week-level import effect moved below after matchupsQ declaration to avoid TDZ
 
-  const handleBackfillAll = async () => {
-    if (!leagueId) return;
-    setImporting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("sleeper-import-matchups", {
-        body: { league_id: leagueId, all_to_current: true },
-      });
-      if (error) throw new Error(error.message);
-      const up = (data as any)?.rows_upserted ?? 0;
-      toast({ title: "Backfill complete", description: `${up} rows upserted across weeks.` });
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["league-weeks", leagueId] }),
-        qc.invalidateQueries({ queryKey: ["league-matchups", leagueId] }),
-        qc.invalidateQueries({ queryKey: ["league-standings", leagueId] }),
-      ]);
-    } catch (e: any) {
-      toast({ title: "Backfill failed", description: e?.message ?? "Unknown error" });
-    } finally {
-      setImporting(false);
-    }
-  };
+  // Backfill button removed; automatic import runs on page load via useEnsureLeagueMatchups
 
   const rostersQ = useQuery({
     queryKey: ["league-rosters", leagueId],
@@ -96,6 +58,33 @@ export default function MatchupsTab({ leagueId }: Props) {
     enabled: !!leagueId && typeof week === "number",
     queryFn: () => fetchMatchups(leagueId, week as number),
   });
+
+  // Ensure selected week's data exists; fetch from Sleeper only if missing
+  useEffect(() => {
+    if (!leagueId || typeof week !== "number") return;
+    if (matchupsQ.isLoading) return;
+    const rows = (matchupsQ.data || []) as LeagueMatchupRow[];
+    if (rows.length === 0) {
+      (async () => {
+        setImportingWeek(true);
+        try {
+          const { error } = await supabase.functions.invoke("sleeper-import-matchups", {
+            body: { league_id: leagueId, weeks: [week] },
+          });
+          if (error) throw new Error(error.message);
+          await Promise.all([
+            qc.invalidateQueries({ queryKey: ["league-matchups", leagueId, week] }),
+            qc.invalidateQueries({ queryKey: ["league-weeks", leagueId] }),
+            qc.invalidateQueries({ queryKey: ["league-standings", leagueId] }),
+          ]);
+        } catch (e: any) {
+          toast({ title: "Import failed", description: e?.message ?? "Unknown error" });
+        } finally {
+          setImportingWeek(false);
+        }
+      })();
+    }
+  }, [leagueId, week, matchupsQ.isLoading, matchupsQ.data, qc]);
 
   const rosterName = useMemo(() => {
     const map = new Map<number, string>();
@@ -122,9 +111,13 @@ export default function MatchupsTab({ leagueId }: Props) {
     return pairs;
   }, [matchupsQ.data]);
 
-  if (weeksQ.isLoading) return <p className="text-muted-foreground">Loading weeks...</p>;
+  if (weeksQ.isLoading) return (
+    <div className="flex items-center gap-2 text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      <span>Loading weeks...</span>
+    </div>
+  );
   if (weeksQ.isError) return <p className="text-destructive">Failed to load weeks.</p>;
-
   const weeks = weeksQ.data as LeagueWeekRow[];
 
   // Debug logs for investigating data flow
@@ -160,25 +153,14 @@ export default function MatchupsTab({ leagueId }: Props) {
         </Select>
       </div>
 
-      {matchupsQ.isLoading && <p className="text-muted-foreground">Loading matchups...</p>}
+      {(matchupsQ.isLoading || importingAll || importingWeek) && (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Loading matchups...</span>
+        </div>
+      )}
       {matchupsQ.isError && <p className="text-destructive">Failed to load matchups.</p>}
 
-      <div className="flex items-center gap-3">
-        {(!weeks || weeks.length === 0) ? (
-          <Button variant="secondary" onClick={handleBackfillAll} disabled={importing || !leagueId}>
-            {importing ? "Importing..." : "Backfill matchups (1..current)"}
-          </Button>
-        ) : (
-          <>
-            <Button variant="secondary" onClick={handleImportWeek} disabled={importing || !leagueId}>
-              {importing ? "Importing..." : `Import matchups for week ${selectedWeek}`}
-            </Button>
-            {((!weeks?.length) || !weeks.some(w => w.week === selectedWeek)) && (
-              <span className="text-sm text-muted-foreground">No data yet for this week.</span>
-            )}
-          </>
-        )}
-      </div>
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {matchupPairs.length === 0 && !matchupsQ.isLoading && (

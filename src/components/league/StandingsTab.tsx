@@ -1,19 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { fetchStandings, LeagueStandingRow } from "@/lib/queries/league";
+import { Loader2 } from "lucide-react";
+import { useEnsureLeagueMatchups } from "@/hooks/useEnsureLeagueMatchups";
 
 interface Props { leagueId: string }
 
 export default function StandingsTab({ leagueId }: Props) {
+  const { importing } = useEnsureLeagueMatchups(leagueId);
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["league-standings", leagueId],
     enabled: !!leagueId,
     queryFn: () => fetchStandings(leagueId),
   });
 
-  if (isLoading) return <p className="text-muted-foreground">Loading standings...</p>;
+  if (isLoading || importing) return (
+    <div className="flex items-center gap-2 text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      <span>Loading standings...</span>
+    </div>
+  );
   if (isError) return <p className="text-destructive">{(error as any)?.message || "Failed to load standings."}</p>;
-  if (!data || data.length === 0) return <p className="text-muted-foreground">No standings yet. Use Backfill Matchups from the Matchups tab.</p>;
+  if (!data || data.length === 0) return <p className="text-muted-foreground">No standings available yet.</p>;
 
   return (
     <div className="w-full overflow-auto">
