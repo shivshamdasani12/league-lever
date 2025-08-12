@@ -81,43 +81,74 @@ serve(async (req) => {
       });
     }
 
-    let targetWeeks: number[] | undefined = weeks;
-    if ((!weeks || weeks.length === 0) && all_to_current) {
-      const stateRes = await fetchWithRetry("https://api.sleeper.app/v1/state/nfl");
-      if (!stateRes.ok) {
-        const txt = await stateRes.text();
-        console.error("Failed to fetch NFL state:", stateRes.status, txt);
-        return new Response(JSON.stringify({ error: "Failed to fetch NFL state" }), {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+    // Resolve external Sleeper league id from our DB using internal UUID
+    const { data: leagueRow, error: leagueErr } = await userClient
+      .from("leagues")
+      .select("external_id, provider")
+      .eq("id", league_id)
+      .single();
+
+    if (leagueErr || !leagueRow?.external_id) {
+      console.error("External league id lookup failed", { league_id, leagueErr });
+      return new Response(
+        JSON.stringify({ error: "Missing external Sleeper league id mapping for this league" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const sleeperLeagueId = String(leagueRow.external_id);
+
+    // Compute target weeks robustly
+    let targetWeeks: number[] | undefined = Array.isArray(weeks) && weeks.length > 0 ? weeks : undefined;
+
+    if (!targetWeeks) {
+      let currentWeek: number | null = null;
+      try {
+        const stateRes = await fetchWithRetry("https://api.sleeper.app/v1/state/nfl");
+        if (stateRes.ok) {
+          const state = await stateRes.json();
+          currentWeek = Number(state?.week);
+        } else {
+          console.warn("NFL state fetch failed", { status: stateRes.status });
+        }
+      } catch (e) {
+        console.warn("NFL state fetch threw", e);
       }
-      const state = await stateRes.json();
-      const currentWeek = Math.max(1, Number(state?.week ?? 1));
-      targetWeeks = Array.from({ length: currentWeek }, (_, i) => i + 1);
+
+      if (all_to_current && typeof currentWeek === "number" && currentWeek >= 1) {
+        targetWeeks = Array.from({ length: currentWeek }, (_, i) => i + 1);
+      } else {
+        // Default to full regular season when unknown
+        targetWeeks = Array.from({ length: 18 }, (_, i) => i + 1);
+      }
     }
 
     if (!targetWeeks || targetWeeks.length === 0) {
-      return new Response(JSON.stringify({ error: "No weeks specified" }), {
+      return new Response(JSON.stringify({ error: "No weeks to import" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    console.log("Import start", { internal_league_id: league_id, sleeper_league_id: sleeperLeagueId, weeks: targetWeeks });
+
     const imported_weeks: number[] = [];
     let rows_upserted = 0;
+    const errors: Array<{ week: number; status: number; body?: string }> = [];
 
     for (const wk of targetWeeks) {
-      const url = `https://api.sleeper.app/v1/league/${league_id}/matchups/${wk}`;
+      const url = `https://api.sleeper.app/v1/league/${sleeperLeagueId}/matchups/${wk}`;
       const res = await fetchWithRetry(url);
       if (!res.ok) {
         const txt = await res.text();
-        console.error("Fetch failed for week", wk, res.status, txt);
+        console.error("Fetch failed", { week: wk, sleeper_league_id: sleeperLeagueId, status: res.status, body: txt });
+        errors.push({ week: wk, status: res.status, body: txt?.slice(0, 200) });
         continue;
       }
       const matchups = await res.json();
+      const fetchedCount = Array.isArray(matchups) ? matchups.length : 0;
       if (!Array.isArray(matchups)) {
-        console.log("No matchups array for week", wk);
+        console.log("No matchups array", { week: wk, sleeper_league_id: sleeperLeagueId });
         continue;
       }
 
@@ -146,11 +177,11 @@ serve(async (req) => {
 
       rows_upserted += data?.length ?? 0;
       imported_weeks.push(wk);
-      console.log(`Week ${wk} imported: ${data?.length ?? 0} rows`);
+      console.log(`Week ${wk} imported`, { fetched: fetchedCount, upserted: data?.length ?? 0 });
     }
 
     return new Response(
-      JSON.stringify({ imported_weeks, rows_upserted }),
+      JSON.stringify({ imported_weeks: imported_weeks.length, rows_upserted, sleeper_league_id: sleeperLeagueId, errors }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {

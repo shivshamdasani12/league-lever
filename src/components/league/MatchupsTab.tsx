@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { fetchMatchups, fetchRosters, fetchWeeks, LeagueMatchupRow, LeagueRosterRow, LeagueWeekRow } from "@/lib/queries/league";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useEnsureLeagueMatchups } from "@/hooks/useEnsureLeagueMatchups";
 
@@ -68,10 +68,16 @@ export default function MatchupsTab({ leagueId }: Props) {
       (async () => {
         setImportingWeek(true);
         try {
-          const { error } = await supabase.functions.invoke("sleeper-import-matchups", {
+          const { data, error } = await supabase.functions.invoke("sleeper-import-matchups", {
             body: { league_id: leagueId, weeks: [week] },
           });
           if (error) throw new Error(error.message);
+          const errs = (data as any)?.errors || [];
+          if (errs.length > 0) {
+            const sid = (data as any)?.sleeper_league_id;
+            const weeksStr = errs.map((e: any) => `${e.week}(${e.status})`).join(", ");
+            toast({ title: "Sleeper import failed", description: `League ${sid}: weeks ${weeksStr}` });
+          }
           await Promise.all([
             qc.invalidateQueries({ queryKey: ["league-matchups", leagueId, week] }),
             qc.invalidateQueries({ queryKey: ["league-weeks", leagueId] }),
