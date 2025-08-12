@@ -10,11 +10,9 @@ export default function Layout({ children }: PropsWithChildren) {
     <SidebarProvider>
       <header className="h-12 flex items-center border-b px-3 gap-3">
         <SidebarTrigger />
-        <div className="font-semibold">league-lever</div>
-        <div className="ml-auto flex items-center gap-3 text-sm">
-          <span className="text-muted-foreground">{user?.email}</span>
-          <Button variant="secondary" size="sm" onClick={() => signOut()}>Sign out</Button>
-        </div>
+        <span className="text-sm text-muted-foreground">{user?.email}</span>
+        <Button variant="secondary" size="sm" onClick={() => signOut()}>Sign out</Button>
+        <div className="ml-auto font-semibold">league-lever</div>
       </header>
       <div className="flex min-h-[calc(100vh-3rem)] w-full">
         <AppSidebar />

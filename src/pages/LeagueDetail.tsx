@@ -12,6 +12,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import RostersTab from "@/components/league/RostersTab";
 import MatchupsTab from "@/components/league/MatchupsTab";
 import StandingsTab from "@/components/league/StandingsTab";
+import GeneralTab from "@/components/league/GeneralTab";
+import WagersTab from "@/components/league/WagersTab";
 
 interface Bet {
   id: string;
@@ -172,12 +174,19 @@ export default function LeagueDetail() {
     <section className="container mx-auto px-4">
       <h1 className="text-2xl font-bold mb-4">{league.name}</h1>
 
-      <Tabs defaultValue="rosters" className="mb-6">
-        <TabsList>
-          <TabsTrigger value="rosters">Rosters</TabsTrigger>
-          <TabsTrigger value="matchups">Matchups</TabsTrigger>
-          <TabsTrigger value="standings">Standings</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="general" className="mb-6">
+        <div className="flex justify-center">
+          <TabsList className="mx-auto">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="rosters">Rosters</TabsTrigger>
+            <TabsTrigger value="matchups">Matchups</TabsTrigger>
+            <TabsTrigger value="standings">Standings</TabsTrigger>
+            <TabsTrigger value="wagers">Wagers</TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="general">
+          <GeneralTab leagueId={leagueId} leagueName={league.name} />
+        </TabsContent>
         <TabsContent value="rosters">
           <RostersTab leagueId={leagueId} />
         </TabsContent>
@@ -187,100 +196,13 @@ export default function LeagueDetail() {
         <TabsContent value="standings">
           <StandingsTab leagueId={leagueId} />
         </TabsContent>
+        <TabsContent value="wagers">
+          <WagersTab leagueId={leagueId} />
+        </TabsContent>
       </Tabs>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Members</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {membersQuery.isLoading && <p className="text-muted-foreground">Loading members...</p>}
-            {membersQuery.isError && <p className="text-destructive">Failed to load members.</p>}
-            {membersQuery.data?.length === 0 && !membersQuery.isLoading && (
-              <p className="text-muted-foreground">No members yet.</p>
-            )}
-            <ul className="space-y-2">
-              {membersQuery.data?.map((m: any) => (
-                <li key={m.id} className="text-sm">
-                  <span className="font-mono">{m.user_id}</span> – {m.role}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+      {/* Content below tabs removed; now handled inside General and Wagers tabs */}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Offer a bet</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={createBet} className="space-y-3">
-              <div className="space-y-1">
-                <Label htmlFor="betType">Bet description</Label>
-                <Input id="betType" placeholder="e.g., Team A beats Team B" value={betType} onChange={(e) => setBetType(e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="betAmount">Token amount</Label>
-                <Input id="betAmount" type="number" min={1} value={betAmount} onChange={(e) => setBetAmount(parseInt(e.target.value || "0", 10))} />
-              </div>
-              <Button type="submit" disabled={!betType.trim() || creatingBet}>
-                {creatingBet ? "Offering..." : "Offer bet"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Invite members</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={createInvitation} className="space-y-3">
-            <div className="space-y-1">
-              <Label htmlFor="inviteEmail">Email</Label>
-              <Input id="inviteEmail" type="email" placeholder="friend@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
-            </div>
-            <Button type="submit" disabled={creatingInvite}>
-              {creatingInvite ? "Creating..." : "Create invite code"}
-            </Button>
-            {createdCode && (
-              <p className="text-sm text-muted-foreground">
-                Code: <span className="font-mono">{createdCode}</span> — Share link: <a href={`/join/${createdCode}`} className="underline">/join/{createdCode}</a>
-              </p>
-            )}
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Bets</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {betsQuery.isLoading && <p className="text-muted-foreground">Loading bets...</p>}
-          {betsQuery.isError && <p className="text-destructive">Failed to load bets.</p>}
-          {betsQuery.data?.length === 0 && !betsQuery.isLoading && (
-            <p className="text-muted-foreground">No bets yet. Offer one above.</p>
-          )}
-          <ul className="space-y-3">
-            {betsQuery.data?.map((b) => (
-              <li key={b.id} className="flex items-center justify-between border rounded p-3">
-                <div>
-                  <div className="font-medium">{b.type}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {b.token_amount} tokens • {b.status}
-                  </div>
-                </div>
-                {b.status === "offered" && user && b.created_by !== user.id && (
-                  <Button size="sm" onClick={() => acceptBet(b)}>Accept</Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
 
       <div className="mt-4">
         <Button variant="secondary" onClick={() => navigate(-1)}>Back</Button>
