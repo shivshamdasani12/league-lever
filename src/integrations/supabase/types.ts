@@ -185,6 +185,36 @@ export type Database = {
         }
         Relationships: []
       }
+      players: {
+        Row: {
+          fantasy_positions: string[] | null
+          full_name: string | null
+          player_id: string
+          position: string | null
+          status: string | null
+          team: string | null
+          updated_at: string
+        }
+        Insert: {
+          fantasy_positions?: string[] | null
+          full_name?: string | null
+          player_id: string
+          position?: string | null
+          status?: string | null
+          team?: string | null
+          updated_at?: string
+        }
+        Update: {
+          fantasy_positions?: string[] | null
+          full_name?: string | null
+          player_id?: string
+          position?: string | null
+          status?: string | null
+          team?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -404,6 +434,43 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sleeper_matchups_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      league_player_ids_v: {
+        Row: {
+          league_id: string | null
+          player_id: string | null
+        }
+        Relationships: []
+      }
+      league_players_v: {
+        Row: {
+          full_name: string | null
+          league_id: string | null
+          player_id: string | null
+          position: string | null
+          team: string | null
+        }
+        Relationships: []
+      }
+      league_rosters_named_v: {
+        Row: {
+          bench_named: Json | null
+          league_id: string | null
+          owner_avatar: string | null
+          owner_name: string | null
+          owner_username: string | null
+          roster_id: number | null
+          starters_named: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sleeper_rosters_league_id_fkey"
             columns: ["league_id"]
             isOneToOne: false
             referencedRelation: "leagues"
