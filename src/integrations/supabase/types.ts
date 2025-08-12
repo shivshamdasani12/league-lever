@@ -283,7 +283,10 @@ export type Database = {
       sleeper_matchups: {
         Row: {
           id: number
+          is_consolation: boolean | null
+          is_playoffs: boolean | null
           league_id: string
+          matchup_id: number | null
           players: Json | null
           points: number | null
           roster_id: number
@@ -292,7 +295,10 @@ export type Database = {
         }
         Insert: {
           id?: number
+          is_consolation?: boolean | null
+          is_playoffs?: boolean | null
           league_id: string
+          matchup_id?: number | null
           players?: Json | null
           points?: number | null
           roster_id: number
@@ -301,7 +307,10 @@ export type Database = {
         }
         Update: {
           id?: number
+          is_consolation?: boolean | null
+          is_playoffs?: boolean | null
           league_id?: string
+          matchup_id?: number | null
           players?: Json | null
           points?: number | null
           roster_id?: number
@@ -406,6 +415,18 @@ export type Database = {
       }
     }
     Views: {
+      league_matchup_pairs_v: {
+        Row: {
+          league_id: string | null
+          matchup_id: number | null
+          points_a: number | null
+          points_b: number | null
+          roster_a: number | null
+          roster_b: number | null
+          week: number | null
+        }
+        Relationships: []
+      }
       league_matchups_v: {
         Row: {
           league_id: string | null
@@ -494,15 +515,7 @@ export type Database = {
           win_pct: number | null
           wins: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sleeper_matchups_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "leagues"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       league_weeks_v: {
         Row: {

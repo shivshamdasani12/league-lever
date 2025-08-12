@@ -13,7 +13,7 @@ export default function StandingsTab({ leagueId }: Props) {
 
   if (isLoading) return <p className="text-muted-foreground">Loading standings...</p>;
   if (isError) return <p className="text-destructive">{(error as any)?.message || "Failed to load standings."}</p>;
-  if (!data || data.length === 0) return <p className="text-muted-foreground">No standings yet.</p>;
+  if (!data || data.length === 0) return <p className="text-muted-foreground">No standings yet. Use Backfill Matchups from the Matchups tab.</p>;
 
   return (
     <div className="w-full overflow-auto">

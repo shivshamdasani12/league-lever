@@ -45,8 +45,8 @@ export default function MatchupsTab({ leagueId }: Props) {
     if (!leagueId) return;
     setImporting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("sleeper-import", {
-        body: { league_id: leagueId, week: selectedWeek },
+      const { data, error } = await supabase.functions.invoke("sleeper-import-matchups", {
+        body: { league_id: leagueId, weeks: [selectedWeek] },
       });
       if (error) throw new Error(error.message);
       toast({ title: "Matchups imported", description: `Week ${selectedWeek} imported successfully.` });
@@ -54,9 +54,32 @@ export default function MatchupsTab({ leagueId }: Props) {
         qc.invalidateQueries({ queryKey: ["league-weeks", leagueId] }),
         qc.invalidateQueries({ queryKey: ["league-matchups", leagueId] }),
         qc.invalidateQueries({ queryKey: ["league-matchups", leagueId, selectedWeek] }),
+        qc.invalidateQueries({ queryKey: ["league-standings", leagueId] }),
       ]);
     } catch (e: any) {
       toast({ title: "Import failed", description: e?.message ?? "Unknown error" });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleBackfillAll = async () => {
+    if (!leagueId) return;
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sleeper-import-matchups", {
+        body: { league_id: leagueId, all_to_current: true },
+      });
+      if (error) throw new Error(error.message);
+      const up = (data as any)?.rows_upserted ?? 0;
+      toast({ title: "Backfill complete", description: `${up} rows upserted across weeks.` });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["league-weeks", leagueId] }),
+        qc.invalidateQueries({ queryKey: ["league-matchups", leagueId] }),
+        qc.invalidateQueries({ queryKey: ["league-standings", leagueId] }),
+      ]);
+    } catch (e: any) {
+      toast({ title: "Backfill failed", description: e?.message ?? "Unknown error" });
     } finally {
       setImporting(false);
     }
@@ -141,11 +164,19 @@ export default function MatchupsTab({ leagueId }: Props) {
       {matchupsQ.isError && <p className="text-destructive">Failed to load matchups.</p>}
 
       <div className="flex items-center gap-3">
-        <Button variant="secondary" onClick={handleImportWeek} disabled={importing || !leagueId}>
-          {importing ? "Importing..." : `Import matchups for week ${selectedWeek}`}
-        </Button>
-        {((!weeks?.length) || !weeks.some(w => w.week === selectedWeek)) && (
-          <span className="text-sm text-muted-foreground">No data yet for this week.</span>
+        {(!weeks || weeks.length === 0) ? (
+          <Button variant="secondary" onClick={handleBackfillAll} disabled={importing || !leagueId}>
+            {importing ? "Importing..." : "Backfill matchups (1..current)"}
+          </Button>
+        ) : (
+          <>
+            <Button variant="secondary" onClick={handleImportWeek} disabled={importing || !leagueId}>
+              {importing ? "Importing..." : `Import matchups for week ${selectedWeek}`}
+            </Button>
+            {((!weeks?.length) || !weeks.some(w => w.week === selectedWeek)) && (
+              <span className="text-sm text-muted-foreground">No data yet for this week.</span>
+            )}
+          </>
         )}
       </div>
 
