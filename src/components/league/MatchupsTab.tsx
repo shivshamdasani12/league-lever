@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { fetchMatchups, fetchRosters, fetchWeeks, LeagueMatchupRow, LeagueRosterRow, LeagueWeekRow } from "@/lib/queries/league";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
 
 interface Props { leagueId: string }
 
@@ -33,6 +36,31 @@ export default function MatchupsTab({ leagueId }: Props) {
       setParams(nextParams, { replace: true });
     }
   }, [weeksQ.data, week, params, setParams]);
+
+  const qc = useQueryClient();
+  const [importing, setImporting] = useState(false);
+  const selectedWeek = typeof week === "number" ? week : 1;
+
+  const handleImportWeek = async () => {
+    if (!leagueId) return;
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sleeper-import", {
+        body: { league_id: leagueId, week: selectedWeek },
+      });
+      if (error) throw new Error(error.message);
+      toast({ title: "Matchups imported", description: `Week ${selectedWeek} imported successfully.` });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["league-weeks", leagueId] }),
+        qc.invalidateQueries({ queryKey: ["league-matchups", leagueId] }),
+        qc.invalidateQueries({ queryKey: ["league-matchups", leagueId, selectedWeek] }),
+      ]);
+    } catch (e: any) {
+      toast({ title: "Import failed", description: e?.message ?? "Unknown error" });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const rostersQ = useQuery({
     queryKey: ["league-rosters", leagueId],
@@ -111,6 +139,15 @@ export default function MatchupsTab({ leagueId }: Props) {
 
       {matchupsQ.isLoading && <p className="text-muted-foreground">Loading matchups...</p>}
       {matchupsQ.isError && <p className="text-destructive">Failed to load matchups.</p>}
+
+      <div className="flex items-center gap-3">
+        <Button variant="secondary" onClick={handleImportWeek} disabled={importing || !leagueId}>
+          {importing ? "Importing..." : `Import matchups for week ${selectedWeek}`}
+        </Button>
+        {((!weeks?.length) || !weeks.some(w => w.week === selectedWeek)) && (
+          <span className="text-sm text-muted-foreground">No data yet for this week.</span>
+        )}
+      </div>
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {matchupPairs.length === 0 && !matchupsQ.isLoading && (
