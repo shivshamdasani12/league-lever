@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import RostersTab from "@/components/league/RostersTab";
+import MatchupsTab from "@/components/league/MatchupsTab";
+import StandingsTab from "@/components/league/StandingsTab";
 
 interface Bet {
   id: string;
@@ -167,6 +171,23 @@ export default function LeagueDetail() {
   return (
     <section className="container mx-auto px-4">
       <h1 className="text-2xl font-bold mb-4">{league.name}</h1>
+
+      <Tabs defaultValue="rosters" className="mb-6">
+        <TabsList>
+          <TabsTrigger value="rosters">Rosters</TabsTrigger>
+          <TabsTrigger value="matchups">Matchups</TabsTrigger>
+          <TabsTrigger value="standings">Standings</TabsTrigger>
+        </TabsList>
+        <TabsContent value="rosters">
+          <RostersTab leagueId={leagueId} />
+        </TabsContent>
+        <TabsContent value="matchups">
+          <MatchupsTab leagueId={leagueId} />
+        </TabsContent>
+        <TabsContent value="standings">
+          <StandingsTab leagueId={leagueId} />
+        </TabsContent>
+      </Tabs>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

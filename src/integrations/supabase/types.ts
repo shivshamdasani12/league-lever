@@ -376,7 +376,99 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      league_matchups_v: {
+        Row: {
+          league_id: string | null
+          opp_points: number | null
+          opp_roster_id: number | null
+          points: number | null
+          roster_id: number | null
+          week: number | null
+        }
+        Insert: {
+          league_id?: string | null
+          opp_points?: never
+          opp_roster_id?: never
+          points?: number | null
+          roster_id?: number | null
+          week?: number | null
+        }
+        Update: {
+          league_id?: string | null
+          opp_points?: never
+          opp_roster_id?: never
+          points?: number | null
+          roster_id?: number | null
+          week?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sleeper_matchups_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      league_rosters_v: {
+        Row: {
+          league_id: string | null
+          owner_avatar: string | null
+          owner_name: string | null
+          owner_username: string | null
+          players: Json | null
+          roster_id: number | null
+          starters: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sleeper_rosters_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      league_standings_v: {
+        Row: {
+          league_id: string | null
+          losses: number | null
+          owner_name: string | null
+          pa: number | null
+          pf: number | null
+          roster_id: number | null
+          ties: number | null
+          win_pct: number | null
+          wins: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sleeper_matchups_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      league_weeks_v: {
+        Row: {
+          is_latest: boolean | null
+          league_id: string | null
+          week: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sleeper_matchups_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_invite: {
