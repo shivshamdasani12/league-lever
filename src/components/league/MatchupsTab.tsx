@@ -48,6 +48,23 @@ export default function MatchupsTab({ leagueId }: Props) {
 
   const weeks = weeksQ.data as LeagueWeekRow[];
 
+  const matchupPairs = useMemo(() => {
+    const pairs: Array<{ a: LeagueMatchupRow; b?: LeagueMatchupRow }> = [];
+    const rows = (matchupsQ.data || []) as LeagueMatchupRow[];
+    const byRoster = new Map<number, LeagueMatchupRow>();
+    rows.forEach((r) => byRoster.set(r.roster_id, r));
+    rows.forEach((r) => {
+      if (r.opp_roster_id != null) {
+        if (r.roster_id < r.opp_roster_id) {
+          pairs.push({ a: r, b: byRoster.get(r.opp_roster_id) });
+        }
+      } else {
+        pairs.push({ a: r });
+      }
+    });
+    return pairs;
+  }, [matchupsQ.data]);
+
   return (
     <div className="space-y-4">
       <div className="max-w-xs">
@@ -69,26 +86,41 @@ export default function MatchupsTab({ leagueId }: Props) {
       {matchupsQ.isError && <p className="text-destructive">Failed to load matchups.</p>}
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {(matchupsQ.data || []).map((m: LeagueMatchupRow) => (
-          <Card key={`${m.league_id}-${m.week}-${m.roster_id}`}>
+        {matchupPairs.length === 0 && !matchupsQ.isLoading && (
+          <p className="text-muted-foreground col-span-full">No matchups for week {week}.</p>
+        )}
+        {matchupPairs.map(({ a, b }) => (
+          <Card key={`${a.league_id}-${a.week}-${a.roster_id}-${b?.roster_id ?? "solo"}`}>
             <CardHeader>
-              <CardTitle className="text-base">Week {m.week}</CardTitle>
+              <CardTitle className="text-base">Week {a.week}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage alt={`${rosterName.get(m.roster_id) || "Team"} avatar`} />
+                    <AvatarImage alt={`${rosterName.get(a.roster_id) || "Team"} avatar`} />
                     <AvatarFallback>
-                      {(rosterName.get(m.roster_id) || "T").slice(0, 2).toUpperCase()}
+                      {(rosterName.get(a.roster_id) || "T").slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-medium">{rosterName.get(m.roster_id) || `Roster ${m.roster_id}`}</div>
-                    <div className="text-sm text-muted-foreground">Points: {m.points ?? 0}</div>
+                    <div className="font-medium">{rosterName.get(a.roster_id) || `Roster ${a.roster_id}`}</div>
+                    <div className="text-sm text-muted-foreground">Points: {a.points ?? 0}</div>
                   </div>
                 </div>
-                {/* Opponent fields are null in current schema; placeholder for future pairing */}
+                <div className="text-sm font-medium text-muted-foreground">vs</div>
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage alt={`${b ? rosterName.get(b.roster_id) : "Opponent"} avatar`} />
+                    <AvatarFallback>
+                      {(b ? (rosterName.get(b.roster_id) || "T") : "?").slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium">{b ? (rosterName.get(b.roster_id) || `Roster ${b.roster_id}`) : "TBD"}</div>
+                    <div className="text-sm text-muted-foreground">Points: {b?.points ?? 0}</div>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
