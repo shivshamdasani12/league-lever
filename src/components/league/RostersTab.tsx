@@ -46,7 +46,7 @@ export default function RostersTab({ leagueId }: Props) {
     if (missing.length === 0) return;
     (async () => {
       try {
-        await supabase.functions.invoke("sleeper-sync-players", { body: { player_ids: missing } });
+        await supabase.functions.invoke("sleeper-sync-players", { body: { league_id: leagueId } as any });
         await playersQ.refetch();
       } catch (e) {
         console.error("Failed to sync players", e);

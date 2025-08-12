@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.sleeper-import]
 verify_jwt = true
+
+[functions.sleeper-sync-players]
+verify_jwt = true

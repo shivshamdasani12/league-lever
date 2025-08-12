@@ -1,115 +1,103 @@
 // deno-lint-ignore-file no-explicit-any
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+type SyncBody = { league_id?: string };
 
-const cache = new Map<string, { data: any; exp: number }>();
-const TTL_MS = 10 * 60 * 1000;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-async function fetchSleeper<T>(url: string): Promise<T> {
-  const now = Date.now();
-  const cached = cache.get(url);
-  if (cached && cached.exp > now) return cached.data as T;
-
-  let attempt = 0;
-  while (true) {
-    const res = await fetch(url, { headers: { accept: "application/json" } });
-    if (res.status === 429) {
-      const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
-      await new Promise((r) => setTimeout(r, delay));
-      attempt++;
-      continue;
-    }
-    if (!res.ok) {
-      throw new Error(`Sleeper request failed ${res.status}: ${await res.text()}`);
-    }
-    const data = await res.json();
-    cache.set(url, { data, exp: now + TTL_MS });
-    return data as T;
-  }
+function cors(resp: Response) {
+  const h = new Headers(resp.headers);
+  h.set("Access-Control-Allow-Origin", "*");
+  h.set("Access-Control-Allow-Headers", "authorization, x-client-info, apikey, content-type");
+  h.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  return new Response(resp.body, { status: resp.status, headers: h });
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return cors(new Response(null, { status: 204 }));
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: req.headers.get("Authorization")! } } }
-    );
+    // 1) Parse input
+    const { league_id }: SyncBody = await req.json().catch(() => ({} as SyncBody));
+    if (!league_id) return cors(new Response(JSON.stringify({ error: "league_id required" }), { status: 400 }));
 
-    const { data: { user }, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // 2) Create two Supabase clients:
+    //    - userClient forwards the caller's JWT (RLS-enforced reads)
+    //    - adminClient uses service role for controlled writes (bypass RLS)
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+    // 3) Verify caller auth (JWT) and get user
+    const { data: { user }, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !user) return cors(new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }));
+
+    // 4) Verify membership (RLS-safe): user must be in this league
+    const { data: memberRow, error: memberErr } = await userClient
+      .from("league_members")
+      .select("user_id")
+      .eq("league_id", league_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (memberErr) return cors(new Response(JSON.stringify({ error: "Membership check failed" }), { status: 500 }));
+    if (!memberRow) return cors(new Response(JSON.stringify({ error: "Forbidden (not a league member)" }), { status: 403 }));
+
+    // 5) Get the set of player IDs for this league
+    const { data: ids, error: idsErr } = await userClient
+      .from("league_player_ids_v")
+      .select("player_id")
+      .eq("league_id", league_id);
+
+    if (idsErr) return cors(new Response(JSON.stringify({ error: "Failed to list player IDs" }), { status: 500 }));
+
+    const needed = new Set((ids ?? []).map((r: any) => r.player_id));
+    if (needed.size === 0) {
+      return cors(new Response(JSON.stringify({ upserted: 0, message: "No player IDs to sync" }), { status: 200 }));
     }
 
-    const isPost = req.method === "POST";
-    const body = isPost ? await req.json().catch(() => ({} as any)) : ({} as any);
-    const url = new URL(req.url);
+    // 6) Fetch Sleeper NFL players dictionary once and filter to needed IDs
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
 
-    const leagueId: string | null = body.league_id ?? url.searchParams.get("league_id");
-    let playerIds: string[] = Array.isArray(body.player_ids) ? body.player_ids.map(String) : [];
+    const res = await fetch("https://api.sleeper.app/v1/players/nfl", { signal: controller.signal });
+    clearTimeout(timeout);
 
-    // If league_id provided but no player_ids, derive from Sleeper rosters via league's external_id
-    if ((!playerIds || playerIds.length === 0) && leagueId) {
-      const { data: league, error: leagueErr } = await supabase
-        .from("leagues").select("external_id").eq("id", leagueId).single();
-      if (leagueErr || !league?.external_id) {
-        return new Response(JSON.stringify({ error: "League external_id not found" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-
-      // Optional: ensure requester is at least a member of the league
-      const { data: isMember, error: memberErr } = await supabase.rpc("is_league_member", { _league_id: leagueId, _user_id: user.id });
-      if (memberErr || !isMember) {
-        return new Response(JSON.stringify({ error: "Forbidden: not a league member" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-
-      const rosters = await fetchSleeper<any[]>(`https://api.sleeper.app/v1/league/${encodeURIComponent(league.external_id)}/rosters`);
-      const ids = new Set<string>();
-      for (const r of rosters || []) {
-        (Array.isArray(r.players) ? r.players : []).forEach((id: any) => ids.add(String(id)));
-        (Array.isArray(r.starters) ? r.starters : []).forEach((id: any) => ids.add(String(id)));
-      }
-      playerIds = Array.from(ids);
+    if (!res.ok) {
+      return cors(new Response(JSON.stringify({ error: `Sleeper fetch failed ${res.status}` }), { status: 502 }));
     }
 
-    if (!playerIds || playerIds.length === 0) {
-      return new Response(JSON.stringify({ error: "No player_ids provided or derived" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    const allPlayers = await res.json() as Record<string, any>;
 
-    // Fetch NFL players dictionary and filter to requested IDs
-    const playersDict = await fetchSleeper<Record<string, any>>("https://api.sleeper.app/v1/players/nfl");
-    const rows = playerIds
-      .filter((id) => !!playersDict[id])
-      .map((id) => {
-        const p = playersDict[id];
-        const fullName = p.full_name || [p.first_name, p.last_name].filter(Boolean).join(" ") || p.last_name || p.first_name || null;
-        return {
-          player_id: String(id),
-          full_name: fullName,
-          position: p.position ?? null,
-          team: p.team ?? null,
-          fantasy_positions: Array.isArray(p.fantasy_positions) ? p.fantasy_positions : null,
-          status: p.status ?? null,
-          updated_at: new Date().toISOString(),
-        };
+    // Build upsert rows for only needed IDs
+    const rows = [] as any[];
+    for (const id of needed) {
+      const p = allPlayers[id] || null;
+      rows.push({
+        player_id: id,
+        full_name: p?.full_name ?? (p?.first_name && p?.last_name ? `${p.first_name} ${p.last_name}` : null),
+        position: p?.position ?? null,
+        team: p?.team ?? null,
+        fantasy_positions: Array.isArray(p?.fantasy_positions) ? p?.fantasy_positions : null,
+        status: p?.status ?? null,
+        updated_at: new Date().toISOString(),
       });
-
-    if (rows.length === 0) {
-      return new Response(JSON.stringify({ error: "No matching players found in Sleeper dataset" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { error: upsertErr } = await supabase.from("players").upsert(rows, { onConflict: "player_id" });
-    if (upsertErr) throw upsertErr;
+    // 7) Upsert using service role (bypass RLS safely for dictionary table)
+    const { error: upsertErr, count } = await adminClient
+      .from("players")
+      .upsert(rows, { onConflict: "player_id", ignoreDuplicates: false, count: "exact" });
 
-    return new Response(JSON.stringify({ synced: rows.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (upsertErr) return cors(new Response(JSON.stringify({ error: upsertErr.message }), { status: 500 }));
+
+    return cors(new Response(JSON.stringify({ upserted: count ?? rows.length }), { status: 200 }));
+  } catch (e: any) {
+    return cors(new Response(JSON.stringify({ error: e?.message ?? "Internal error" }), { status: 500 }));
   }
 });

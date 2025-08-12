@@ -1,16 +1,17 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props { leagueId: string; leagueName: string; }
 
 export default function GeneralTab({ leagueId, leagueName }: Props) {
   const { toast } = useToast();
+  const qc = useQueryClient();
   const [inviteEmail, setInviteEmail] = useState("");
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [createdCode, setCreatedCode] = useState<string | null>(null);
@@ -54,15 +55,20 @@ export default function GeneralTab({ leagueId, leagueName }: Props) {
     }
   };
 
-  const syncPlayers = async () => {
+const syncPlayers = async () => {
     try {
-      await supabase.functions.invoke("sleeper-sync-players", { body: { league_id: leagueId } });
-      toast({ title: "Players synced", description: "Player names have been updated." });
+      const { data, error } = await supabase.functions.invoke("sleeper-sync-players", { body: { league_id: leagueId } });
+      if (error) throw error;
+      const upserted = (data as any)?.upserted ?? 0;
+      toast({ title: "Players synced", description: `Upserted ${upserted} players.` });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["league-rosters", leagueId] }),
+        qc.invalidateQueries({ queryKey: ["players-by-ids", leagueId] }),
+      ]);
     } catch (e: any) {
-      toast({ title: "Sync failed", description: e.message });
+      toast({ title: "Sync failed", description: e?.message ?? "Unknown error" });
     }
   };
-
   return (
     <div className="space-y-4">
       <Card className="bg-card border shadow-card">
