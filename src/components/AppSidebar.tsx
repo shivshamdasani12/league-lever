@@ -1,4 +1,4 @@
-import { Home, UserPlus, Download } from "lucide-react";
+import { Home, UserPlus, Download, LogOut } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -10,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useAuth } from "@/contexts/AuthContext";
 
 const items = [
   { title: "Dashboard", url: "/", icon: Home },
@@ -21,10 +22,19 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const isActive = (path: string) => currentPath === path;
+  const { signOut } = useAuth();
 
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => signOut()}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Sign out</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <SidebarGroup>
           <SidebarGroupLabel>Main</SidebarGroupLabel>
           <SidebarGroupContent>

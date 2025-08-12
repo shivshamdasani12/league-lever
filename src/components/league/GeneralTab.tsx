@@ -76,7 +76,7 @@ export default function GeneralTab({ leagueId, leagueName }: Props) {
               <div className="font-medium">{leagueName}</div>
             </div>
             <div>
-              <div className="text-muted-foreground">Teams</div>
+              <div className="text-muted-foreground">Members</div>
               <div className="font-medium">{teamsCount}</div>
             </div>
             <div className="flex items-end justify-end">
