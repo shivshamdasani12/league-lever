@@ -94,6 +94,8 @@ export default function LeagueDetail() {
   const [betType, setBetType] = useState("");
   const [betAmount, setBetAmount] = useState<number>(10);
   const [creatingBet, setCreatingBet] = useState(false);
+  const [selectedRosterId, setSelectedRosterId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("general");
 
   // Invitations
   const [inviteEmail, setInviteEmail] = useState("");
@@ -165,6 +167,14 @@ export default function LeagueDetail() {
       toast({ title: "Error accepting bet", description: err.message });
     }
   };
+
+  // Function to handle roster selection from other tabs
+  const handleRosterSelect = (rosterId: string) => {
+    console.log("handleRosterSelect called with rosterId:", rosterId);
+    setSelectedRosterId(rosterId);
+    setActiveTab("rosters");
+  };
+
   if (leagueQuery.isLoading) return <div className="p-4">Loading league...</div>;
   if (leagueQuery.isError) return <div className="p-4 text-destructive">Failed to load league.</div>;
 
@@ -174,7 +184,10 @@ export default function LeagueDetail() {
     <section className="container mx-auto px-4">
       <h1 className="text-2xl font-bold mb-4">{league.name}</h1>
 
-      <Tabs defaultValue="general" className="mb-6">
+      <Tabs value={activeTab} onValueChange={(value) => {
+        setActiveTab(value);
+        setSelectedRosterId(null);
+      }} className="mb-6">
         <div className="flex justify-center">
           <TabsList className="mx-auto">
             <TabsTrigger value="general">General</TabsTrigger>
@@ -188,13 +201,13 @@ export default function LeagueDetail() {
           <GeneralTab leagueId={leagueId} leagueName={league.name} teamsCount={0} />
         </TabsContent>
         <TabsContent value="rosters">
-          <RostersTab leagueId={leagueId} />
+          <RostersTab leagueId={leagueId} selectedRosterId={selectedRosterId} />
         </TabsContent>
         <TabsContent value="matchups">
-          <MatchupsTab leagueId={leagueId} />
+          <MatchupsTab leagueId={leagueId} onRosterSelect={handleRosterSelect} />
         </TabsContent>
         <TabsContent value="standings">
-          <StandingsTab leagueId={leagueId} />
+          <StandingsTab leagueId={leagueId} onRosterSelect={handleRosterSelect} />
         </TabsContent>
         <TabsContent value="wagers">
           <WagersTab leagueId={leagueId} />

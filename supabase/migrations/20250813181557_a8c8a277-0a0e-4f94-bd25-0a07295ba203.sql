@@ -44,3 +44,39 @@ JOIN public.sleeper_matchups b
 
 -- Set security invoker for the view
 ALTER VIEW public.league_matchups_v SET (security_invoker = on);
+
+-- Add new columns to players table for enhanced data
+ALTER TABLE public.players 
+  ADD COLUMN IF NOT EXISTS current_week_stats jsonb,
+  ADD COLUMN IF NOT EXISTS current_week_projection numeric(6,2),
+  ADD COLUMN IF NOT EXISTS per_game_stats jsonb,
+  ADD COLUMN IF NOT EXISTS injury_status text,
+  ADD COLUMN IF NOT EXISTS practice_participation text;
+
+-- Create indexes for the new columns
+CREATE INDEX IF NOT EXISTS idx_players_projection ON public.players(current_week_projection) WHERE current_week_projection IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_players_injury ON public.players(injury_status) WHERE injury_status IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_players_stats ON public.players USING GIN(current_week_stats) WHERE current_week_stats IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_players_per_game_stats ON public.players USING GIN(per_game_stats) WHERE per_game_stats IS NOT NULL;
+
+-- Add additional player bio fields
+ALTER TABLE public.players 
+  ADD COLUMN IF NOT EXISTS first_name text,
+  ADD COLUMN IF NOT EXISTS last_name text,
+  ADD COLUMN IF NOT EXISTS age integer,
+  ADD COLUMN IF NOT EXISTS height text,
+  ADD COLUMN IF NOT EXISTS weight text,
+  ADD COLUMN IF NOT EXISTS experience integer,
+  ADD COLUMN IF NOT EXISTS college text,
+  ADD COLUMN IF NOT EXISTS number integer,
+  ADD COLUMN IF NOT EXISTS search_rank integer,
+  ADD COLUMN IF NOT EXISTS search_rank_ppr integer,
+  ADD COLUMN IF NOT EXISTS sport text,
+  ADD COLUMN IF NOT EXISTS hashtag text;
+
+-- Create indexes for the new bio fields
+CREATE INDEX IF NOT EXISTS idx_players_age ON public.players(age) WHERE age IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_players_experience ON public.players(experience) WHERE experience IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_players_college ON public.players(college) WHERE college IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_players_search_rank ON public.players(search_rank) WHERE search_rank IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_players_search_rank_ppr ON public.players(search_rank_ppr) WHERE search_rank_ppr IS NOT NULL;

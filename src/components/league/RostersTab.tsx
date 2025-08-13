@@ -1,18 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Users, Trophy, User, RefreshCw, AlertCircle, Shield, Info } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Users, Trophy, User, MapPin, TrendingUp, Activity, Shield, Award, Target, Zap } from "lucide-react";
 import { fetchRosters, LeagueRosterRow } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
-import { supabase } from "@/integrations/supabase/client";
 
-interface Props { leagueId: string }
+interface Props { 
+  leagueId: string;
+  selectedRosterId?: string | null;
+}
 
 function getBench(all: string[] | null, starters: string[] | null) {
   const a = Array.isArray(all) ? all : [];
@@ -57,23 +60,122 @@ function getStatusColor(status: string | null): string {
 
 // Helper function to get player headshot URL
 function getPlayerHeadshotUrl(playerId: string, playerName: string | null): string | undefined {
-  if (!playerName) return undefined;
+  if (!playerId) return undefined;
   
-  // Try multiple Sleeper CDN endpoints for player images
-  const endpoints = [
-    `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`,
-    `https://sleepercdn.com/avatars/thumbs/${playerId}`,
-    `https://sleepercdn.com/content/nfl/players/${playerId}.jpg`
-  ];
-  
-  // For now, return the first one - in a real app you might want to test which ones work
-  return endpoints[0];
+  // Use the most reliable Sleeper CDN endpoint for player images
+  return `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`;
 }
 
-export default function RostersTab({ leagueId }: Props) {
-  const [selectedRosterId, setSelectedRosterId] = useState<string | null>(null);
-  const [syncingPlayers, setSyncingPlayers] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+// Helper function to get injury status display
+function getInjuryDisplay(injuryStatus: string | null, practiceParticipation: string | null) {
+  if (!injuryStatus && !practiceParticipation) return null;
+  
+  if (injuryStatus === 'IR') return { text: 'IR', color: 'bg-red-100 text-red-800 border-red-200' };
+  if (injuryStatus === 'O') return { text: 'Out', color: 'bg-red-100 text-red-800 border-red-200' };
+  if (injuryStatus === 'Q') return { text: 'Questionable', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+  if (injuryStatus === 'D') return { text: 'Doubtful', color: 'bg-orange-100 text-orange-800 border-orange-200' };
+  
+  if (practiceParticipation === 'Full') return { text: 'Full Practice', color: 'bg-green-100 text-green-800 border-green-200' };
+  if (practiceParticipation === 'Limited') return { text: 'Limited', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+  if (practiceParticipation === 'DNP') return { text: 'DNP', color: 'bg-red-100 text-red-800 border-red-200' };
+  
+  return null;
+}
+
+// Helper function to generate mock stats based on position
+function getMockStatsForPosition(position: string | null) {
+  if (!position) return null;
+  
+  const pos = position.toUpperCase();
+  
+  // Quarterback stats
+  if (pos === 'QB') {
+    return {
+      passing_yards: 0,
+      passing_touchdowns: 0,
+      passing_interceptions: 0,
+      passing_attempts: 0,
+      passing_completions: 0,
+      rushing_yards: 0,
+      rushing_touchdowns: 0,
+      fantasy_points: 0
+    };
+  }
+  
+  // Running back stats
+  if (pos === 'RB') {
+    return {
+      rushing_yards: 0,
+      rushing_touchdowns: 0,
+      rushing_attempts: 0,
+      receiving_yards: 0,
+      receiving_touchdowns: 0,
+      receiving_targets: 0,
+      receiving_receptions: 0,
+      fantasy_points: 0
+    };
+  }
+  
+  // Wide receiver stats
+  if (pos === 'WR') {
+    return {
+      receiving_yards: 0,
+      receiving_touchdowns: 0,
+      receiving_targets: 0,
+      receiving_receptions: 0,
+      rushing_yards: 0,
+      rushing_touchdowns: 0,
+      fantasy_points: 0
+    };
+  }
+  
+  // Tight end stats
+  if (pos === 'TE') {
+    return {
+      receiving_yards: 0,
+      receiving_touchdowns: 0,
+      receiving_targets: 0,
+      receiving_receptions: 0,
+      fantasy_points: 0
+    };
+  }
+  
+  // Kicker stats
+  if (pos === 'K') {
+    return {
+      field_goals_made: 0,
+      field_goals_attempted: 0,
+      extra_points_made: 0,
+      extra_points_attempted: 0,
+      fantasy_points: 0
+    };
+  }
+  
+  // Defense stats
+  if (pos === 'DEF') {
+    return {
+      tackles: 0,
+      sacks: 0,
+      interceptions: 0,
+      passes_defended: 0,
+      fumbles_forced: 0,
+      fumbles_recovered: 0,
+      fantasy_points: 0
+    };
+  }
+  
+  // Default stats for other positions
+  return {
+    fantasy_points: 0,
+    total_yards: 0,
+    touchdowns: 0
+  };
+}
+
+export default function RostersTab({ leagueId, selectedRosterId: propSelectedRosterId }: Props) {
+  const [selectedRosterId, setSelectedRosterId] = useState<string | null>(propSelectedRosterId || null);
+  const [selectedPlayer, setSelectedPlayer] = useState<PlayerRow | null>(null);
+  const [isPlayerBioOpen, setIsPlayerBioOpen] = useState(false);
 
   const { data: rosters, isLoading, isError, error } = useQuery({
     queryKey: ["league-rosters", leagueId],
@@ -81,12 +183,16 @@ export default function RostersTab({ leagueId }: Props) {
     queryFn: () => fetchRosters(leagueId),
   });
 
-  // Set default selected roster when data loads
+  // Update selected roster when prop changes
   useEffect(() => {
-    if (rosters && rosters.length > 0 && !selectedRosterId) {
-      setSelectedRosterId(String(rosters[0].roster_id));
+    console.log("RostersTab: propSelectedRosterId changed to:", propSelectedRosterId);
+    if (propSelectedRosterId && propSelectedRosterId !== selectedRosterId) {
+      console.log("RostersTab: Setting selectedRosterId to:", propSelectedRosterId);
+      setSelectedRosterId(propSelectedRosterId);
     }
-  }, [rosters, selectedRosterId]);
+  }, [propSelectedRosterId, selectedRosterId]);
+
+
 
   // Build unique list of player IDs across all rosters
   const allPlayerIds = useMemo(() => {
@@ -106,74 +212,9 @@ export default function RostersTab({ leagueId }: Props) {
 
   const playerMap = (playersQ.data || {}) as Record<string, PlayerRow>;
 
-  // Check for missing player data
-  const missingPlayers = useMemo(() => {
-    return allPlayerIds.filter((id) => !playerMap[id]?.full_name);
-  }, [allPlayerIds, playerMap]);
 
-  // Manual sync function for missing players
-  const syncMissingPlayers = async () => {
-    if (!leagueId || missingPlayers.length === 0) return;
-    
-    setSyncingPlayers(true);
-    try {
-      console.log(`Starting sync for ${missingPlayers.length} missing players...`);
-      
-      const result = await supabase.functions.invoke("sleeper-sync-players", { body: { league_id: leagueId } as any });
-      
-      if (result.error) {
-        throw new Error(result.error.message);
-      }
-      
-      setLastSyncTime(new Date());
-      console.log("Player sync completed:", result);
-      
-      // Force a refetch of the players data
-      await playersQ.refetch();
-      
-      // Check if we still have missing players after sync
-      setTimeout(() => {
-        const stillMissing = allPlayerIds.filter((id) => !playerMap[id]?.full_name);
-        console.log(`After sync - still missing: ${stillMissing.length} players`);
-        if (stillMissing.length > 0) {
-          console.log("Sample missing player IDs:", stillMissing.slice(0, 5));
-        }
-      }, 1000);
-      
-    } catch (e) {
-      console.error("Failed to sync players", e);
-    } finally {
-      setSyncingPlayers(false);
-    }
-  };
 
-  // Attempt to sync missing players automatically
-  useEffect(() => {
-    if (!leagueId || allPlayerIds.length === 0) return;
-    if (missingPlayers.length === 0) return;
-    
-    console.log(`Auto-sync triggered for ${missingPlayers.length} missing players`);
-    
-    // Auto-sync after a short delay
-    const timer = setTimeout(() => {
-      syncMissingPlayers();
-    }, 1000); // Reduced from 2000ms to 1000ms
-    
-    return () => clearTimeout(timer);
-  }, [leagueId, allPlayerIds.join(","), missingPlayers.length]);
 
-  // Additional sync attempt when component mounts
-  useEffect(() => {
-    if (!leagueId || allPlayerIds.length === 0) return;
-    
-    // Try to sync on mount if we have missing players
-    if (missingPlayers.length > 0) {
-      console.log(`Component mount sync for ${missingPlayers.length} missing players`);
-      setTimeout(() => {
-        syncMissingPlayers();
-      }, 500);
-    }
-  }, [leagueId, allPlayerIds.length]);
 
   // Get the selected roster data
   const selectedRoster = useMemo(() => {
@@ -181,20 +222,66 @@ export default function RostersTab({ leagueId }: Props) {
     return rosters.find(r => String(r.roster_id) === selectedRosterId);
   }, [selectedRosterId, rosters]);
 
-  // Debug logging
-  useEffect(() => {
-    if (allPlayerIds.length > 0) {
-      console.log("Total player IDs:", allPlayerIds.length);
-      console.log("Players with names:", Object.values(playerMap).filter(p => p.full_name).length);
-      console.log("Missing players:", missingPlayers.length);
-      console.log("Sample player data:", Object.values(playerMap).slice(0, 3));
+  // Get starters and bench players for selected roster
+  const starters = useMemo(() => {
+    if (!selectedRoster?.starters || !Array.isArray(selectedRoster.starters)) return [];
+    return selectedRoster.starters.map(pid => ({
+      id: pid,
+      player: playerMap[pid],
+      isStarter: true
+    }));
+  }, [selectedRoster, playerMap]);
+
+  const bench = useMemo(() => {
+    if (!selectedRoster?.players || !Array.isArray(selectedRoster.players)) return [];
+    const starterIds = new Set(selectedRoster.starters || []);
+    return selectedRoster.players
+      .filter(pid => !starterIds.has(pid))
+      .map(pid => ({
+        id: pid,
+        player: playerMap[pid],
+        isStarter: false
+      }));
+  }, [selectedRoster, playerMap]);
+
+
+
+  // Helper function to get player display name with fallback
+  const getPlayerDisplayName = (playerId: string, player: PlayerRow | undefined) => {
+    if (player?.full_name) return player.full_name;
+    // Try to extract name from player ID if it's a Sleeper ID
+    if (playerId && playerId.length > 10) {
+      return `Player ${playerId.slice(-4)}`; // Show last 4 chars as fallback
     }
-  }, [allPlayerIds.length, playerMap, missingPlayers.length]);
+    return `Player ${playerId}`;
+  };
+
+  // Helper function to get player team with fallback
+  const getPlayerTeam = (player: PlayerRow | undefined) => {
+    return player?.team || 'N/A';
+  };
+
+  // Helper function to get player position with fallback
+  const getPlayerPosition = (player: PlayerRow | undefined) => {
+    return player?.position || 'N/A';
+  };
+
+  // Function to handle player click and show bio
+  const handlePlayerClick = (player: PlayerRow) => {
+    setSelectedPlayer(player);
+    setIsPlayerBioOpen(true);
+  };
+
+
+
+
+
+
 
   if (isLoading) return (
     <div className="flex items-center justify-center p-8">
       <div className="flex items-center gap-2 text-muted-foreground">
-        <RefreshCw className="h-4 w-4 animate-spin" />
+        <Users className="h-4 w-4 animate-spin" />
         <span>Loading rosters...</span>
       </div>
     </div>
@@ -203,7 +290,7 @@ export default function RostersTab({ leagueId }: Props) {
   if (isError) return (
     <div className="flex items-center justify-center p-8">
       <div className="flex items-center gap-2 text-destructive">
-        <AlertCircle className="h-4 w-4" />
+        <Users className="h-4 w-4" />
         <span>{(error as any)?.message || "Failed to load rosters."}</span>
       </div>
     </div>
@@ -218,46 +305,15 @@ export default function RostersTab({ leagueId }: Props) {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        {/* Header with roster selector and sync button */}
+        {/* Header with roster selector */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Users className="h-4 w-4" />
             <span className="text-sm">Select a roster to view player details</span>
           </div>
-          
-          {missingPlayers.length > 0 && (
-            <Button 
-              onClick={syncMissingPlayers} 
-              disabled={syncingPlayers}
-              variant="outline" 
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className={`h-3 w-3 ${syncingPlayers ? 'animate-spin' : ''}`} />
-              Sync {missingPlayers.length} Players
-            </Button>
-          )}
         </div>
 
-        {/* Player Data Status Alert */}
-        {missingPlayers.length > 0 && (
-          <Alert className="border-orange-200 bg-orange-50">
-            <Info className="h-4 w-4 text-orange-600" />
-            <AlertDescription className="text-orange-800">
-              <strong>{missingPlayers.length} players</strong> are missing data (names, positions, teams). 
-              {lastSyncTime && (
-                <span className="block mt-1 text-sm">
-                  Last sync attempt: {lastSyncTime.toLocaleTimeString()}
-                </span>
-              )}
-              {syncingPlayers && (
-                <span className="block mt-1 text-sm font-medium">
-                  Syncing player data now...
-                </span>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
+
 
         {/* Roster Selector */}
         <div className="max-w-md">
@@ -286,186 +342,387 @@ export default function RostersTab({ leagueId }: Props) {
 
         {/* Selected Roster Display */}
         {selectedRoster && (
-          <Card className="w-full">
-            <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={selectedRoster.owner_avatar || undefined} alt={`${selectedRoster.owner_name || selectedRoster.owner_username || "Owner"} avatar`} />
-                  <AvatarFallback className="text-xl bg-primary/10 text-primary font-bold">
-                    {(selectedRoster.owner_name || selectedRoster.owner_username || "?").split(" ").map((p) => p[0]).join("").slice(0,2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <CardTitle className="text-2xl">{selectedRoster.owner_name || selectedRoster.owner_username || `Roster ${selectedRoster.roster_id}`}</CardTitle>
-                  <div className="flex items-center gap-4 text-muted-foreground mt-2">
-                    <div className="flex items-center gap-1">
-                      <Trophy className="h-4 w-4 text-yellow-600" />
-                      <span>{Array.isArray(selectedRoster.starters) ? selectedRoster.starters.length : 0} starters</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <User className="h-4 w-4 text-blue-600" />
-                      <span>{getBench(selectedRoster.players, selectedRoster.starters).length} bench</span>
+          <div className="space-y-6">
+            {/* Roster Header Card */}
+            <Card className="w-full">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={selectedRoster.owner_avatar || undefined} alt={`${selectedRoster.owner_name || selectedRoster.owner_username || "Owner"} avatar`} />
+                    <AvatarFallback className="text-xl bg-primary/10 text-primary font-bold">
+                      {(selectedRoster.owner_name || selectedRoster.owner_username || "?").split(" ").map((p) => p[0]).join("").slice(0,2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <CardTitle className="text-2xl">{selectedRoster.owner_name || selectedRoster.owner_username || `Roster ${selectedRoster.roster_id}`}</CardTitle>
+                    <div className="flex items-center gap-4 text-muted-foreground mt-2">
+                      <div className="flex items-center gap-1">
+                        <Trophy className="h-4 w-4 text-yellow-600" />
+                        <span>{starters.length} starters</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <User className="h-4 w-4 text-blue-600" />
+                        <span>{bench.length} bench</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="p-6">
-              <div className="space-y-6">
-                {/* Starters Section */}
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Trophy className="h-5 w-5 text-yellow-600" />
-                    <h3 className="text-lg font-semibold text-yellow-700">Starters</h3>
-                  </div>
-                  
-                  {!Array.isArray(selectedRoster.starters) || selectedRoster.starters.length === 0 ? (
-                    <p className="text-muted-foreground text-sm italic">No starters set</p>
-                  ) : (
-                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                      {selectedRoster.starters.map((pid, idx) => {
-                        const player = playerMap[pid];
-                        return (
-                          <div key={pid + idx} className="flex items-center gap-3 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200 hover:border-yellow-300 transition-colors">
-                            {/* Player Headshot */}
-                            <Avatar className="h-12 w-12">
-                              <AvatarImage 
-                                src={getPlayerHeadshotUrl(pid, player?.full_name)} 
-                                alt={`${player?.full_name || 'Player'} headshot`} 
-                              />
-                              <AvatarFallback className="bg-yellow-100 text-yellow-800 font-semibold">
-                                {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
-                              </AvatarFallback>
-                            </Avatar>
-                            
-                            <div className="flex-1 min-w-0">
-                              <div className="font-semibold text-base text-black mb-2">
-                                {player?.full_name || `Player ${pid}`}
-                              </div>
-                              {!player?.full_name && (
-                                <div className="text-xs text-gray-500 mb-2">
-                                  Sleeper ID: {pid}
-                                </div>
-                              )}
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {player?.position && (
-                                  <Badge variant="secondary" className={`text-xs ${getPositionColor(player.position)}`}>
-                                    {player.position}
-                                  </Badge>
-                                )}
-                                {player?.team && (
-                                  <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-700">
-                                    {player.team}
-                                  </Badge>
-                                )}
-                                {player?.status && player.status !== 'Active' && (
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <Badge variant="outline" className={`text-xs ${getStatusColor(player.status)}`}>
-                                        {player.status}
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Player status: {player.status}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                )}
-                                {!player?.full_name && (
-                                  <Badge variant="destructive" className="text-xs">
-                                    Missing Data
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+              </CardHeader>
+            </Card>
 
-                {/* Bench Section */}
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <User className="h-5 w-5 text-blue-600" />
-                    <h3 className="text-lg font-semibold text-blue-700">Bench</h3>
-                  </div>
-                  
-                  {(() => {
-                    const bench = getBench(selectedRoster.players, selectedRoster.starters);
-                    if (bench.length === 0) {
-                      return <p className="text-muted-foreground text-sm italic">No bench players</p>;
-                    }
-                    
-                    return (
-                      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                        {bench.map((pid, idx) => {
-                          const player = playerMap[pid];
-                          return (
-                            <div key={pid + idx} className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 hover:border-blue-300 transition-colors">
-                              {/* Player Headshot */}
-                              <Avatar className="h-12 w-12">
+            {/* Starters Table */}
+            <Card>
+              <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-yellow-600" />
+                  <CardTitle className="text-lg text-yellow-700">Starters</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-yellow-50/50">
+                      <TableHead className="w-12"></TableHead>
+                      <TableHead>Player</TableHead>
+                      <TableHead>Position</TableHead>
+                      <TableHead>Team</TableHead>
+                      <TableHead className="text-right">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {starters.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          No starters set
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      starters.map(({ id, player }, index) => {
+                        const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
+                        const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
+                        
+                        return (
+                          <TableRow key={id} className="hover:bg-yellow-50/30">
+                            <TableCell>
+                              <Avatar className="h-10 w-10">
                                 <AvatarImage 
-                                  src={getPlayerHeadshotUrl(pid, player?.full_name)} 
+                                  src={getPlayerHeadshotUrl(id, player?.full_name)} 
                                   alt={`${player?.full_name || 'Player'} headshot`} 
                                 />
-                                <AvatarFallback className="bg-blue-100 text-blue-800 font-semibold">
+                                <AvatarFallback className="bg-yellow-100 text-yellow-800 font-semibold text-sm">
                                   {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
                                 </AvatarFallback>
                               </Avatar>
-                              
-                              <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-base text-black mb-2">
-                                  {player?.full_name || `Player ${pid}`}
-                                </div>
-                                {!player?.full_name && (
-                                  <div className="text-xs text-gray-500 mb-2">
-                                    Sleeper ID: {pid}
-                                  </div>
-                                )}
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  {player?.position && (
-                                    <Badge variant="secondary" className={`text-xs ${getPositionColor(player.position)}`}>
-                                      {player.position}
-                                    </Badge>
-                                  )}
-                                  {player?.team && (
-                                    <Badge variant="outline" className="text-xs border-blue-300 text-blue-700">
-                                      {player.team}
-                                    </Badge>
-                                  )}
-                                  {player?.status && player.status !== 'Active' && (
-                                    <Tooltip>
-                                      <TooltipTrigger>
-                                        <Badge variant="outline" className={`text-xs ${getStatusColor(player.status)}`}>
-                                          {player.status}
-                                        </Badge>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Player status: {player.status}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  )}
-                                  {!player?.full_name && (
-                                    <Badge variant="destructive" className="text-xs">
-                                      Missing Data
-                                    </Badge>
-                                  )}
-                                </div>
+                            </TableCell>
+                                                         <TableCell>
+                               <div className="flex flex-col">
+                                 <button
+                                   onClick={() => player && handlePlayerClick(player)}
+                                   className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
+                                   disabled={!player}
+                                 >
+                                   <span className="font-semibold">
+                                     {getPlayerDisplayName(id, player)}
+                                   </span>
+                                   {!player?.full_name && (
+                                     <span className="text-xs text-muted-foreground">
+                                       Sleeper ID: {id}
+                                     </span>
+                                   )}
+                                 </button>
+                               </div>
+                             </TableCell>
+                             <TableCell>
+                               <Badge variant="secondary" className={getPositionColor(player?.position)}>
+                                 {position}
+                               </Badge>
+                             </TableCell>
+                             <TableCell>
+                               {getPlayerTeam(player) !== 'N/A' ? (
+                                 <Badge variant="outline" className="border-yellow-300 text-yellow-700">
+                                   {getPlayerTeam(player)}
+                                 </Badge>
+                               ) : (
+                                 <span className="text-muted-foreground">--</span>
+                               )}
+                             </TableCell>
+                            <TableCell className="text-right">
+                              {injuryDisplay ? (
+                                <Badge variant="outline" className={injuryDisplay.color}>
+                                  {injuryDisplay.text}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                                  Active
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Bench Table */}
+            <Card>
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-blue-600" />
+                  <CardTitle className="text-lg text-blue-700">Bench</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-blue-50/50">
+                      <TableHead className="w-12"></TableHead>
+                      <TableHead>Player</TableHead>
+                      <TableHead>Position</TableHead>
+                      <TableHead>Team</TableHead>
+                      <TableHead className="text-right">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bench.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          No bench players
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      bench.map(({ id, player }) => {
+                        const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
+                        
+                        return (
+                          <TableRow key={id} className="hover:bg-blue-50/30">
+                            <TableCell>
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage 
+                                  src={getPlayerHeadshotUrl(id, player?.full_name)} 
+                                  alt={`${player?.full_name || 'Player'} headshot`} 
+                                />
+                                <AvatarFallback className="bg-blue-100 text-blue-800 font-semibold text-sm">
+                                  {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
+                                </AvatarFallback>
+                              </Avatar>
+                            </TableCell>
+                                                         <TableCell>
+                               <div className="flex flex-col">
+                                 <button
+                                   onClick={() => player && handlePlayerClick(player)}
+                                   className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
+                                   disabled={!player}
+                                 >
+                                   <span className="font-semibold">
+                                     {getPlayerDisplayName(id, player)}
+                                   </span>
+                                   {!player?.full_name && (
+                                     <span className="text-xs text-muted-foreground">
+                                       Sleeper ID: {id}
+                                     </span>
+                                   )}
+                                 </button>
+                               </div>
+                             </TableCell>
+                             <TableCell>
+                               {getPlayerPosition(player) !== 'N/A' ? (
+                                 <Badge variant="secondary" className={getPositionColor(player.position)}>
+                                   {getPlayerPosition(player)}
+                                 </Badge>
+                               ) : (
+                                 <span className="text-muted-foreground">--</span>
+                               )}
+                             </TableCell>
+                             <TableCell>
+                               {getPlayerTeam(player) !== 'N/A' ? (
+                                 <Badge variant="outline" className="border-blue-300 text-blue-700">
+                                   {getPlayerTeam(player)}
+                                 </Badge>
+                               ) : (
+                                 <span className="text-muted-foreground">--</span>
+                               )}
+                             </TableCell>
+                            <TableCell className="text-right">
+                              {injuryDisplay ? (
+                                <Badge variant="outline" className={injuryDisplay.color}>
+                                  {injuryDisplay.text}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                                  Active
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+
+      {/* Player Bio Dialog */}
+      <Dialog open={isPlayerBioOpen} onOpenChange={setIsPlayerBioOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <Avatar className="h-12 w-12">
+                <AvatarImage 
+                  src={selectedPlayer ? getPlayerHeadshotUrl(selectedPlayer.player_id, selectedPlayer.full_name) : undefined} 
+                  alt={`${selectedPlayer?.full_name || 'Player'} headshot`} 
+                />
+                <AvatarFallback className="text-xl bg-primary/10 text-primary font-bold">
+                  {selectedPlayer?.full_name ? selectedPlayer.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h2 className="text-2xl font-bold">{selectedPlayer?.full_name || 'Player'}</h2>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Badge variant="secondary" className={getPositionColor(selectedPlayer?.position)}>
+                    {selectedPlayer?.position || 'N/A'}
+                  </Badge>
+                  {selectedPlayer?.team && (
+                    <Badge variant="outline">
+                      {selectedPlayer.team}
+                    </Badge>
+                  )}
+
+                </div>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedPlayer && (
+            <div className="space-y-6">
+              {/* Player Stats Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="p-4 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                    <span className="text-sm font-medium text-muted-foreground">Fantasy Positions</span>
+                  </div>
+                  <div className="text-2xl font-bold text-green-700">
+                    {selectedPlayer.fantasy_positions?.join(', ') || 'N/A'}
+                  </div>
+                </Card>
+                
+                <Card className="p-4 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Activity className="h-5 w-5 text-blue-600" />
+                    <span className="text-sm font-medium text-muted-foreground">Status</span>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-700">
+                    {selectedPlayer.status || 'Active'}
+                  </div>
+                </Card>
+                
+                <Card className="p-4 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Shield className="h-5 w-5 text-purple-600" />
+                    <span className="text-sm font-medium text-muted-foreground">Injury Status</span>
+                  </div>
+                  <div className="text-2xl font-bold text-purple-700">
+                    {selectedPlayer.injury_status || 'Healthy'}
+                  </div>
+                </Card>
+                
+                <Card className="p-4 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Target className="h-5 w-5 text-orange-600" />
+                    <span className="text-sm font-medium text-muted-foreground">Practice</span>
+                  </div>
+                  <div className="text-2xl font-bold text-orange-700">
+                    {selectedPlayer.practice_participation || 'Full'}
+                  </div>
+                </Card>
+              </div>
+
+              <Separator />
+
+              {/* Per Game Stats */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-yellow-600" />
+                  Per Game Stats
+                </h3>
+                <Card className="p-4">
+                  {(() => {
+                    const stats = selectedPlayer.per_game_stats || selectedPlayer.current_week_stats || getMockStatsForPosition(selectedPlayer.position);
+                    if (!stats) return null;
+                    
+                    return (
+                      <div className="space-y-4">
+                        <div className="text-center">
+                          <div className="text-sm text-muted-foreground">
+                            {selectedPlayer.per_game_stats ? 'Per Game Averages' : 'Current Week Performance'}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {Object.entries(stats).map(([key, value]) => (
+                            <div key={key} className="text-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                              <div className="text-sm font-medium text-muted-foreground capitalize mb-1">
+                                {key.replace(/_/g, ' ')}
+                              </div>
+                              <div className="text-lg font-semibold text-yellow-700">
+                                {typeof value === 'number' ? value.toFixed(1) : String(value)}
                               </div>
                             </div>
-                          );
-                        })}
+                          ))}
+                        </div>
                       </div>
                     );
                   })()}
-                </div>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+
+              
+
+              {/* Season Stats */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                  Season Statistics
+                </h3>
+                <Card className="p-4">
+                  {(() => {
+                    const stats = selectedPlayer.current_week_stats || getMockStatsForPosition(selectedPlayer.position);
+                    if (!stats) return null;
+                    
+                    return (
+                      <div className="space-y-4">
+                        <div className="text-center">
+                          <div className="text-sm text-muted-foreground">
+                            Season Statistics
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {Object.entries(stats).map(([key, value]) => (
+                            <div key={key} className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                              <div className="text-xs font-medium text-muted-foreground capitalize mb-1">
+                                {key.replace(/_/g, ' ')}
+                              </div>
+                              <div className="text-lg font-bold text-green-700">
+                                {typeof value === 'number' ? value.toFixed(1) : String(value)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </Card>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 }

@@ -2,7 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-type SyncBody = { league_id?: string };
+type SyncBody = { league_id?: string; fetch_live_data?: boolean };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
 
   try {
     // 1) Parse input
-    const { league_id }: SyncBody = await req.json().catch(() => ({} as SyncBody));
+    const { league_id, fetch_live_data }: SyncBody = await req.json().catch(() => ({} as SyncBody));
     if (!league_id) return cors(new Response(JSON.stringify({ error: "league_id required" }), { status: 400 }));
 
     // 2) Create two Supabase clients:
@@ -74,29 +74,87 @@ Deno.serve(async (req) => {
 
     const allPlayers = await res.json() as Record<string, any>;
 
-    // Build upsert rows for only needed IDs
+    // 7) Fetch current week stats and projections (if requested or if this is a live data sync)
+    let statsData: Record<string, any> = {};
+    let projectionsData: Record<string, any> = {};
+    
+    if (fetch_live_data) {
+      try {
+        // Get current NFL week
+        const weekRes = await fetch("https://api.sleeper.app/v1/state/nfl");
+        if (weekRes.ok) {
+          const stateData = await weekRes.json();
+          const currentWeek = stateData.week;
+          
+          if (currentWeek && currentWeek > 0) {
+            // Fetch current week stats
+            const statsRes = await fetch(`https://api.sleeper.app/v1/stats/nfl/regular/${currentWeek}`);
+            if (statsRes.ok) {
+              statsData = await statsRes.json();
+            }
+            
+            // Fetch current week projections
+            const projectionsRes = await fetch(`https://api.sleeper.app/v1/projections/nfl/regular/${currentWeek}`);
+            if (projectionsRes.ok) {
+              projectionsData = await projectionsRes.json();
+            }
+          }
+        }
+      } catch (e) {
+        console.log("Stats/projections fetch failed, continuing with basic player data:", e);
+      }
+    }
+
+    // Build upsert rows for only needed IDs with enhanced data
     const rows = [] as any[];
     for (const id of needed) {
       const p = allPlayers[id] || null;
+      const stats = statsData[id] || {};
+      const projections = projectionsData[id] || {};
+      
       rows.push({
         player_id: id,
-        full_name: p?.full_name ?? (p?.first_name && p?.last_name ? `${p.first_name} ${p.last_name}` : null),
+        full_name: p?.full_name ?? (p?.first_name && p?.last_name ? `${p.first_name} ${p?.last_name}` : null),
         position: p?.position ?? null,
         team: p?.team ?? null,
         fantasy_positions: Array.isArray(p?.fantasy_positions) ? p?.fantasy_positions : null,
         status: p?.status ?? null,
+        // Enhanced data from stats and projections
+        current_week_stats: Object.keys(stats).length > 0 ? stats : null,
+        current_week_projection: projections?.fantasy_points_ppr || projections?.fantasy_points || null,
+        per_game_stats: p?.per_game_stats || null, // Per game averages from Sleeper API
+        injury_status: p?.injury_status || null,
+        practice_participation: p?.practice_participation || null,
+        // Additional bio fields
+        first_name: p?.first_name || null,
+        last_name: p?.last_name || null,
+        age: p?.age || null,
+        height: p?.height || null,
+        weight: p?.weight || null,
+        experience: p?.experience || null,
+        college: p?.college || null,
+        number: p?.number || null,
+        search_rank: p?.search_rank || null,
+        search_rank_ppr: p?.search_rank_ppr || null,
+        sport: p?.sport || null,
+        hashtag: p?.hashtag || null,
         updated_at: new Date().toISOString(),
       });
     }
 
-    // 7) Upsert using service role (bypass RLS safely for dictionary table)
+    // 8) Upsert using service role (bypass RLS safely for dictionary table)
     const { error: upsertErr, count } = await adminClient
       .from("players")
       .upsert(rows, { onConflict: "player_id", ignoreDuplicates: false, count: "exact" });
 
     if (upsertErr) return cors(new Response(JSON.stringify({ error: upsertErr.message }), { status: 500 }));
 
-    return cors(new Response(JSON.stringify({ upserted: count ?? rows.length }), { status: 200 }));
+    return cors(new Response(JSON.stringify({ 
+      upserted: count ?? rows.length,
+      stats_fetched: Object.keys(statsData).length > 0,
+      projections_fetched: Object.keys(projectionsData).length > 0,
+      live_data: fetch_live_data
+    }), { status: 200 }));
   } catch (e: any) {
     return cors(new Response(JSON.stringify({ error: e?.message ?? "Internal error" }), { status: 500 }));
   }

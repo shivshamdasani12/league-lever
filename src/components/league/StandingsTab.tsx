@@ -1,17 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { fetchStandings, LeagueStandingRow } from "@/lib/queries/league";
+import { fetchRosters, LeagueRosterRow } from "@/lib/queries/league";
 import { Loader2 } from "lucide-react";
 import { useEnsureLeagueMatchups } from "@/hooks/useEnsureLeagueMatchups";
 
-interface Props { leagueId: string }
+interface Props { 
+  leagueId: string;
+  onRosterSelect?: (rosterId: string) => void;
+}
 
-export default function StandingsTab({ leagueId }: Props) {
+export default function StandingsTab({ leagueId, onRosterSelect }: Props) {
   const { importing } = useEnsureLeagueMatchups(leagueId);
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["league-standings", leagueId],
+    queryKey: ["league-rosters", leagueId],
     enabled: !!leagueId,
-    queryFn: () => fetchStandings(leagueId),
+    queryFn: () => fetchRosters(leagueId),
   });
 
   if (isLoading || importing) return (
@@ -40,10 +43,12 @@ export default function StandingsTab({ leagueId }: Props) {
     );
   }
 
+  // Debug: Log the data structure
+  console.log("StandingsTab: Received data:", data);
+  console.log("StandingsTab: onRosterSelect function:", onRosterSelect);
+
   // Check if this is preseason (all teams have 0-0 records)
-  const isPreseason = data.every((row: LeagueStandingRow) => 
-    row.wins === 0 && row.losses === 0 && row.ties === 0
-  );
+  const isPreseason = true; // During preseason, we only have roster data
 
   return (
     <div className="w-full overflow-auto">
@@ -51,7 +56,7 @@ export default function StandingsTab({ leagueId }: Props) {
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="text-sm text-blue-800">
             <strong>Preseason Mode:</strong> No games have been played yet. 
-            Standings show team rosters and will update automatically when the season begins.
+            This table shows team rosters and will update to show standings when the season begins.
           </div>
         </div>
       )}
@@ -60,24 +65,32 @@ export default function StandingsTab({ leagueId }: Props) {
         <TableHeader>
           <TableRow>
             <TableHead className="w-[40%]">Team</TableHead>
-            <TableHead>W</TableHead>
-            <TableHead>L</TableHead>
-            <TableHead>T</TableHead>
-            <TableHead>Win %</TableHead>
-            <TableHead>PF</TableHead>
-            <TableHead>PA</TableHead>
+            <TableHead>Owner</TableHead>
+            <TableHead>Players</TableHead>
+            <TableHead>Starters</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {(data as LeagueStandingRow[]).map((row) => (
+          {(data as LeagueRosterRow[]).map((row) => (
             <TableRow key={`${row.league_id}-${row.roster_id}`}>
-              <TableCell className="font-medium">{row.owner_name || `Roster ${row.roster_id}`}</TableCell>
-              <TableCell>{row.wins}</TableCell>
-              <TableCell>{row.losses}</TableCell>
-              <TableCell>{row.ties}</TableCell>
-              <TableCell>{Number(row.win_pct).toFixed(3)}</TableCell>
-              <TableCell>{Number(row.pf).toFixed(2)}</TableCell>
-              <TableCell>{Number(row.pa).toFixed(2)}</TableCell>
+              <TableCell className="font-medium">
+                {onRosterSelect ? (
+                  <button
+                    onClick={() => {
+                      console.log("StandingsTab: Username clicked for roster:", row.roster_id);
+                      onRosterSelect(String(row.roster_id));
+                    }}
+                    className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                  >
+                    {row.owner_name || row.owner_username || `Roster ${row.roster_id}`}
+                  </button>
+                ) : (
+                  row.owner_name || row.owner_username || `Roster ${row.roster_id}`
+                )}
+              </TableCell>
+              <TableCell>{row.owner_name || row.owner_username || 'Unknown'}</TableCell>
+              <TableCell>{Array.isArray(row.players) ? row.players.length : 0}</TableCell>
+              <TableCell>{Array.isArray(row.starters) ? row.starters.length : 0}</TableCell>
             </TableRow>
           ))}
         </TableBody>

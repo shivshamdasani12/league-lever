@@ -7,6 +7,11 @@ export interface PlayerRow {
   team: string | null;
   fantasy_positions: string[] | null;
   status: string | null;
+  current_week_stats: any | null;
+  current_week_projection: number | null;
+  per_game_stats: any | null;
+  injury_status: string | null;
+  practice_participation: string | null;
 }
 
 export async function fetchPlayersByIds(ids: string[]) {
@@ -14,7 +19,7 @@ export async function fetchPlayersByIds(ids: string[]) {
 
   const { data, error } = await supabase
     .from("players")
-    .select("player_id, full_name, position, team, fantasy_positions, status")
+    .select("player_id, full_name, position, team, fantasy_positions, status, current_week_stats, current_week_projection, per_game_stats, injury_status, practice_participation")
     .in("player_id", ids);
 
   if (error) throw error;

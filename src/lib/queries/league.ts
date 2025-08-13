@@ -187,3 +187,26 @@ export function clearRosterCache(leagueId?: string) {
   }
 }
 
+// Fetch roster details with player information for a specific week
+export async function fetchRosterDetails(leagueId: string, week: number, rosterId: number) {
+  try {
+    const { data, error } = await supabase
+      .from("sleeper_matchups")
+      .select("starters, players")
+      .eq("league_id", leagueId)
+      .eq("week", week)
+      .eq("roster_id", rosterId)
+      .single();
+    
+    if (error) throw error;
+    
+    return {
+      starters: data?.starters || [],
+      players: data?.players || []
+    };
+  } catch (error) {
+    console.error("Error fetching roster details:", error);
+    return { starters: [], players: [] };
+  }
+}
+
