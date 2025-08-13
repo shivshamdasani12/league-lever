@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
-import { fetchWeeks, fetchMatchups, LeagueWeekRow, LeagueMatchupRow } from "@/lib/queries/league";
+import { fetchWeeks, fetchLeagueMatchupsByWeek, LeagueWeekRow } from "@/lib/queries/league";
 import { useEnsureLeagueMatchups } from "@/hooks/useEnsureLeagueMatchups";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -57,12 +57,12 @@ export default function MatchupsTab({ leagueId }: Props) {
     }
   }, [selectedWeek, params, setSearchParams]);
 
-  const { importing: importingAll } = useEnsureLeagueMatchups(leagueId);
+  const { importing: importingWeek } = useEnsureLeagueMatchups(leagueId, week);
 
-  const matchupsQ = useQuery({
-    queryKey: ["matchups", leagueId, week],
-    enabled: !!leagueId && typeof week === "number",
-    queryFn: () => fetchMatchups(leagueId, week as number),
+  const { data: rows = [] } = useQuery({
+    queryKey: ['leagueMatchups', leagueId, week],
+    queryFn: () => fetchLeagueMatchupsByWeek(leagueId!, week!),
+    enabled: Boolean(leagueId && week),
   });
 
   const rostersQ = useQuery({
@@ -87,25 +87,25 @@ export default function MatchupsTab({ leagueId }: Props) {
     return map;
   }, [rostersQ.data]);
 
-  // OPTIMIZED: More efficient matchup pairing algorithm
+  // Group matchups by matchup_id and create pairs
   const matchupPairs = useMemo(() => {
-    const rows = (matchupsQ.data || []) as LeagueMatchupRow[];
     if (rows.length === 0) return [];
     
-    const pairs: Array<{ team1: LeagueMatchupRow; team2?: LeagueMatchupRow }> = [];
-    
-    // Use a more efficient pairing algorithm
-    for (let i = 0; i < rows.length; i += 2) {
-      const team1 = rows[i];
-      const team2 = rows[i + 1];
-      
-      if (team1) {
-        pairs.push({ team1, team2 });
-      }
-    }
+    // Group by matchup_id; fall back to a unique key if null
+    const groups = rows.reduce((acc: Record<string, typeof rows>, r) => {
+      const key = r.matchup_id != null ? String(r.matchup_id) : `${r.league_id}-${r.week}-${r.roster_id}`;
+      (acc[key] ||= []).push(r);
+      return acc;
+    }, {});
+
+    // Create pairs from groups
+    const pairs = Object.values(groups).map(g => {
+      const [a, b] = g.sort((x, y) => x.roster_id - y.roster_id);
+      return { a, b: b ?? null };
+    });
     
     return pairs;
-  }, [matchupsQ.data]);
+  }, [rows]);
 
   // Memoize the weeks data to prevent unnecessary re-renders
   const weeks = useMemo(() => weeksQ.data || [], [weeksQ.data]);
@@ -113,13 +113,13 @@ export default function MatchupsTab({ leagueId }: Props) {
 
   // Memoize the loading states to prevent unnecessary re-renders
   const isLoading = useMemo(() => 
-    weeksQ.isLoading || matchupsQ.isLoading || importingAll, 
-    [weeksQ.isLoading, matchupsQ.isLoading, importingAll]
+    weeksQ.isLoading || importingWeek, 
+    [weeksQ.isLoading, importingWeek]
   );
 
   const hasError = useMemo(() => 
-    weeksQ.isError || matchupsQ.isError, 
-    [weeksQ.isError, matchupsQ.isError]
+    weeksQ.isError, 
+    [weeksQ.isError]
   );
 
   if (weeksQ.isLoading) {
@@ -160,23 +160,16 @@ export default function MatchupsTab({ leagueId }: Props) {
       {/* Show preseason message if no weeks available */}
       {!hasWeeks && (
         <div className="p-8 text-center space-y-4">
-          {importingAll ? (
-            <div className="flex items-center justify-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Importing season schedule from Sleeper...</span>
-            </div>
-          ) : (
-            <div className="text-muted-foreground">
-              <h3 className="text-lg font-semibold mb-2">Preseason - Schedule Loading...</h3>
-              <p className="mb-4">
-                The regular season hasn't started yet, but the system is automatically importing 
-                the full season schedule from Sleeper. This should only take a few seconds.
-              </p>
-              <p className="text-sm">
-                <strong>Tip:</strong> Check the Standings tab to see all teams in your league.
-              </p>
-            </div>
-          )}
+          <div className="text-muted-foreground">
+            <h3 className="text-lg font-semibold mb-2">Preseason - No Schedule Available</h3>
+            <p className="mb-4">
+              The regular season hasn't started yet. Matchup data will be available 
+              once the NFL regular season begins.
+            </p>
+            <p className="text-sm">
+              <strong>Tip:</strong> Check the Standings tab to see all teams in your league.
+            </p>
+          </div>
         </div>
       )}
 
@@ -197,39 +190,39 @@ export default function MatchupsTab({ leagueId }: Props) {
               <p className="text-muted-foreground col-span-full">No matchups for week {week}.</p>
             )}
             
-            {matchupPairs.map(({ team1, team2 }) => (
-              <Card key={`${team1.league_id}-${team1.week}-${team1.roster_id}`}>
+            {matchupPairs.map(({ a, b }) => (
+              <Card key={`${a.league_id}-${a.week}-${a.roster_id}`}>
                 <CardHeader>
-                  <CardTitle className="text-base">Week {team1.week}</CardTitle>
+                  <CardTitle className="text-base">Week {a.week}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage alt={`${rosterName.get(team1.roster_id) || "Team"} avatar`} />
+                        <AvatarImage alt={`${rosterName.get(a.roster_id) || "Team"} avatar`} />
                         <AvatarFallback>
-                          {(rosterName.get(team1.roster_id) || "T").slice(0, 2).toUpperCase()}
+                          {(rosterName.get(a.roster_id) || "T").slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="font-medium">{rosterName.get(team1.roster_id) || `Roster ${team1.roster_id}`}</div>
-                        <div className="text-sm text-muted-foreground">Points: {team1.points ?? 0}</div>
+                        <div className="font-medium">{rosterName.get(a.roster_id) || `Roster ${a.roster_id}`}</div>
+                        <div className="text-sm text-muted-foreground">Points: {a.points ?? 0}</div>
                       </div>
                     </div>
                     
-                    {team2 ? (
+                    {b ? (
                       <>
                         <div className="text-sm font-medium text-muted-foreground">vs</div>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage alt={`${rosterName.get(team2.roster_id) || "Opponent"} avatar`} />
+                            <AvatarImage alt={`${rosterName.get(b.roster_id) || "Opponent"} avatar`} />
                             <AvatarFallback>
-                              {(rosterName.get(team2.roster_id) || "T").slice(0, 2).toUpperCase()}
+                              {(rosterName.get(b.roster_id) || "T").slice(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <div className="font-medium">{rosterName.get(team2.roster_id) || `Roster ${team2.roster_id}`}</div>
-                            <div className="text-sm text-muted-foreground">Points: {team2.points ?? 0}</div>
+                            <div className="font-medium">{rosterName.get(b.roster_id) || `Roster ${b.roster_id}`}</div>
+                            <div className="text-sm text-muted-foreground">Points: {b.points ?? 0}</div>
                           </div>
                         </div>
                       </>

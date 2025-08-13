@@ -415,14 +415,26 @@ export type Database = {
       }
     }
     Views: {
-
+      league_matchup_pairs_v: {
+        Row: {
+          league_id: string | null
+          matchup_id: number | null
+          points_a: number | null
+          points_b: number | null
+          roster_a: number | null
+          roster_b: number | null
+          week: number | null
+        }
+        Relationships: []
+      }
       league_matchups_v: {
         Row: {
           league_id: string | null
-          opp_points: number | null
-          opp_roster_id: number | null
-          points: number | null
-          roster_id: number | null
+          matchup_id: number | null
+          points_a: number | null
+          points_b: number | null
+          roster_id_a: number | null
+          roster_id_b: number | null
           week: number | null
         }
         Relationships: [
@@ -504,7 +516,15 @@ export type Database = {
           win_pct: number | null
           wins: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sleeper_rosters_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       league_weeks_v: {
         Row: {

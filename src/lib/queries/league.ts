@@ -25,6 +25,16 @@ export interface LeagueMatchupRow {
   opp_points: number | null;
 }
 
+export interface LeagueMatchupPairRow {
+  league_id: string;
+  week: number;
+  matchup_id: number | null;
+  roster_id_a: number;
+  roster_id_b: number | null;
+  points_a: number | null;
+  points_b: number | null;
+}
+
 export interface LeagueStandingRow {
   league_id: string;
   roster_id: number;
@@ -80,10 +90,25 @@ export async function fetchMatchups(leagueId: string, week: number) {
     .select("*")
     .eq("league_id", leagueId)
     .eq("week", week)
-    .order("roster_id", { ascending: true });
+    .order("roster_id_a", { ascending: true });
   
   if (error) throw error;
-  return (data ?? []) as LeagueMatchupRow[];
+  return (data ?? []) as LeagueMatchupPairRow[];
+}
+
+export async function fetchLeagueMatchupsByWeek(leagueId: string, week: number) {
+  console.log("Fetching league matchups by week:", week);
+  
+  const { data, error } = await supabase
+    .from("sleeper_matchups")
+    .select("*")
+    .eq("league_id", leagueId)
+    .eq("week", week)
+    .order("matchup_id", { ascending: true, nullsFirst: true })
+    .order("roster_id", { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function fetchStandings(leagueId: string) {
@@ -108,24 +133,29 @@ export async function fetchMatchupPairs(leagueId: string, week: number) {
       .select("*")
       .eq("league_id", leagueId)
       .eq("week", week)
-      .order("roster_id", { ascending: true });
+      .order("roster_id_a", { ascending: true });
     
     if (error) throw error;
     
-    const rows = (data ?? []) as LeagueMatchupRow[];
-    const pairs: Array<{ team1: LeagueMatchupRow; team2?: LeagueMatchupRow }> = [];
-    
-    // Efficient pairing algorithm
-    for (let i = 0; i < rows.length; i += 2) {
-      const team1 = rows[i];
-      const team2 = rows[i + 1];
-      
-      if (team1) {
-        pairs.push({ team1, team2 });
-      }
-    }
-    
-    return pairs;
+    const rows = (data ?? []) as LeagueMatchupPairRow[];
+    return rows.map(row => ({
+      team1: {
+        league_id: row.league_id,
+        week: row.week,
+        roster_id: row.roster_id_a,
+        points: row.points_a,
+        opp_roster_id: row.roster_id_b,
+        opp_points: row.points_b
+      },
+      team2: row.roster_id_b ? {
+        league_id: row.league_id,
+        week: row.week,
+        roster_id: row.roster_id_b,
+        points: row.points_b,
+        opp_roster_id: row.roster_id_a,
+        opp_points: row.points_a
+      } : undefined
+    }));
   } catch (error) {
     console.error("Error fetching matchup pairs:", error);
     return [];
@@ -142,10 +172,10 @@ export async function fetchMultipleWeeks(leagueId: string, weeks: number[]) {
     .eq("league_id", leagueId)
     .in("week", weeks)
     .order("week", { ascending: true })
-    .order("roster_id", { ascending: true });
+    .order("roster_id_a", { ascending: true });
   
   if (error) throw error;
-  return (data ?? []) as LeagueMatchupRow[];
+  return (data ?? []) as LeagueMatchupPairRow[];
 }
 
 // OPTIMIZED: Clear cache when needed

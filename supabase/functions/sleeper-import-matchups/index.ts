@@ -42,6 +42,41 @@ serve(async (req) => {
       });
     }
 
+    // Early NFL state check for preseason gating
+    let seasonType: string | null = null;
+    let currentWeekNum: number | null = null;
+    
+    try {
+      const stateRes = await fetchWithRetry("https://api.sleeper.app/v1/state/nfl");
+      if (stateRes.ok) {
+        const state = await stateRes.json();
+        seasonType = String(state?.season_type ?? "");
+        currentWeekNum = Number(state?.week);
+        console.log("NFL state check:", { season_type: seasonType, current_week: currentWeekNum });
+      } else {
+        console.warn("NFL state fetch failed", { status: stateRes.status });
+      }
+    } catch (e) {
+      console.warn("NFL state fetch threw", e);
+    }
+
+    // Block preseason/offseason imports unless manual weeks specified
+    if (!Array.isArray(weeks) && (seasonType !== "regular" || !(typeof currentWeekNum === "number" && currentWeekNum >= 1))) {
+      console.log("Blocking preseason/offseason auto-import", { seasonType, currentWeekNum, league_id });
+      return new Response(JSON.stringify({
+        ok: true,
+        league_id,
+        season_type: seasonType,
+        current_week: currentWeekNum,
+        skippedPreseason: true,
+        imported_weeks: 0,
+        rows_upserted: 0,
+        message: "Preseason/offseason - no auto-import"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -98,70 +133,25 @@ serve(async (req) => {
 
     const sleeperLeagueId = String(leagueRow.external_id);
 
-    // Compute target weeks robustly with preseason gating
+    // Compute target weeks
     let targetWeeks: number[] | undefined = Array.isArray(weeks) && weeks.length > 0 ? weeks.map(Number) : undefined;
-    let seasonType: string | null = null;
-    let currentWeekNum: number | null = null;
 
     if (!targetWeeks) {
-      try {
-        const stateRes = await fetchWithRetry("https://api.sleeper.app/v1/state/nfl");
-        if (stateRes.ok) {
-          const state = await stateRes.json();
-          seasonType = String(state?.season_type ?? "");
-          currentWeekNum = Number(state?.week);
-          console.log("NFL state", { season_type: seasonType, current_week: currentWeekNum });
-        } else {
-          console.warn("NFL state fetch failed", { status: stateRes.status });
-        }
-      } catch (e) {
-        console.warn("NFL state fetch threw", e);
-      }
 
       if (all_to_current) {
-        // Gate auto-imports during preseason/offseason
-        if (seasonType !== "regular" || !(typeof currentWeekNum === "number" && currentWeekNum >= 1)) {
-          // During preseason, import the full season schedule (weeks 1-18) to show future matchups
-          if (seasonType === "pre" || seasonType === "off") {
-            targetWeeks = Array.from({ length: 18 }, (_, i) => i + 1);
-            console.log("Preseason detected - importing full season schedule", { seasonType, targetWeeks });
-          } else {
-            const body = {
-              imported_weeks: 0,
-              rows_upserted: 0,
-              internal_league_id: league_id,
-              sleeper_league_id: sleeperLeagueId,
-              season_type: seasonType,
-              current_week: currentWeekNum,
-              requested_weeks: [],
-              fetched: {},
-              upserted: 0,
-              message: "Offseason - no schedule available",
-            };
-            console.log("Offseason detected - no schedule to import", body);
-            return new Response(JSON.stringify(body), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
-        } else {
+        // Only import up to current week during regular season
+        if (seasonType === "regular" && currentWeekNum && currentWeekNum >= 1) {
           targetWeeks = Array.from({ length: currentWeekNum }, (_, i) => i + 1);
+        } else {
+          // Not regular season or invalid week - already handled above
+          targetWeeks = [];
         }
       } else {
-        // Manual/default import: import full season schedule during preseason, actual weeks during season
-        if (seasonType === "pre" || seasonType === "off") {
-          // Preseason: import full schedule (weeks 1-18)
-          targetWeeks = Array.from({ length: 18 }, (_, i) => i + 1);
-          console.log("Preseason manual import - importing full season schedule", { seasonType, targetWeeks });
-        } else if (seasonType === "regular" && currentWeekNum && currentWeekNum >= 1) {
-          // Only import up to current week during regular season
+        // Manual import: only import regular season weeks if in regular season
+        if (seasonType === "regular" && currentWeekNum && currentWeekNum >= 1) {
           targetWeeks = Array.from({ length: currentWeekNum }, (_, i) => i + 1);
-        } else if (seasonType === "post") {
-          // Post-season: import all regular season weeks (1-18)
-          targetWeeks = Array.from({ length: 18 }, (_, i) => i + 1);
         } else {
-          // Unknown season type: import full schedule
-          targetWeeks = Array.from({ length: 18 }, (_, i) => i + 1);
-          console.log("Unknown season type - importing full schedule", { seasonType, currentWeekNum });
+          targetWeeks = [];
         }
       }
     }
@@ -253,17 +243,19 @@ serve(async (req) => {
     
     weekResults.forEach((result) => {
       if (result.success && result.data) {
-        const rows = result.data.map((m: any) => ({
-          league_id,
-          week: result.week,
-          matchup_id: typeof m.matchup_id === "number" ? m.matchup_id : null,
-          roster_id: Number(m.roster_id),
-          points: typeof m.points === "number" ? m.points : Number(m.points ?? 0),
-          starters: m.starters ?? null,
-          players: m.players ?? null,
-          is_playoffs: Boolean(m.playoff_matchup ?? m.is_playoffs ?? false),
-          is_consolation: Boolean(m.is_consolation ?? false),
-        }));
+        const rows = result.data
+          .filter((m: any) => m && m.roster_id != null)
+          .map((m: any) => ({
+            league_id,
+            week: result.week,
+            matchup_id: typeof m.matchup_id === "number" ? m.matchup_id : null,
+            roster_id: Number(m.roster_id),
+            points: typeof m.points === "number" ? m.points : Number(m.points ?? 0),
+            starters: m.starters ?? null,
+            players: m.players ?? null,
+            is_playoffs: Boolean(m.playoff_matchup ?? m.is_playoffs ?? false),
+            is_consolation: Boolean(m.is_consolation ?? false),
+          }));
         
         allRows.push(...rows);
         imported_weeks.push(result.week);
@@ -286,21 +278,34 @@ serve(async (req) => {
       rows_upserted = data?.length ?? 0;
       console.log(`Batch upsert completed: ${rows_upserted} rows imported across ${imported_weeks.length} weeks`);
     } else {
-      console.log("No rows to upsert");
+      console.log("No rows to upsert - likely empty weeks during preseason");
+      return new Response(JSON.stringify({
+        ok: true,
+        league_id,
+        season_type: seasonType,
+        current_week: currentWeekNum,
+        skippedEmpty: true,
+        imported_weeks: 0,
+        rows_upserted: 0,
+        message: "No matchup data available for requested weeks"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(
       JSON.stringify({
-        imported_weeks: imported_weeks.length,
-        rows_upserted,
-        internal_league_id: league_id,
-        sleeper_league_id: sleeperLeagueId,
+        ok: true,
+        league_id,
         season_type: seasonType,
         current_week: currentWeekNum,
+        imported_weeks: imported_weeks.length,
+        rows_upserted,
         requested_weeks: targetWeeks,
         fetched: fetchedCounts,
-        upserted: rows_upserted,
         errors,
+        skippedEmpty: false,
+        skippedPreseason: false,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

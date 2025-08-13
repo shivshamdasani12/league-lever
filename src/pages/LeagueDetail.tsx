@@ -185,7 +185,7 @@ export default function LeagueDetail() {
           </TabsList>
         </div>
         <TabsContent value="general">
-          <GeneralTab leagueId={leagueId} leagueName={league.name} />
+          <GeneralTab leagueId={leagueId} leagueName={league.name} teamsCount={0} />
         </TabsContent>
         <TabsContent value="rosters">
           <RostersTab leagueId={leagueId} />
