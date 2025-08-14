@@ -571,13 +571,6 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
 
               {/* Team/Projections Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-1">
-                  <TabsTrigger value="projections" className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" />
-                    Projections
-                  </TabsTrigger>
-                </TabsList>
-
                 <TabsContent value="projections" className="space-y-6">
                   {/* Side by Side Projections */}
                   <div className="grid grid-cols-2 gap-6">
