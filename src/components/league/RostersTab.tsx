@@ -9,7 +9,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Users, Trophy, User, MapPin, TrendingUp, Activity, Shield, Award, Target, Zap, BarChart3 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchRosters, LeagueRosterRow, fetchApiProjections } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
 
@@ -177,7 +176,6 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
   const [selectedRosterId, setSelectedRosterId] = useState<string | null>(propSelectedRosterId || null);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerRow | null>(null);
   const [isPlayerBioOpen, setIsPlayerBioOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("team");
 
   const { data: rosters, isLoading, isError, error } = useQuery({
     queryKey: ["league-rosters", leagueId],
@@ -395,255 +393,225 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
             </Card>
 
             {/* Team/Projections Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="team" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Team
-                </TabsTrigger>
-                <TabsTrigger value="projections" className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Projections
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="team" className="space-y-6">
-                {/* Starters Table */}
-                <Card>
-                  <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b">
+            <div className="space-y-6">
+              {/* Starters Table with Projections */}
+              <Card>
+                <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Trophy className="h-5 w-5 text-yellow-600" />
                       <CardTitle className="text-lg text-yellow-700">Starters</CardTitle>
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-yellow-50/50">
-                          <TableHead className="w-12"></TableHead>
-                          <TableHead>Player</TableHead>
-                          <TableHead>Position</TableHead>
-                          <TableHead>Team</TableHead>
-                          <TableHead className="text-right">Status</TableHead>
+                    {projections && (
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">Total Projected</div>
+                        <div className="text-2xl font-bold text-yellow-700">
+                          {starters.reduce((total, { id }) => {
+                            const projection = projections.find((p: any) => p.player_id === id);
+                            return total + (projection?.projection_points || 0);
+                          }, 0).toFixed(1)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-yellow-50/50">
+                        <TableHead className="w-12"></TableHead>
+                        <TableHead>Player</TableHead>
+                        <TableHead>Position</TableHead>
+                        <TableHead>Team</TableHead>
+                        <TableHead className="text-right">Projected</TableHead>
+                        <TableHead className="text-right">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {starters.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                            No starters set
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {starters.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                              No starters set
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          starters.map(({ id, player }, index) => {
-                            const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
-                            const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
-                            
-                            return (
-                              <TableRow key={String(id)} className="hover:bg-yellow-50/30">
-                                <TableCell>
-                                  <Avatar className="h-10 w-10">
-                                    <AvatarImage 
-                                      src={getPlayerHeadshotUrl(String(id), player?.full_name)} 
-                                      alt={`${player?.full_name || 'Player'} headshot`} 
-                                    />
-                                    <AvatarFallback className="bg-yellow-100 text-yellow-800 font-semibold text-sm">
-                                      {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex flex-col">
-                                    <button
-                                      onClick={() => player && handlePlayerClick(player)}
-                                      className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
-                                      disabled={!player}
-                                    >
-                                      <span className="font-semibold">{getPlayerDisplayName(String(id), player)}</span>
-                                    </button>
-                                    <span className="text-xs text-muted-foreground">
-                                      Slot: {position}
-                                    </span>
+                      ) : (
+                        starters.map(({ id, player }, index) => {
+                          const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
+                          const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
+                          const projection = projections?.find((p: any) => p.player_id === id);
+                          const projectedPoints = projection?.projection_points || 0;
+                          
+                          return (
+                            <TableRow key={String(id)} className="hover:bg-yellow-50/30">
+                              <TableCell>
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage 
+                                    src={getPlayerHeadshotUrl(String(id), player?.full_name)} 
+                                    alt={`${player?.full_name || 'Player'} headshot`} 
+                                  />
+                                  <AvatarFallback className="bg-yellow-100 text-yellow-800 font-semibold text-sm">
+                                    {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
+                                  </AvatarFallback>
+                                </Avatar>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-col">
+                                  <button
+                                    onClick={() => player && handlePlayerClick(player)}
+                                    className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
+                                    disabled={!player}
+                                  >
+                                    <span className="font-semibold">{getPlayerDisplayName(String(id), player)}</span>
+                                  </button>
+                                  <span className="text-xs text-muted-foreground">
+                                    Slot: {position}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={getPositionColor(getPlayerPosition(player))}>
+                                  {getPlayerPosition(player)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-medium">{getPlayerTeam(player)}</TableCell>
+                              <TableCell className="text-right">
+                                {projections ? (
+                                  <div className="text-right">
+                                    <div className="font-bold text-primary">{projectedPoints.toFixed(1)}</div>
+                                    <div className="text-xs text-muted-foreground">pts</div>
                                   </div>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="outline" className={getPositionColor(getPlayerPosition(player))}>
-                                    {getPlayerPosition(player)}
+                                ) : (
+                                  <div className="text-xs text-muted-foreground">--</div>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end items-center gap-2">
+                                  <Badge variant="outline" className={getStatusColor(player?.status)}>
+                                    {player?.status || 'Unknown'}
                                   </Badge>
-                                </TableCell>
-                                <TableCell className="font-medium">{getPlayerTeam(player)}</TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end items-center gap-2">
-                                    <Badge variant="outline" className={getStatusColor(player?.status)}>
-                                      {player?.status || 'Unknown'}
+                                  {injuryDisplay && (
+                                    <Badge variant="outline" className={injuryDisplay.color}>
+                                      {injuryDisplay.text}
                                     </Badge>
-                                    {injuryDisplay && (
-                                      <Badge variant="outline" className={injuryDisplay.color}>
-                                        {injuryDisplay.text}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })
-                        )}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
 
-                {/* Bench Table */}
-                <Card>
-                  <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+              {/* Bench Table */}
+              <Card>
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <User className="h-5 w-5 text-blue-600" />
                       <CardTitle className="text-lg text-blue-700">Bench</CardTitle>
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-blue-50/50">
-                          <TableHead className="w-12"></TableHead>
-                          <TableHead>Player</TableHead>
-                          <TableHead>Position</TableHead>
-                          <TableHead>Team</TableHead>
-                          <TableHead className="text-right">Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {bench.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                              No bench players
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          bench.map(({ id, player }) => {
-                            const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
-                            
-                            return (
-                              <TableRow key={String(id)} className="hover:bg-blue-50/30">
-                                <TableCell>
-                                  <Avatar className="h-10 w-10">
-                                    <AvatarImage 
-                                      src={getPlayerHeadshotUrl(String(id), player?.full_name)} 
-                                      alt={`${player?.full_name || 'Player'} headshot`} 
-                                    />
-                                    <AvatarFallback className="bg-blue-100 text-blue-800 font-semibold text-sm">
-                                      {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex flex-col">
-                                    <button
-                                      onClick={() => player && handlePlayerClick(player)}
-                                      className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
-                                      disabled={!player}
-                                    >
-                                      <span className="font-semibold">{getPlayerDisplayName(String(id), player)}</span>
-                                    </button>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="outline" className={getPositionColor(getPlayerPosition(player))}>
-                                    {getPlayerPosition(player)}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="font-medium">{getPlayerTeam(player)}</TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end items-center gap-2">
-                                    <Badge variant="outline" className={getStatusColor(player?.status)}>
-                                      {player?.status || 'Unknown'}
-                                    </Badge>
-                                    {injuryDisplay && (
-                                      <Badge variant="outline" className={injuryDisplay.color}>
-                                        {String(injuryDisplay.text)}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })
-                        )}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="projections" className="space-y-6">
-                {/* Projected Points Summary */}
-                <Card>
-                  <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
-                    <div className="flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5 text-green-600" />
-                      <CardTitle className="text-lg text-green-700">Week 1 Projections</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    {projections ? (
-                      <div className="space-y-4">
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-primary">
-                            {starters.reduce((total, { id }) => {
-                              const projection = projections.find((p: any) => p.player_id === id);
-                              return total + (projection?.projection_points || 0);
-                            }, 0).toFixed(1)}
-                          </div>
-                          <div className="text-muted-foreground">Total Projected Points</div>
+                    {projections && (
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">Total Projected</div>
+                        <div className="text-2xl font-bold text-blue-700">
+                          {bench.reduce((total, { id }) => {
+                            const projection = projections.find((p: any) => p.player_id === id);
+                            return total + (projection?.projection_points || 0);
+                          }, 0).toFixed(1)}
                         </div>
-                        
-                        {/* Starters Projections */}
-                        <div className="space-y-2">
-                          <h4 className="font-semibold">Starting Lineup</h4>
-                          <div className="space-y-1">
-                            {starters.map(({ id, player }, index) => {
-                              const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
-                              const projection = projections.find((p: any) => p.player_id === id);
-                              const projectedPoints = projection?.projection_points || 0;
-                              
-                              return (
-                                <div key={String(id)} className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors" onClick={() => player && handlePlayerClick(player)}>
-                                  <div className="flex items-center gap-3">
-                                    <Avatar className="h-8 w-8">
-                                      <AvatarImage 
-                                        src={getPlayerHeadshotUrl(String(id), player?.full_name)} 
-                                        alt={`${player?.full_name || 'Player'} headshot`} 
-                                      />
-                                      <AvatarFallback className="text-xs">
-                                        {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                      <div className="font-medium text-sm">{getPlayerDisplayName(String(id), player)}</div>
-                                      <div className="text-xs text-muted-foreground">{position} • {getPlayerTeam(player)}</div>
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="font-bold text-primary">{projectedPoints.toFixed(1)}</div>
-                                    <div className="text-xs text-muted-foreground">projected</div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg font-medium">Projections Coming Soon</p>
-                        <p className="text-sm">Player projections will be available once the season starts</p>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-blue-50/50">
+                        <TableHead className="w-12"></TableHead>
+                        <TableHead>Player</TableHead>
+                        <TableHead>Position</TableHead>
+                        <TableHead>Team</TableHead>
+                        <TableHead className="text-right">Projected</TableHead>
+                        <TableHead className="text-right">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bench.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                            No bench players
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        bench.map(({ id, player }) => {
+                          const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
+                          const projection = projections?.find((p: any) => p.player_id === id);
+                          const projectedPoints = projection?.projection_points || 0;
+                          
+                          return (
+                            <TableRow key={String(id)} className="hover:bg-blue-50/30">
+                              <TableCell>
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage 
+                                    src={getPlayerHeadshotUrl(String(id), player?.full_name)} 
+                                    alt={`${player?.full_name || 'Player'} headshot`} 
+                                  />
+                                  <AvatarFallback className="bg-blue-100 text-blue-800 font-semibold text-sm">
+                                    {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
+                                  </AvatarFallback>
+                                </Avatar>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-col">
+                                  <button
+                                    onClick={() => player && handlePlayerClick(player)}
+                                    className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
+                                    disabled={!player}
+                                  >
+                                    <span className="font-semibold">{getPlayerDisplayName(String(id), player)}</span>
+                                  </button>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={getPositionColor(getPlayerPosition(player))}>
+                                  {getPlayerPosition(player)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-medium">{getPlayerTeam(player)}</TableCell>
+                              <TableCell className="text-right">
+                                {projections ? (
+                                  <div className="text-right">
+                                    <div className="font-bold text-primary">{projectedPoints.toFixed(1)}</div>
+                                    <div className="text-xs text-muted-foreground">pts</div>
+                                  </div>
+                                ) : (
+                                  <div className="text-xs text-muted-foreground">--</div>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end items-center gap-2">
+                                  <Badge variant="outline" className={getStatusColor(player?.status)}>
+                                    {player?.status || 'Unknown'}
+                                  </Badge>
+                                  {injuryDisplay && (
+                                    <Badge variant="outline" className={injuryDisplay.color}>
+                                      {String(injuryDisplay.text)}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
       </div>
