@@ -50,7 +50,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
   const [isRosterDialogOpen, setIsRosterDialogOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerRow | null>(null);
   const [isPlayerBioOpen, setIsPlayerBioOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("team");
+  const [activeTab, setActiveTab] = useState("projections");
 
   const weeksQ = useQuery({
     queryKey: ["league-weeks", leagueId],
@@ -435,7 +435,15 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                       <div className="flex items-center gap-3 flex-1">
                         <div className="text-right">
                           <div className="font-semibold text-lg">
-                            {truncateText(rosterName.get(a.roster_id) || `Team ${a.roster_id}`, 15)}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onRosterSelect?.(String(a.roster_id));
+                              }}
+                              className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                            >
+                              {truncateText(rosterName.get(a.roster_id) || `Team ${a.roster_id}`, 15)}
+                            </button>
                           </div>
                           <div className="text-2xl font-bold text-primary">
                             {a.points !== null ? Number(a.points).toFixed(1) : '--'}
@@ -465,7 +473,19 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                         )}
                         <div className="text-left">
                           <div className="font-semibold text-lg">
-                            {b ? truncateText(rosterName.get(b.roster_id) || `Team ${b.roster_id}`, 15) : 'BYE'}
+                            {b ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onRosterSelect?.(String(b.roster_id));
+                                }}
+                                className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                              >
+                                {truncateText(rosterName.get(b.roster_id) || `Team ${b.roster_id}`, 15)}
+                              </button>
+                            ) : (
+                              'BYE'
+                            )}
                           </div>
                           <div className="text-2xl font-bold text-primary">
                             {b?.points !== null ? Number(b.points).toFixed(1) : '--'}
@@ -502,7 +522,15 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
               <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                 <div className="text-center">
                   <div className="font-semibold">
-                    {rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRosterSelect?.(String(selectedMatchup.a.roster_id));
+                      }}
+                      className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                    >
+                      {rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`}
+                    </button>
                   </div>
                   <div className="text-2xl font-bold text-primary">
                     {selectedMatchup.a.points !== null ? Number(selectedMatchup.a.points).toFixed(1) : '--'}
@@ -516,10 +544,19 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                 <div className="text-muted-foreground font-medium">VS</div>
                 <div className="text-center">
                   <div className="font-semibold">
-                    {selectedMatchup.b ? 
-                      (rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`) : 
+                    {selectedMatchup.b ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRosterSelect?.(String(selectedMatchup.b.roster_id));
+                        }}
+                        className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                      >
+                        {rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`}
+                      </button>
+                    ) : (
                       'BYE'
-                    }
+                    )}
                   </div>
                   <div className="text-2xl font-bold text-primary">
                     {selectedMatchup.b?.points !== null ? Number(selectedMatchup.b.points).toFixed(1) : '--'}
@@ -534,59 +571,12 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
 
               {/* Team/Projections Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="team" className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Team
-                  </TabsTrigger>
+                <TabsList className="grid w-full grid-cols-1">
                   <TabsTrigger value="projections" className="flex items-center gap-2">
                     <BarChart3 className="h-4 w-4" />
                     Projections
                   </TabsTrigger>
                 </TabsList>
-
-                <TabsContent value="team" className="space-y-6">
-                  {/* Side by Side Rosters */}
-                  <div className="grid grid-cols-2 gap-6">
-                    {/* Team A Roster */}
-                    <Card>
-                      <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b">
-                        <div className="flex items-center gap-2">
-                          <Trophy className="h-4 w-4 text-yellow-600" />
-                          <CardTitle className="text-sm">{rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`}</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-3">
-                        <div className="space-y-2">
-                          {((rosterADetails?.starters as string[]) || []).map((playerId: string, index: number) => {
-                            const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
-                            return renderPlayerRow(playerId, position);
-                          })}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Team B Roster */}
-                    {selectedMatchup.b && (
-                      <Card>
-                        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
-                          <div className="flex items-center gap-2">
-                            <Trophy className="h-4 w-4 text-blue-600" />
-                            <CardTitle className="text-sm">{rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`}</CardTitle>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="p-3">
-                          <div className="space-y-2">
-                            {((rosterBDetails?.starters as string[]) || []).map((playerId: string, index: number) => {
-                              const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
-                              return renderPlayerRow(playerId, position);
-                            })}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                </TabsContent>
 
                 <TabsContent value="projections" className="space-y-6">
                   {/* Side by Side Projections */}
@@ -597,7 +587,15 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                         <div className="flex items-center gap-2">
                           <BarChart3 className="h-4 w-4 text-green-600" />
                           <CardTitle className="text-sm">
-                            {rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onRosterSelect?.(String(selectedMatchup.a.roster_id));
+                              }}
+                              className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                            >
+                              {rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`}
+                            </button>
                             <span className="text-xs text-muted-foreground ml-2">
                               ({calculateProjectedTotal((rosterADetails?.starters as string[]) || [], projections).toFixed(1)} pts)
                             </span>
@@ -621,7 +619,15 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                           <div className="flex items-center gap-2">
                             <BarChart3 className="h-4 w-4 text-purple-600" />
                             <CardTitle className="text-sm">
-                              {rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onRosterSelect?.(String(selectedMatchup.b.roster_id));
+                                }}
+                                className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                              >
+                                {rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`}
+                              </button>
                               <span className="text-xs text-muted-foreground ml-2">
                                 ({calculateProjectedTotal((rosterBDetails?.starters as string[]) || [], projections).toFixed(1)} pts)
                               </span>
