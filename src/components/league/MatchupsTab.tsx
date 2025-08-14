@@ -8,8 +8,8 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Loader2, Users, Trophy, ArrowRight, X, Zap, TrendingUp, Activity, Shield, Award, Target, BarChart3 } from "lucide-react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { Loader2, Users, Trophy, ArrowRight, X, Zap, TrendingUp, Activity, Shield, Award, Target, BarChart3, User } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { fetchWeeks, fetchLeagueMatchupsByWeek, LeagueWeekRow, fetchRosterDetails, fetchRosters, fetchApiProjections } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
 import { useEnsureLeagueMatchups } from "@/hooks/useEnsureLeagueMatchups";
@@ -44,7 +44,6 @@ interface RosterDetails {
 
 export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const params = searchParams;
   const qc = useQueryClient();
   const [selectedMatchup, setSelectedMatchup] = useState<{a: any, b: any} | null>(null);
@@ -251,9 +250,13 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
     setIsRosterDialogOpen(true);
   };
 
-  // Unified player click handler that navigates to player profile
+  // Handle player click to show player bio dialog (instead of navigation)
   const handlePlayerClick = (playerId: string) => {
-    navigate(`/players/${playerId}`);
+    const player = playerData?.[playerId];
+    if (player) {
+      setSelectedPlayer(player);
+      setIsPlayerBioOpen(true);
+    }
   };
 
   const getWinner = (a: any, b: any) => {
@@ -483,9 +486,9 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
         </>
       )}
 
-      {/* Roster Details Dialog */}
+      {/* Roster Details Dialog - Side by Side */}
       <Dialog open={isRosterDialogOpen} onOpenChange={setIsRosterDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -504,6 +507,11 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                   <div className="text-2xl font-bold text-primary">
                     {selectedMatchup.a.points !== null ? Number(selectedMatchup.a.points).toFixed(1) : '--'}
                   </div>
+                  {projections && (
+                    <div className="text-sm text-muted-foreground">
+                      {calculateProjectedTotal((rosterADetails?.starters as string[]) || [], projections).toFixed(1)} proj • {selectedMatchup.a.winProb}% win
+                    </div>
+                  )}
                 </div>
                 <div className="text-muted-foreground font-medium">VS</div>
                 <div className="text-center">
@@ -516,6 +524,11 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                   <div className="text-2xl font-bold text-primary">
                     {selectedMatchup.b?.points !== null ? Number(selectedMatchup.b.points).toFixed(1) : '--'}
                   </div>
+                  {projections && selectedMatchup.b && (
+                    <div className="text-sm text-muted-foreground">
+                      {calculateProjectedTotal((rosterBDetails?.starters as string[]) || [], projections).toFixed(1)} proj • {selectedMatchup.b.winProb}% win
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -533,75 +546,179 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                 </TabsList>
 
                 <TabsContent value="team" className="space-y-6">
-                  {/* Team A Roster */}
-                  <div>
-                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                      <Trophy className="h-4 w-4 text-yellow-600" />
-                      {rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`} - Starters
-                    </h3>
-                    <div className="space-y-1">
-                      {((rosterADetails?.starters as string[]) || []).map((playerId: string, index: number) => {
-                        const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
-                        return renderPlayerRow(playerId, position);
-                      })}
-                    </div>
-                  </div>
+                  {/* Side by Side Rosters */}
+                  <div className="grid grid-cols-2 gap-6">
+                    {/* Team A Roster */}
+                    <Card>
+                      <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="h-4 w-4 text-yellow-600" />
+                          <CardTitle className="text-sm">{rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`}</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-3">
+                        <div className="space-y-2">
+                          {((rosterADetails?.starters as string[]) || []).map((playerId: string, index: number) => {
+                            const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
+                            return renderPlayerRow(playerId, position);
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                  {/* Team B Roster */}
-                  {selectedMatchup.b && (
-                    <div>
-                      <h3 className="font-semibold mb-3 flex items-center gap-2">
-                        <Trophy className="h-4 w-4 text-yellow-600" />
-                        {rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`} - Starters
-                      </h3>
-                      <div className="space-y-1">
-                        {((rosterBDetails?.starters as string[]) || []).map((playerId: string, index: number) => {
-                          const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
-                          return renderPlayerRow(playerId, position);
-                        })}
-                      </div>
-                    </div>
-                  )}
+                    {/* Team B Roster */}
+                    {selectedMatchup.b && (
+                      <Card>
+                        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+                          <div className="flex items-center gap-2">
+                            <Trophy className="h-4 w-4 text-blue-600" />
+                            <CardTitle className="text-sm">{rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`}</CardTitle>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-3">
+                          <div className="space-y-2">
+                            {((rosterBDetails?.starters as string[]) || []).map((playerId: string, index: number) => {
+                              const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
+                              return renderPlayerRow(playerId, position);
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="projections" className="space-y-6">
-                  {/* Team A Projections */}
-                  <div>
-                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4 text-blue-600" />
-                      {rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`} - Projections
-                      <span className="text-sm text-muted-foreground ml-2">
-                        Total: {calculateProjectedTotal((rosterADetails?.starters as string[]) || [], projections).toFixed(1)}
-                      </span>
-                    </h3>
-                    <div className="space-y-1">
-                      {((rosterADetails?.starters as string[]) || []).map((playerId: string, index: number) => {
-                        const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
-                        return renderPlayerRow(playerId, position, true);
-                      })}
-                    </div>
-                  </div>
+                  {/* Side by Side Projections */}
+                  <div className="grid grid-cols-2 gap-6">
+                    {/* Team A Projections */}
+                    <Card>
+                      <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
+                        <div className="flex items-center gap-2">
+                          <BarChart3 className="h-4 w-4 text-green-600" />
+                          <CardTitle className="text-sm">
+                            {rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`}
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({calculateProjectedTotal((rosterADetails?.starters as string[]) || [], projections).toFixed(1)} pts)
+                            </span>
+                          </CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-3">
+                        <div className="space-y-2">
+                          {((rosterADetails?.starters as string[]) || []).map((playerId: string, index: number) => {
+                            const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
+                            return renderPlayerRow(playerId, position, true);
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                  {/* Team B Projections */}
-                  {selectedMatchup.b && (
-                    <div>
-                      <h3 className="font-semibold mb-3 flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4 text-blue-600" />
-                        {rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`} - Projections
-                        <span className="text-sm text-muted-foreground ml-2">
-                          Total: {calculateProjectedTotal((rosterBDetails?.starters as string[]) || [], projections).toFixed(1)}
-                        </span>
-                      </h3>
-                      <div className="space-y-1">
-                        {((rosterBDetails?.starters as string[]) || []).map((playerId: string, index: number) => {
-                          const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
-                          return renderPlayerRow(playerId, position, true);
-                        })}
-                      </div>
-                    </div>
-                  )}
+                    {/* Team B Projections */}
+                    {selectedMatchup.b && (
+                      <Card>
+                        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b">
+                          <div className="flex items-center gap-2">
+                            <BarChart3 className="h-4 w-4 text-purple-600" />
+                            <CardTitle className="text-sm">
+                              {rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`}
+                              <span className="text-xs text-muted-foreground ml-2">
+                                ({calculateProjectedTotal((rosterBDetails?.starters as string[]) || [], projections).toFixed(1)} pts)
+                              </span>
+                            </CardTitle>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-3">
+                          <div className="space-y-2">
+                            {((rosterBDetails?.starters as string[]) || []).map((playerId: string, index: number) => {
+                              const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
+                              return renderPlayerRow(playerId, position, true);
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
                 </TabsContent>
               </Tabs>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Player Bio Dialog */}
+      <Dialog open={isPlayerBioOpen} onOpenChange={setIsPlayerBioOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Player Profile
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedPlayer && (
+            <div className="space-y-6">
+              {/* Player Header */}
+              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage 
+                    src={getPlayerHeadshotUrl(selectedPlayer.player_id)} 
+                    alt={`${selectedPlayer.full_name || 'Player'} headshot`} 
+                  />
+                  <AvatarFallback className="text-2xl bg-primary/10 text-primary font-bold">
+                    {selectedPlayer.full_name ? selectedPlayer.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold">{selectedPlayer.full_name || `Player ${selectedPlayer.player_id}`}</h2>
+                  <div className="flex items-center gap-4 mt-2">
+                    <Badge variant="outline" className="border-blue-300 text-blue-700">
+                      {selectedPlayer.position || 'N/A'}
+                    </Badge>
+                    <Badge variant="outline" className="border-green-300 text-green-700">
+                      {selectedPlayer.team || 'N/A'}
+                    </Badge>
+                    <Badge variant="outline" className="border-yellow-300 text-yellow-700">
+                      {selectedPlayer.status || 'Unknown'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Player Details */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Player Info</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Position:</span>
+                      <span className="font-medium">{selectedPlayer.position || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Team:</span>
+                      <span className="font-medium">{selectedPlayer.team || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Status:</span>
+                      <span className="font-medium">{selectedPlayer.status || 'Unknown'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Injury:</span>
+                      <span className="font-medium">{selectedPlayer.injury_status || 'Healthy'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Projection</h3>
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <div className="text-3xl font-bold text-primary">
+                      {getPlayerProjection(selectedPlayer.player_id).toFixed(1)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Week 1 Projected Points</div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </DialogContent>

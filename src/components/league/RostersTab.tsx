@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Separator } from "@/components/ui/separator";
 import { Users, Trophy, User, MapPin, TrendingUp, Activity, Shield, Award, Target, Zap, BarChart3 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useNavigate } from "react-router-dom";
 import { fetchRosters, LeagueRosterRow, fetchApiProjections } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
 
@@ -175,7 +174,6 @@ function getMockStatsForPosition(position: string | null) {
 }
 
 export default function RostersTab({ leagueId, selectedRosterId: propSelectedRosterId }: Props) {
-  const navigate = useNavigate();
   const [selectedRosterId, setSelectedRosterId] = useState<string | null>(propSelectedRosterId || null);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerRow | null>(null);
   const [isPlayerBioOpen, setIsPlayerBioOpen] = useState(false);
@@ -202,8 +200,6 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
       setSelectedRosterId(propSelectedRosterId);
     }
   }, [propSelectedRosterId, selectedRosterId]);
-
-
 
   // Build unique list of player IDs across all rosters
   const allPlayerIds = useMemo(() => {
@@ -237,7 +233,6 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
     }
   }, [selectedRosterId, rosters, allPlayerIds, playersQ.data, playersQ.error, playerMap]);
 
-
   // Get the selected roster data
   const selectedRoster = useMemo(() => {
     if (!selectedRosterId || !rosters) return null;
@@ -266,8 +261,6 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
       }));
   }, [selectedRoster, playerMap]);
 
-
-
   // Helper function to get player display name with fallback
   const getPlayerDisplayName = (playerId: string, player: PlayerRow | undefined) => {
     if (player?.full_name) return player.full_name;
@@ -288,11 +281,18 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
     return player?.position || 'N/A';
   };
 
-  // Function to handle player click and navigate to player profile (unified with MatchupsTab)
+  // Function to handle player click and show bio dialog
   const handlePlayerClick = (player: PlayerRow) => {
-    navigate(`/players/${player.player_id}`);
+    setSelectedPlayer(player);
+    setIsPlayerBioOpen(true);
   };
 
+  // Helper function to get player projection
+  const getPlayerProjection = (playerId: string) => {
+    if (!projections) return 0;
+    const playerProjection = projections.find((p: any) => p.player_id === playerId);
+    return playerProjection?.projection_points || 0;
+  };
 
   if (isLoading) return (
     <div className="flex items-center justify-center p-8">
@@ -328,8 +328,6 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
             <span className="text-sm">Select a roster to view player details</span>
           </div>
         </div>
-
-
 
         {/* Roster Selector */}
         <div className="max-w-md">
@@ -396,354 +394,358 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
               </CardHeader>
             </Card>
 
-            {/* Starters Table */}
-            <Card>
-              <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b">
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-yellow-600" />
-                  <CardTitle className="text-lg text-yellow-700">Starters</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-yellow-50/50">
-                      <TableHead className="w-12"></TableHead>
-                      <TableHead>Player</TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Team</TableHead>
-                      <TableHead className="text-right">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {starters.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                          No starters set
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      starters.map(({ id, player }, index) => {
-                        const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
-                        const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
-                        
-                         return (
-                           <TableRow key={String(id)} className="hover:bg-yellow-50/30">
-                             <TableCell>
-                               <Avatar className="h-10 w-10">
-                                 <AvatarImage 
-                                   src={getPlayerHeadshotUrl(String(id), player?.full_name)} 
-                                   alt={`${player?.full_name || 'Player'} headshot`} 
-                                 />
-                                 <AvatarFallback className="bg-yellow-100 text-yellow-800 font-semibold text-sm">
-                                   {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
-                                 </AvatarFallback>
-                               </Avatar>
-                             </TableCell>
-                                                          <TableCell>
-                                <div className="flex flex-col">
-                                  <button
-                                    onClick={() => player && handlePlayerClick(player)}
-                                    className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
-                                    disabled={!player}
-                                  >
-                                    <span className="font-semibold">
-                                      {getPlayerDisplayName(String(id), player)}
-                                    </span>
-                                    {!player?.full_name && (
-                                      <span className="text-xs text-muted-foreground">
-                                        Sleeper ID: {String(id)}
-                                      </span>
-                                    )}
-                                  </button>
-                                </div>
-                              </TableCell>
-                             <TableCell>
-                               <Badge variant="secondary" className={getPositionColor(player?.position)}>
-                                 {position}
-                               </Badge>
-                             </TableCell>
-                             <TableCell>
-                               {getPlayerTeam(player) !== 'N/A' ? (
-                                 <Badge variant="outline" className="border-yellow-300 text-yellow-700">
-                                   {getPlayerTeam(player)}
-                                 </Badge>
-                               ) : (
-                                 <span className="text-muted-foreground">--</span>
-                               )}
-                             </TableCell>
-                            <TableCell className="text-right">
-                              {injuryDisplay ? (
-                                <Badge variant="outline" className={injuryDisplay.color}>
-                                  {injuryDisplay.text}
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                                  Active
-                                </Badge>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            {/* Team/Projections Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="team" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Team
+                </TabsTrigger>
+                <TabsTrigger value="projections" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Projections
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Bench Table */}
-            <Card>
-              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
-                <div className="flex items-center gap-2">
-                  <User className="h-5 w-5 text-blue-600" />
-                  <CardTitle className="text-lg text-blue-700">Bench</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-blue-50/50">
-                      <TableHead className="w-12"></TableHead>
-                      <TableHead>Player</TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Team</TableHead>
-                      <TableHead className="text-right">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {bench.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                          No bench players
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      bench.map(({ id, player }) => {
-                        const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
-                        
-                         return (
-                           <TableRow key={String(id)} className="hover:bg-blue-50/30">
-                             <TableCell>
-                               <Avatar className="h-10 w-10">
-                                 <AvatarImage 
-                                   src={getPlayerHeadshotUrl(String(id), player?.full_name)} 
-                                   alt={`${player?.full_name || 'Player'} headshot`} 
-                                 />
-                                 <AvatarFallback className="bg-blue-100 text-blue-800 font-semibold text-sm">
-                                   {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
-                                 </AvatarFallback>
-                               </Avatar>
-                             </TableCell>
-                                                          <TableCell>
-                                <div className="flex flex-col">
-                                  <button
-                                    onClick={() => player && handlePlayerClick(player)}
-                                    className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
-                                    disabled={!player}
-                                  >
-                                    <span className="font-semibold">
-                                      {getPlayerDisplayName(String(id), player)}
-                                    </span>
-                                    {!player?.full_name && (
-                                      <span className="text-xs text-muted-foreground">
-                                        Sleeper ID: {String(id)}
-                                      </span>
-                                    )}
-                                  </button>
-                                </div>
-                              </TableCell>
-                             <TableCell>
-                               {getPlayerPosition(player) !== 'N/A' ? (
-                                 <Badge variant="secondary" className={getPositionColor(player.position)}>
-                                   {getPlayerPosition(player)}
-                                 </Badge>
-                               ) : (
-                                 <span className="text-muted-foreground">--</span>
-                               )}
-                             </TableCell>
-                             <TableCell>
-                               {getPlayerTeam(player) !== 'N/A' ? (
-                                 <Badge variant="outline" className="border-blue-300 text-blue-700">
-                                   {getPlayerTeam(player)}
-                                 </Badge>
-                               ) : (
-                                 <span className="text-muted-foreground">--</span>
-                               )}
-                             </TableCell>
-                            <TableCell className="text-right">
-                              {injuryDisplay ? (
-                                <Badge variant="outline" className={injuryDisplay.color}>
-                                  {injuryDisplay.text}
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                                  Active
-                                </Badge>
-                              )}
+              <TabsContent value="team" className="space-y-6">
+                {/* Starters Table */}
+                <Card>
+                  <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-yellow-600" />
+                      <CardTitle className="text-lg text-yellow-700">Starters</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-yellow-50/50">
+                          <TableHead className="w-12"></TableHead>
+                          <TableHead>Player</TableHead>
+                          <TableHead>Position</TableHead>
+                          <TableHead>Team</TableHead>
+                          <TableHead className="text-right">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {starters.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                              No starters set
                             </TableCell>
                           </TableRow>
-                        );
-                      })
+                        ) : (
+                          starters.map(({ id, player }, index) => {
+                            const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
+                            const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
+                            
+                            return (
+                              <TableRow key={String(id)} className="hover:bg-yellow-50/30">
+                                <TableCell>
+                                  <Avatar className="h-10 w-10">
+                                    <AvatarImage 
+                                      src={getPlayerHeadshotUrl(String(id), player?.full_name)} 
+                                      alt={`${player?.full_name || 'Player'} headshot`} 
+                                    />
+                                    <AvatarFallback className="bg-yellow-100 text-yellow-800 font-semibold text-sm">
+                                      {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-col">
+                                    <button
+                                      onClick={() => player && handlePlayerClick(player)}
+                                      className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
+                                      disabled={!player}
+                                    >
+                                      <span className="font-semibold">{getPlayerDisplayName(String(id), player)}</span>
+                                    </button>
+                                    <span className="text-xs text-muted-foreground">
+                                      Slot: {position}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className={getPositionColor(getPlayerPosition(player))}>
+                                    {getPlayerPosition(player)}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="font-medium">{getPlayerTeam(player)}</TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end items-center gap-2">
+                                    <Badge variant="outline" className={getStatusColor(player?.status)}>
+                                      {player?.status || 'Unknown'}
+                                    </Badge>
+                                    {injuryDisplay && (
+                                      <Badge variant="outline" className={injuryDisplay.color}>
+                                        {injuryDisplay.text}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+
+                {/* Bench Table */}
+                <Card>
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+                    <div className="flex items-center gap-2">
+                      <User className="h-5 w-5 text-blue-600" />
+                      <CardTitle className="text-lg text-blue-700">Bench</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-blue-50/50">
+                          <TableHead className="w-12"></TableHead>
+                          <TableHead>Player</TableHead>
+                          <TableHead>Position</TableHead>
+                          <TableHead>Team</TableHead>
+                          <TableHead className="text-right">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {bench.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                              No bench players
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          bench.map(({ id, player }) => {
+                            const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
+                            
+                            return (
+                              <TableRow key={String(id)} className="hover:bg-blue-50/30">
+                                <TableCell>
+                                  <Avatar className="h-10 w-10">
+                                    <AvatarImage 
+                                      src={getPlayerHeadshotUrl(String(id), player?.full_name)} 
+                                      alt={`${player?.full_name || 'Player'} headshot`} 
+                                    />
+                                    <AvatarFallback className="bg-blue-100 text-blue-800 font-semibold text-sm">
+                                      {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-col">
+                                    <button
+                                      onClick={() => player && handlePlayerClick(player)}
+                                      className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
+                                      disabled={!player}
+                                    >
+                                      <span className="font-semibold">{getPlayerDisplayName(String(id), player)}</span>
+                                    </button>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className={getPositionColor(getPlayerPosition(player))}>
+                                    {getPlayerPosition(player)}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="font-medium">{getPlayerTeam(player)}</TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end items-center gap-2">
+                                    <Badge variant="outline" className={getStatusColor(player?.status)}>
+                                      {player?.status || 'Unknown'}
+                                    </Badge>
+                                    {injuryDisplay && (
+                                      <Badge variant="outline" className={injuryDisplay.color}>
+                                        {String(injuryDisplay.text)}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="projections" className="space-y-6">
+                {/* Projected Points Summary */}
+                <Card>
+                  <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-green-600" />
+                      <CardTitle className="text-lg text-green-700">Week 1 Projections</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {projections ? (
+                      <div className="space-y-4">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-primary">
+                            {starters.reduce((total, { id }) => {
+                              const projection = projections.find((p: any) => p.player_id === id);
+                              return total + (projection?.projection_points || 0);
+                            }, 0).toFixed(1)}
+                          </div>
+                          <div className="text-muted-foreground">Total Projected Points</div>
+                        </div>
+                        
+                        {/* Starters Projections */}
+                        <div className="space-y-2">
+                          <h4 className="font-semibold">Starting Lineup</h4>
+                          <div className="space-y-1">
+                            {starters.map(({ id, player }, index) => {
+                              const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
+                              const projection = projections.find((p: any) => p.player_id === id);
+                              const projectedPoints = projection?.projection_points || 0;
+                              
+                              return (
+                                <div key={String(id)} className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors" onClick={() => player && handlePlayerClick(player)}>
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="h-8 w-8">
+                                      <AvatarImage 
+                                        src={getPlayerHeadshotUrl(String(id), player?.full_name)} 
+                                        alt={`${player?.full_name || 'Player'} headshot`} 
+                                      />
+                                      <AvatarFallback className="text-xs">
+                                        {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <div className="font-medium text-sm">{getPlayerDisplayName(String(id), player)}</div>
+                                      <div className="text-xs text-muted-foreground">{position} • {getPlayerTeam(player)}</div>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="font-bold text-primary">{projectedPoints.toFixed(1)}</div>
+                                    <div className="text-xs text-muted-foreground">projected</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg font-medium">Projections Coming Soon</p>
+                        <p className="text-sm">Player projections will be available once the season starts</p>
+                      </div>
                     )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         )}
       </div>
 
       {/* Player Bio Dialog */}
       <Dialog open={isPlayerBioOpen} onOpenChange={setIsPlayerBioOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-3">
-              <Avatar className="h-12 w-12">
-                <AvatarImage 
-                  src={selectedPlayer ? getPlayerHeadshotUrl(selectedPlayer.player_id, selectedPlayer.full_name) : undefined} 
-                  alt={`${selectedPlayer?.full_name || 'Player'} headshot`} 
-                />
-                <AvatarFallback className="text-xl bg-primary/10 text-primary font-bold">
-                  {selectedPlayer?.full_name ? selectedPlayer.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h2 className="text-2xl font-bold">{selectedPlayer?.full_name || 'Player'}</h2>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Badge variant="secondary" className={getPositionColor(selectedPlayer?.position)}>
-                    {selectedPlayer?.position || 'N/A'}
-                  </Badge>
-                  {selectedPlayer?.team && (
-                    <Badge variant="outline">
-                      {selectedPlayer.team}
-                    </Badge>
-                  )}
-
-                </div>
-              </div>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Player Profile
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedPlayer && (
             <div className="space-y-6">
-              {/* Player Stats Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="p-4 text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    <span className="text-sm font-medium text-muted-foreground">Fantasy Positions</span>
+              {/* Player Header */}
+              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage 
+                    src={getPlayerHeadshotUrl(selectedPlayer.player_id, selectedPlayer.full_name)} 
+                    alt={`${selectedPlayer.full_name || 'Player'} headshot`} 
+                  />
+                  <AvatarFallback className="text-2xl bg-primary/10 text-primary font-bold">
+                    {selectedPlayer.full_name ? selectedPlayer.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold">{selectedPlayer.full_name || `Player ${selectedPlayer.player_id}`}</h2>
+                  <div className="flex items-center gap-4 mt-2">
+                    <Badge variant="outline" className={getPositionColor(selectedPlayer.position)}>
+                      {selectedPlayer.position || 'N/A'}
+                    </Badge>
+                    <Badge variant="outline" className="border-blue-300 text-blue-700">
+                      {selectedPlayer.team || 'N/A'}
+                    </Badge>
+                    <Badge variant="outline" className={getStatusColor(selectedPlayer.status)}>
+                      {selectedPlayer.status || 'Unknown'}
+                    </Badge>
                   </div>
-                  <div className="text-2xl font-bold text-green-700">
-                    {selectedPlayer.fantasy_positions?.join(', ') || 'N/A'}
-                  </div>
-                </Card>
-                
-                <Card className="p-4 text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Activity className="h-5 w-5 text-blue-600" />
-                    <span className="text-sm font-medium text-muted-foreground">Status</span>
-                  </div>
-                  <div className="text-2xl font-bold text-blue-700">
-                    {selectedPlayer.status || 'Active'}
-                  </div>
-                </Card>
-                
-                <Card className="p-4 text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Shield className="h-5 w-5 text-purple-600" />
-                    <span className="text-sm font-medium text-muted-foreground">Injury Status</span>
-                  </div>
-                  <div className="text-2xl font-bold text-purple-700">
-                    {selectedPlayer.injury_status || 'Healthy'}
-                  </div>
-                </Card>
-                
-                <Card className="p-4 text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Target className="h-5 w-5 text-orange-600" />
-                    <span className="text-sm font-medium text-muted-foreground">Practice</span>
-                  </div>
-                  <div className="text-2xl font-bold text-orange-700">
-                    {selectedPlayer.practice_participation || 'Full'}
-                  </div>
-                </Card>
+                </div>
               </div>
 
-              <Separator />
+              {/* Player Details */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Player Info
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Position:</span>
+                      <span className="font-medium">{selectedPlayer.position || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Team:</span>
+                      <span className="font-medium">{selectedPlayer.team || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Status:</span>
+                      <span className="font-medium">{selectedPlayer.status || 'Unknown'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Injury Status:</span>
+                      <span className="font-medium">{selectedPlayer.injury_status || 'Healthy'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Practice:</span>
+                      <span className="font-medium">{selectedPlayer.practice_participation || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
 
-              {/* Per Game Stats */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-yellow-600" />
-                  Per Game Stats
-                </h3>
-                <Card className="p-4">
-                  {(() => {
-                    const stats = selectedPlayer.per_game_stats || selectedPlayer.current_week_stats || getMockStatsForPosition(selectedPlayer.position);
-                    if (!stats) return null;
-                    
-                    return (
-                      <div className="space-y-4">
-                        <div className="text-center">
-                          <div className="text-sm text-muted-foreground">
-                            {selectedPlayer.per_game_stats ? 'Per Game Averages' : 'Current Week Performance'}
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          {Object.entries(stats).map(([key, value]) => (
-                            <div key={key} className="text-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                              <div className="text-sm font-medium text-muted-foreground capitalize mb-1">
-                                {key.replace(/_/g, ' ')}
-                              </div>
-                              <div className="text-lg font-semibold text-yellow-700">
-                                {typeof value === 'number' ? value.toFixed(1) : String(value)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </Card>
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    Projection
+                  </h3>
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <div className="text-3xl font-bold text-primary">
+                      {getPlayerProjection(selectedPlayer.player_id).toFixed(1)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Week 1 Projected Points</div>
+                  </div>
+                </div>
               </div>
 
-              
-
-              {/* Season Stats */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-green-600" />
+              {/* Season Statistics */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
                   Season Statistics
                 </h3>
-                <Card className="p-4">
-                  {(() => {
-                    const stats = selectedPlayer.current_week_stats || getMockStatsForPosition(selectedPlayer.position);
-                    if (!stats) return null;
-                    
-                    return (
-                      <div className="space-y-4">
-                        <div className="text-center">
-                          <div className="text-sm text-muted-foreground">
-                            Season Statistics
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {Object.entries(stats).map(([key, value]) => (
-                            <div key={key} className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg">
-                              <div className="text-xs font-medium text-muted-foreground capitalize mb-1">
-                                {key.replace(/_/g, ' ')}
-                              </div>
-                              <div className="text-lg font-bold text-green-700">
-                                {typeof value === 'number' ? value.toFixed(1) : String(value)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </Card>
+                <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
+                  {Object.entries(getMockStatsForPosition(selectedPlayer.position) || {}).map(([key, value]) => (
+                    <div key={key} className="text-center">
+                      <div className="text-2xl font-bold text-primary">{typeof value === 'number' ? value.toFixed(1) : value}</div>
+                      <div className="text-xs text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
