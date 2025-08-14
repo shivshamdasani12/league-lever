@@ -1,7 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjcXhxZXRsYmd0YWNleW9zcGlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NzYzNjcsImV4cCI6MjA3MDM1MjM2N30.jaXUVmROotCjxJoMtO8aZL5iutjWxvTjspXK1DSJfso";
-
 export interface LeagueRosterRow {
   league_id: string;
   roster_id: number;
@@ -49,108 +47,138 @@ export interface LeagueStandingRow {
   win_pct: number;
 }
 
-// New API-based queries for server-backed data
+// Use direct database access with enhanced server-backed views
 export async function fetchRosters(leagueId: string) {
-  const response = await fetch(`/functions/v1/api-rosters?league_id=${leagueId}`, {
-    headers: {
-      'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-      'apikey': SUPABASE_ANON_KEY,
-    },
-  });
+  const { data, error } = await supabase
+    .from("league_rosters_v")
+    .select("*")
+    .eq("league_id", leagueId)
+    .order("roster_id");
   
-  if (!response.ok) {
-    throw new Error(`Failed to fetch rosters: ${response.status}`);
-  }
-  
-  const data = await response.json();
-  return data.rosters;
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function fetchApiMatchups(leagueId: string, week: number) {
-  const response = await fetch(`/functions/v1/api-matchups?league_id=${leagueId}&week=${week}`, {
-    headers: {
-      'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-      'apikey': SUPABASE_ANON_KEY,
-    },
+  const { data: matchups, error } = await supabase
+    .from('sleeper_matchups')
+    .select('*')
+    .eq('league_id', leagueId)
+    .eq('week', week)
+    .order('matchup_id', { ascending: true, nullsFirst: true })
+    .order('roster_id', { ascending: true });
+
+  if (error) throw error;
+
+  // Get roster info for owner names
+  const { data: rosters } = await supabase
+    .from('league_rosters_v')
+    .select('*')
+    .eq('league_id', leagueId);
+
+  const rosterMap = new Map((rosters || []).map(r => [r.roster_id, r]));
+
+  // Group matchups by matchup_id and add owner names
+  const matchupGroups = new Map<string, any[]>();
+  (matchups || []).forEach(m => {
+    const key = m.matchup_id != null ? String(m.matchup_id) : `solo-${m.roster_id}`;
+    if (!matchupGroups.has(key)) matchupGroups.set(key, []);
+    matchupGroups.get(key)!.push({
+      ...m,
+      owner_name: rosterMap.get(m.roster_id)?.owner_name || 
+                 rosterMap.get(m.roster_id)?.owner_username || 
+                 `Roster ${m.roster_id}`
+    });
   });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch matchups: ${response.status}`);
-  }
-  
-  const data = await response.json();
-  return data.matchups;
+
+  return Array.from(matchupGroups.values()).map(group => {
+    const [team1, team2] = group.sort((a, b) => a.roster_id - b.roster_id);
+    return {
+      matchup_id: team1.matchup_id,
+      week,
+      team1,
+      team2: team2 ?? null
+    };
+  });
 }
 
 export async function fetchApiStandings(leagueId: string, season: number = 2024) {
-  const response = await fetch(`/functions/v1/api-standings?league_id=${leagueId}&season=${season}`, {
-    headers: {
-      'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-      'apikey': SUPABASE_ANON_KEY,
-    },
-  });
+  const { data, error } = await supabase
+    .from('sleeper_standings')
+    .select('*')
+    .eq('league_id', leagueId)
+    .eq('season', season)
+    .order('rank', { ascending: true });
   
-  if (!response.ok) {
-    throw new Error(`Failed to fetch standings: ${response.status}`);
-  }
-  
-  const data = await response.json();
-  return data.standings;
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function fetchApiProjections(leagueId: string, week: number, season: number = 2024) {
-  const response = await fetch(`/functions/v1/api-projections?league_id=${leagueId}&week=${week}&season=${season}`, {
-    headers: {
-      'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-      'apikey': SUPABASE_ANON_KEY,
-    },
-  });
+  // Get player IDs relevant to this league
+  const { data: playerIds } = await supabase
+    .from('league_player_ids_v')
+    .select('player_id')
+    .eq('league_id', leagueId);
+
+  if (!playerIds || playerIds.length === 0) return [];
+
+  const relevantPlayerIds = playerIds.map(p => p.player_id);
+
+  const { data, error } = await supabase
+    .from('player_projections')
+    .select(`
+      player_id, 
+      projection_points, 
+      projection_data, 
+      updated_at,
+      players!inner(full_name, position, team)
+    `)
+    .eq('season', season)
+    .eq('week', week)
+    .in('player_id', relevantPlayerIds)
+    .order('projection_points', { ascending: false, nullsFirst: true });
   
-  if (!response.ok) {
-    throw new Error(`Failed to fetch projections: ${response.status}`);
-  }
-  
-  const data = await response.json();
-  return data.projections;
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function fetchApiPlayers(search: string = '', leagueId?: string, limit: number = 50) {
-  const params = new URLSearchParams();
-  if (search) params.set('search', search);
-  if (leagueId) params.set('league_id', leagueId);
-  params.set('limit', limit.toString());
-  
-  const response = await fetch(`/functions/v1/api-players?${params}`, {
-    headers: {
-      'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-      'apikey': SUPABASE_ANON_KEY,
-    },
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch players: ${response.status}`);
+  let query = supabase
+    .from('players')
+    .select('*')
+    .order('search_rank', { ascending: true, nullsFirst: true });
+
+  // If league_id provided, filter to players in that league
+  if (leagueId) {
+    const { data: playerIds } = await supabase
+      .from('league_player_ids_v')
+      .select('player_id')
+      .eq('league_id', leagueId);
+    
+    if (playerIds && playerIds.length > 0) {
+      const ids = playerIds.map(p => p.player_id);
+      query = query.in('player_id', ids);
+    }
   }
-  
-  const data = await response.json();
-  return data.players;
+
+  // Apply search filter
+  if (search) {
+    query = query.or(`full_name.ilike.%${search}%,last_name.ilike.%${search}%,first_name.ilike.%${search}%`);
+  }
+
+  const { data, error } = await query.limit(limit);
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function triggerSleeperSyncAll(leagueId: string, week?: number, season?: number) {
-  const response = await fetch('/functions/v1/sleeper-sync-all', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-      'apikey': SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify({ league_id: leagueId, week, season }),
+  const { data, error } = await supabase.functions.invoke('sleeper-sync-all', {
+    body: { league_id: leagueId, week, season }
   });
   
-  if (!response.ok) {
-    throw new Error(`Failed to sync: ${response.status}`);
-  }
-  
-  return await response.json();
+  if (error) throw new Error(`Failed to sync: ${error.message}`);
+  return data;
 }
 
 export async function fetchWeeks(leagueId: string) {

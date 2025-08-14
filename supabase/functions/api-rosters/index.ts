@@ -29,8 +29,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    const url = new URL(req.url);
-    const league_id = url.searchParams.get('league_id');
+    // Get league_id from request body or URL params
+    let league_id: string;
+    if (req.method === 'POST') {
+      const body = await req.json().catch(() => ({}));
+      league_id = body.league_id;
+    } else {
+      const url = new URL(req.url);
+      league_id = url.searchParams.get('league_id') || '';
+    }
 
     if (!league_id) {
       return new Response(JSON.stringify({ error: "league_id required" }), { 
