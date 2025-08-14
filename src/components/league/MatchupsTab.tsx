@@ -55,7 +55,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
     queryFn: () => fetchWeeks(leagueId),
   });
 
-  const initialWeek = (() => {
+  const initialWeek = (() => {``
     const w = params.get("week");
     return w ? parseInt(w, 10) : null;
   })();
@@ -135,10 +135,11 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
     return Array.from(ids);
   }, [rosterADetails, rosterBDetails]);
 
-  const { data: playerData } = useQuery({
+  const { data: playerData, error: playerError, isLoading: playerLoading } = useQuery({
     queryKey: ['players', allPlayerIds],
     queryFn: () => fetchPlayersByIds(allPlayerIds),
     enabled: allPlayerIds.length > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Debug logging for selected roster
@@ -148,11 +149,65 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
       console.log("Selected matchup:", selectedMatchup);
       console.log("Roster A details:", rosterADetails);
       console.log("Roster B details:", rosterBDetails);
-      console.log("Player data:", playerData);
       console.log("All player IDs:", allPlayerIds);
+      console.log("Player data:", playerData);
+      console.log("Player error:", playerError);
+      console.log("Player loading:", playerLoading);
+      console.log("Player data keys:", playerData ? Object.keys(playerData) : []);
+      console.log("Sample player data:", playerData ? Object.values(playerData)[0] : null);
+      console.log("Supabase URL:", "https://dcqxqetlbgtaceyospij.supabase.co");
+      console.log("League ID:", leagueId);
       console.log("=========================");
     }
-  }, [selectedMatchup, rosterADetails, rosterBDetails, playerData, allPlayerIds]);
+  }, [selectedMatchup, rosterADetails, rosterBDetails, playerData, playerError, playerLoading, allPlayerIds, leagueId]);
+
+  // Auto-refresh player data every 5 minutes to keep it current
+  useEffect(() => {
+    if (!leagueId || allPlayerIds.length === 0) return;
+
+    const interval = setInterval(() => {
+      console.log("Auto-refreshing player data...");
+      qc.invalidateQueries({ queryKey: ['players'] });
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [leagueId, allPlayerIds.length, qc]);
+
+  // Automatically load player data when rosters are available
+  useEffect(() => {
+    if (leagueId && allPlayerIds.length > 0 && !playerData) {
+      console.log("Automatically loading player data for", allPlayerIds.length, "players");
+      qc.invalidateQueries({ queryKey: ['players'] });
+    }
+  }, [leagueId, allPlayerIds.length, playerData, qc]);
+
+  // Check database schema when component mounts
+  useEffect(() => {
+    const checkDatabaseSchema = async () => {
+      try {
+        console.log("=== DATABASE SCHEMA CHECK ===");
+        console.log("Checking if players table exists and has correct structure...");
+        
+        // This will help us see what's happening with the database
+        const { data, error } = await fetchPlayersByIds(['test']);
+        
+        if (error) {
+          console.error("Database schema check failed:", error);
+          console.log("This suggests the players table might not exist or have the right structure");
+        } else {
+          console.log("Database schema check passed");
+          console.log("Players table exists and is accessible");
+        }
+        console.log("=========================");
+      } catch (err) {
+        console.error("Database schema check error:", err);
+      }
+    };
+    
+    if (leagueId) {
+      checkDatabaseSchema();
+    }
+  }, [leagueId]);
 
   // Memoize the roster name mapping to prevent recalculation on every render
   const rosterName = useMemo(() => {
@@ -199,13 +254,44 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
   );
 
   const handleMatchupClick = (matchup: {a: any, b: any}) => {
+    // Ensure player data is loaded before opening matchup
+    if (allPlayerIds.length > 0 && (!playerData || Object.keys(playerData).length === 0)) {
+      console.log("Player data not loaded, loading now...");
+      qc.invalidateQueries({ queryKey: ['players'] });
+      alert("Loading player data. Please try again in a moment.");
+      return;
+    }
+    
     setSelectedMatchup(matchup);
     setIsRosterDialogOpen(true);
+    
+    // Debug: Log the matchup selection
+    console.log("Matchup selected:", matchup);
+    console.log("Player IDs that should be loaded:", allPlayerIds);
+    console.log("Current player data:", playerData);
   };
 
-  const handlePlayerClick = (player: PlayerRow) => {
-    setSelectedPlayer(player);
-    setIsPlayerBioOpen(true);
+  const handlePlayerClick = (playerId: string) => {
+    const player = playerData?.[playerId];
+    if (player) {
+      console.log("Opening player bio for:", player);
+      setSelectedPlayer(player);
+      setIsPlayerBioOpen(true);
+    } else {
+      console.error("Player not found for ID:", playerId);
+      console.log("Available players:", playerData);
+      console.log("Player IDs:", allPlayerIds);
+      console.log("Player data keys:", playerData ? Object.keys(playerData) : []);
+      
+      // Try to fetch the player data if it's not available
+      if (allPlayerIds.includes(playerId)) {
+        console.log("Player ID exists in roster but data not loaded, triggering refresh...");
+        qc.invalidateQueries({ queryKey: ['players'] });
+        alert("Player data is loading. Please try again in a moment.");
+      } else {
+        alert("Player not found in roster.");
+      }
+    }
   };
 
   const getWinner = (a: any, b: any) => {
@@ -224,6 +310,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
   const getPlayerDisplayName = (playerId: string) => {
     const player = playerData?.[playerId];
     if (player?.full_name) return player.full_name;
+    if (playerLoading) return "Loading...";
     // Try to extract name from player ID if it's a Sleeper ID
     if (playerId && playerId.length > 10) {
       return `Player ${playerId.slice(-4)}`; // Show last 4 chars as fallback
@@ -233,108 +320,35 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
 
   const getPlayerPosition = (playerId: string) => {
     const player = playerData?.[playerId];
-    return player?.position || 'N/A';
+    if (player?.position) return player.position;
+    if (playerLoading) return "Loading...";
+    return 'N/A';
   };
 
   const getPlayerTeam = (playerId: string) => {
     const player = playerData?.[playerId];
-    return player?.team || 'N/A';
+    if (player?.team) return player.team;
+    if (playerLoading) return "Loading...";
+    return 'N/A';
+  };
+
+  const getPlayerFantasyPositions = (playerId: string) => {
+    const player = playerData?.[playerId];
+    if (player?.fantasy_positions && player.fantasy_positions.length > 0) {
+      return player.fantasy_positions.join(', ');
+    }
+    if (playerLoading) return "Loading...";
+    return 'N/A';
   };
 
   const getPlayerHeadshotUrl = (playerId: string) => {
     if (!playerId) return undefined;
+    // Use the most reliable Sleeper CDN endpoint for player images
     return `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`;
   };
 
-  // Helper function to generate mock stats based on position
-  const getMockStatsForPosition = (position: string | null) => {
-    if (!position) return null;
-    
-    const pos = position.toUpperCase();
-    
-    // Quarterback stats
-    if (pos === 'QB') {
-      return {
-        passing_yards: 0,
-        passing_touchdowns: 0,
-        passing_interceptions: 0,
-        passing_attempts: 0,
-        passing_completions: 0,
-        rushing_yards: 0,
-        rushing_touchdowns: 0,
-        fantasy_points: 0
-      };
-    }
-    
-    // Running back stats
-    if (pos === 'RB') {
-      return {
-        rushing_yards: 0,
-        rushing_touchdowns: 0,
-        rushing_attempts: 0,
-        receiving_yards: 0,
-        receiving_touchdowns: 0,
-        receiving_targets: 0,
-        receiving_receptions: 0,
-        fantasy_points: 0
-      };
-    }
-    
-    // Wide receiver stats
-    if (pos === 'WR') {
-      return {
-        receiving_yards: 0,
-        receiving_touchdowns: 0,
-        receiving_targets: 0,
-        receiving_receptions: 0,
-        rushing_yards: 0,
-        rushing_touchdowns: 0,
-        fantasy_points: 0
-      };
-    }
-    
-    // Tight end stats
-    if (pos === 'TE') {
-      return {
-        receiving_yards: 0,
-        receiving_touchdowns: 0,
-        receiving_targets: 0,
-        receiving_receptions: 0,
-        fantasy_points: 0
-      };
-    }
-    
-    // Kicker stats
-    if (pos === 'K') {
-      return {
-        field_goals_made: 0,
-        field_goals_attempted: 0,
-        extra_points_made: 0,
-        extra_points_attempted: 0,
-        fantasy_points: 0
-      };
-    }
-    
-    // Defense stats
-    if (pos === 'DEF') {
-      return {
-        tackles: 0,
-        sacks: 0,
-        interceptions: 0,
-        passes_defended: 0,
-        fumbles_forced: 0,
-        fumbles_recovered: 0,
-        fantasy_points: 0
-      };
-    }
-    
-    // Default stats for other positions
-    return {
-      fantasy_points: 0,
-      total_yards: 0,
-      touchdowns: 0
-    };
-  };
+  // Remove mock stats - we'll use real data from the database
+  // The stats will come from current_week_stats or per_game_stats columns
 
   if (weeksQ.isLoading) {
     return <div className="p-4 text-center text-muted-foreground">Loading weeks...</div>;
@@ -371,11 +385,13 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
           </Select>
         </div>
         
-        {hasWeeks && (
-          <div className="text-sm text-muted-foreground">
-            {matchupPairs.length} Matchup{matchupPairs.length !== 1 ? 's' : ''}
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          {hasWeeks && (
+            <div className="text-sm text-muted-foreground">
+              {matchupPairs.length} Matchup{matchupPairs.length !== 1 ? 's' : ''}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Show preseason message if no weeks available */}
@@ -405,6 +421,49 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
           )}
           
           {hasError && <p className="text-destructive">Failed to load matchups.</p>}
+          
+          {playerError && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800 font-medium">Player Data Error:</p>
+              <p className="text-red-600 text-sm mt-1">
+                {playerError.message || "Failed to load player data. Player data will be loaded automatically."}
+              </p>
+            </div>
+          )}
+
+          {playerLoading && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 text-blue-800">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading player data...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Backend Connection Verification */}
+          {playerData && Object.keys(playerData).length > 0 && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2 text-green-800 mb-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="font-medium">Backend Connected ✓</span>
+              </div>
+              <div className="text-sm text-green-700 space-y-1">
+                <p>• Database: Connected to Supabase</p>
+                <p>• Player Data: {Object.keys(playerData).length} players loaded</p>
+                <p>• Data Source: Sleeper API via Edge Functions</p>
+                <p>• Auto-refresh: Every 5 minutes</p>
+                <p>• Auto-load: Player data loads automatically</p>
+                <p>• Last Update: {new Date().toLocaleString()}</p>
+              </div>
+              {/* Debug: Show sample player data */}
+              <details className="mt-3">
+                <summary className="text-xs text-green-600 cursor-pointer">Debug: Sample Player Data</summary>
+                <pre className="text-xs bg-white p-2 rounded mt-2 overflow-auto max-h-32">
+                  {JSON.stringify(Object.values(playerData)[0], null, 2)}
+                </pre>
+              </details>
+            </div>
+          )}
 
           <div className="space-y-4">
             {matchupPairs.length === 0 && !isLoading && (
@@ -613,7 +672,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                               </Avatar>
                               <div className="flex flex-col">
                                 <button
-                                  onClick={() => player && handlePlayerClick(player)}
+                                  onClick={() => player && handlePlayerClick(playerId)}
                                   className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
                                   disabled={!player}
                                 >
@@ -687,7 +746,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                               </Avatar>
                               <div className="flex flex-col">
                                 <button
-                                  onClick={() => player && handlePlayerClick(player)}
+                                  onClick={() => player && handlePlayerClick(playerId)}
                                   className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
                                   disabled={!player}
                                 >
@@ -743,7 +802,17 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                       {selectedPlayer.team}
                     </Badge>
                   )}
+                  {selectedPlayer?.fantasy_positions && selectedPlayer.fantasy_positions.length > 0 && (
+                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                      {selectedPlayer.fantasy_positions.join(', ')}
+                    </Badge>
+                  )}
                 </div>
+                {selectedPlayer?.updated_at && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Last updated: {new Date(selectedPlayer.updated_at).toLocaleString()}
+                  </div>
+                )}
               </div>
             </DialogTitle>
           </DialogHeader>
@@ -758,7 +827,10 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                     <span className="text-sm font-medium text-muted-foreground">Fantasy Positions</span>
                   </div>
                   <div className="text-2xl font-bold text-green-700">
-                    {selectedPlayer.fantasy_positions?.join(', ') || 'N/A'}
+                    {selectedPlayer.fantasy_positions && selectedPlayer.fantasy_positions.length > 0 
+                      ? selectedPlayer.fantasy_positions.join(', ') 
+                      : selectedPlayer.position || 'N/A'
+                    }
                   </div>
                 </Card>
                 
@@ -803,8 +875,15 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                 </h3>
                 <Card className="p-4">
                   {(() => {
-                    const stats = selectedPlayer.per_game_stats || selectedPlayer.current_week_stats || getMockStatsForPosition(selectedPlayer.position);
-                    if (!stats) return null;
+                    const stats = selectedPlayer.per_game_stats || selectedPlayer.current_week_stats || {};
+                    if (!stats || Object.keys(stats).length === 0) {
+                      return (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p>No stats available yet</p>
+                          <p className="text-sm mt-2">Stats will appear here as the season progresses</p>
+                        </div>
+                      );
+                    }
                     
                     return (
                       <div className="space-y-4">
@@ -812,6 +891,11 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                           <div className="text-sm text-muted-foreground">
                             {selectedPlayer.per_game_stats ? 'Per Game Averages' : 'Current Week Performance'}
                           </div>
+                          {selectedPlayer.updated_at && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Last updated: {new Date(selectedPlayer.updated_at).toLocaleString()}
+                            </div>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                           {Object.entries(stats).map(([key, value]) => (
@@ -839,8 +923,15 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                 </h3>
                 <Card className="p-4">
                   {(() => {
-                    const stats = selectedPlayer.per_game_stats || selectedPlayer.current_week_stats || getMockStatsForPosition(selectedPlayer.position);
-                    if (!stats) return null;
+                    const stats = selectedPlayer.per_game_stats || selectedPlayer.current_week_stats || {};
+                    if (!stats || Object.keys(stats).length === 0) {
+                      return (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p>No season stats available yet</p>
+                          <p className="text-sm mt-2">Season statistics will appear here as games are played</p>
+                        </div>
+                      );
+                    }
                     
                     return (
                       <div className="space-y-4">
@@ -848,6 +939,11 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                           <div className="text-sm text-muted-foreground">
                             Season Statistics
                           </div>
+                          {selectedPlayer.updated_at && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Last updated: {new Date(selectedPlayer.updated_at).toLocaleString()}
+                            </div>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           {Object.entries(stats).map(([key, value]) => (

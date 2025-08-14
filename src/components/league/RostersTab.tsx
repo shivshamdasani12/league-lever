@@ -212,8 +212,19 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
 
   const playerMap = (playersQ.data || {}) as Record<string, PlayerRow>;
 
-
-
+  // Debug logging for player data
+  useEffect(() => {
+    if (selectedRosterId && rosters) {
+      console.log("=== ROSTERS TAB DEBUG ===");
+      console.log("Selected roster ID:", selectedRosterId);
+      console.log("All player IDs:", allPlayerIds);
+      console.log("Player data:", playersQ.data);
+      console.log("Player error:", playersQ.error);
+      console.log("Player map keys:", Object.keys(playerMap));
+      console.log("Sample player data:", Object.values(playerMap)[0]);
+      console.log("=========================");
+    }
+  }, [selectedRosterId, rosters, allPlayerIds, playersQ.data, playersQ.error, playerMap]);
 
 
   // Get the selected roster data
@@ -271,11 +282,6 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
     setSelectedPlayer(player);
     setIsPlayerBioOpen(true);
   };
-
-
-
-
-
 
 
   if (isLoading) return (
@@ -343,6 +349,16 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
         {/* Selected Roster Display */}
         {selectedRoster && (
           <div className="space-y-6">
+            {/* Player Data Error Display */}
+            {playersQ.error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-800 font-medium">Player Data Error:</p>
+                <p className="text-red-600 text-sm mt-1">
+                  {(playersQ.error as any)?.message || "Failed to load player data. Player data will be loaded automatically."}
+                </p>
+              </div>
+            )}
+
             {/* Roster Header Card */}
             <Card className="w-full">
               <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">

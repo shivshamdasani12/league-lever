@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Edge Function Test</title>
+</head>
+
+<body>
+    <h1>Testing Edge Functions</h1>
+
+    <h2>Test 1: Check if Edge Functions are accessible</h2>
+    <button onclick="testEdgeFunction()">Test Edge Function</button>
+    <div id="result1"></div>
+
+    <h2>Test 2: Check Supabase Connection</h2>
+    <button onclick="testSupabase()">Test Supabase</button>
+    <div id="result2"></div>
+
+    <script>
+        const SUPABASE_URL = "https://dcqxqetlbgtaceyospij.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjcXhxZXRsYmd0YWNleW9zcGlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NzYzNjcsImV4cCI6MjA3MDM1MjM2N30.jaXUVmROotCjxJoMtO8aZL5iutjWxvTjspXK1DSJfso";
+
+        async function testEdgeFunction() {
+            const resultDiv = document.getElementById('result1');
+            resultDiv.innerHTML = 'Testing...';
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/sleeper-sync-players`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    },
+                    body: JSON.stringify({
+                        league_id: 'test'
+                    })
+                });
+
+                const data = await response.json();
+                resultDiv.innerHTML = `<pre>Status: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testSupabase() {
+            const resultDiv = document.getElementById('result2');
+            resultDiv.innerHTML = 'Testing...';
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/players?select=count`, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+
+                const data = await response.json();
+                resultDiv.innerHTML = `<pre>Status: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<pre>Error: ${error.message}</pre>`;
+            }
+        }
+    </script>
+</body>
+
+</html>
