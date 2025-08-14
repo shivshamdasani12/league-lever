@@ -6,9 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Users, Trophy, ArrowRight, X, Zap, TrendingUp, Activity, Shield, Award, Target } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
-import { fetchWeeks, fetchLeagueMatchupsByWeek, LeagueWeekRow, fetchRosterDetails, fetchRosters } from "@/lib/queries/league";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Loader2, Users, Trophy, ArrowRight, X, Zap, TrendingUp, Activity, Shield, Award, Target, BarChart3 } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { fetchWeeks, fetchLeagueMatchupsByWeek, LeagueWeekRow, fetchRosterDetails, fetchRosters, fetchApiProjections } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
 import { useEnsureLeagueMatchups } from "@/hooks/useEnsureLeagueMatchups";
 
@@ -42,12 +44,14 @@ interface RosterDetails {
 
 export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const params = searchParams;
   const qc = useQueryClient();
   const [selectedMatchup, setSelectedMatchup] = useState<{a: any, b: any} | null>(null);
   const [isRosterDialogOpen, setIsRosterDialogOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerRow | null>(null);
   const [isPlayerBioOpen, setIsPlayerBioOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("team");
 
   const weeksQ = useQuery({
     queryKey: ["league-weeks", leagueId],
@@ -55,7 +59,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
     queryFn: () => fetchWeeks(leagueId),
   });
 
-  const initialWeek = (() => {``
+  const initialWeek = (() => {
     const w = params.get("week");
     return w ? parseInt(w, 10) : null;
   })();
@@ -104,6 +108,13 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
     queryFn: () => fetchRosters(leagueId),
   });
 
+  // Fetch projections for the current week
+  const { data: projections } = useQuery({
+    queryKey: ["api-projections", leagueId, week],
+    enabled: !!leagueId && !!week,
+    queryFn: () => fetchApiProjections(leagueId, week!),
+  });
+
   // Fetch roster details when a matchup is selected
   const { data: rosterADetails } = useQuery({
     queryKey: ['roster-details', leagueId, week, selectedMatchup?.a?.roster_id],
@@ -142,25 +153,6 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Debug logging for selected roster
-  useEffect(() => {
-    if (selectedMatchup) {
-      console.log("=== MATCHUPS TAB DEBUG ===");
-      console.log("Selected matchup:", selectedMatchup);
-      console.log("Roster A details:", rosterADetails);
-      console.log("Roster B details:", rosterBDetails);
-      console.log("All player IDs:", allPlayerIds);
-      console.log("Player data:", playerData);
-      console.log("Player error:", playerError);
-      console.log("Player loading:", playerLoading);
-      console.log("Player data keys:", playerData ? Object.keys(playerData) : []);
-      console.log("Sample player data:", playerData ? Object.values(playerData)[0] : null);
-      console.log("Supabase URL:", "https://dcqxqetlbgtaceyospij.supabase.co");
-      console.log("League ID:", leagueId);
-      console.log("=========================");
-    }
-  }, [selectedMatchup, rosterADetails, rosterBDetails, playerData, playerError, playerLoading, allPlayerIds, leagueId]);
-
   // Auto-refresh player data every 5 minutes to keep it current
   useEffect(() => {
     if (!leagueId || allPlayerIds.length === 0) return;
@@ -172,42 +164,6 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
 
     return () => clearInterval(interval);
   }, [leagueId, allPlayerIds.length, qc]);
-
-  // Automatically load player data when rosters are available
-  useEffect(() => {
-    if (leagueId && allPlayerIds.length > 0 && !playerData) {
-      console.log("Automatically loading player data for", allPlayerIds.length, "players");
-      qc.invalidateQueries({ queryKey: ['players'] });
-    }
-  }, [leagueId, allPlayerIds.length, playerData, qc]);
-
-  // Check database schema when component mounts
-  useEffect(() => {
-    const checkDatabaseSchema = async () => {
-      try {
-        console.log("=== DATABASE SCHEMA CHECK ===");
-        console.log("Checking if players table exists and has correct structure...");
-        
-        // This will help us see what's happening with the database
-        const { data, error } = await fetchPlayersByIds(['test']);
-        
-        if (error) {
-          console.error("Database schema check failed:", error);
-          console.log("This suggests the players table might not exist or have the right structure");
-        } else {
-          console.log("Database schema check passed");
-          console.log("Players table exists and is accessible");
-        }
-        console.log("=========================");
-      } catch (err) {
-        console.error("Database schema check error:", err);
-      }
-    };
-    
-    if (leagueId) {
-      checkDatabaseSchema();
-    }
-  }, [leagueId]);
 
   // Memoize the roster name mapping to prevent recalculation on every render
   const rosterName = useMemo(() => {
@@ -232,11 +188,40 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
     // Create pairs from groups
     const pairs = Object.values(groups).map(g => {
       const [a, b] = g.sort((x, y) => x.roster_id - y.roster_id);
-      return { a, b: b ?? null };
+      
+      // Calculate win probabilities based on projected points
+      let aWinProb = 50;
+      let bWinProb = 50;
+      
+      if (projections && rosterADetails && rosterBDetails) {
+        const aProjectedTotal = calculateProjectedTotal((rosterADetails.starters as string[]) || [], projections);
+        const bProjectedTotal = calculateProjectedTotal((rosterBDetails.starters as string[]) || [], projections);
+        
+        if (aProjectedTotal > 0 && bProjectedTotal > 0) {
+          const totalPoints = aProjectedTotal + bProjectedTotal;
+          aWinProb = Math.round((aProjectedTotal / totalPoints) * 100);
+          bWinProb = 100 - aWinProb;
+        }
+      }
+      
+      return { 
+        a: { ...a, winProb: aWinProb }, 
+        b: b ? { ...b, winProb: bWinProb } : null 
+      };
     });
     
     return pairs;
-  }, [rows]);
+  }, [rows, projections, rosterADetails, rosterBDetails]);
+
+  // Helper function to calculate projected total for a roster
+  const calculateProjectedTotal = (starters: string[], projections: any) => {
+    if (!projections || !Array.isArray(starters)) return 0;
+    
+    return starters.reduce((total, playerId) => {
+      const playerProjection = projections.find((p: any) => p.player_id === playerId);
+      return total + (playerProjection?.projection_points || 0);
+    }, 0);
+  };
 
   // Memoize the weeks data to prevent unnecessary re-renders
   const weeks = useMemo(() => weeksQ.data || [], [weeksQ.data]);
@@ -264,34 +249,11 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
     
     setSelectedMatchup(matchup);
     setIsRosterDialogOpen(true);
-    
-    // Debug: Log the matchup selection
-    console.log("Matchup selected:", matchup);
-    console.log("Player IDs that should be loaded:", allPlayerIds);
-    console.log("Current player data:", playerData);
   };
 
+  // Unified player click handler that navigates to player profile
   const handlePlayerClick = (playerId: string) => {
-    const player = playerData?.[playerId];
-    if (player) {
-      console.log("Opening player bio for:", player);
-      setSelectedPlayer(player);
-      setIsPlayerBioOpen(true);
-    } else {
-      console.error("Player not found for ID:", playerId);
-      console.log("Available players:", playerData);
-      console.log("Player IDs:", allPlayerIds);
-      console.log("Player data keys:", playerData ? Object.keys(playerData) : []);
-      
-      // Try to fetch the player data if it's not available
-      if (allPlayerIds.includes(playerId)) {
-        console.log("Player ID exists in roster but data not loaded, triggering refresh...");
-        qc.invalidateQueries({ queryKey: ['players'] });
-        alert("Player data is loading. Please try again in a moment.");
-      } else {
-        alert("Player not found in roster.");
-      }
-    }
+    navigate(`/players/${playerId}`);
   };
 
   const getWinner = (a: any, b: any) => {
@@ -332,23 +294,51 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
     return 'N/A';
   };
 
-  const getPlayerFantasyPositions = (playerId: string) => {
-    const player = playerData?.[playerId];
-    if (player?.fantasy_positions && player.fantasy_positions.length > 0) {
-      return player.fantasy_positions.join(', ');
-    }
-    if (playerLoading) return "Loading...";
-    return 'N/A';
-  };
-
   const getPlayerHeadshotUrl = (playerId: string) => {
     if (!playerId) return undefined;
     // Use the most reliable Sleeper CDN endpoint for player images
     return `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`;
   };
 
-  // Remove mock stats - we'll use real data from the database
-  // The stats will come from current_week_stats or per_game_stats columns
+  const getPlayerProjection = (playerId: string) => {
+    if (!projections) return 0;
+    const playerProjection = projections.find((p: any) => p.player_id === playerId);
+    return playerProjection?.projection_points || 0;
+  };
+
+  // Helper function to render player row
+  const renderPlayerRow = (playerId: string, position: string, isProjectionsTab: boolean = false) => {
+    const player = playerData?.[playerId];
+    const projection = getPlayerProjection(playerId);
+    
+    return (
+      <div key={playerId} className="flex items-center gap-3 py-2 px-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors" onClick={() => handlePlayerClick(playerId)}>
+        <Avatar className="h-8 w-8">
+          <AvatarImage 
+            src={getPlayerHeadshotUrl(playerId)} 
+            alt={`${getPlayerDisplayName(playerId)} headshot`} 
+          />
+          <AvatarFallback className="text-xs">
+            {getPlayerDisplayName(playerId).split(' ').map(n => n[0]).join('').slice(0,2) || '??'}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-sm truncate">{getPlayerDisplayName(playerId)}</div>
+          <div className="text-xs text-muted-foreground flex items-center gap-2">
+            <span>{position}</span>
+            <span>•</span>
+            <span>{getPlayerTeam(playerId)}</span>
+          </div>
+        </div>
+        {isProjectionsTab && (
+          <div className="text-right">
+            <div className="font-medium text-sm">{projection.toFixed(1)}</div>
+            <div className="text-xs text-muted-foreground">proj</div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (weeksQ.isLoading) {
     return <div className="p-4 text-center text-muted-foreground">Loading weeks...</div>;
@@ -421,190 +411,70 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
           )}
           
           {hasError && <p className="text-destructive">Failed to load matchups.</p>}
-          
-          {playerError && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-800 font-medium">Player Data Error:</p>
-              <p className="text-red-600 text-sm mt-1">
-                {playerError.message || "Failed to load player data. Player data will be loaded automatically."}
-              </p>
-            </div>
-          )}
 
-          {playerLoading && (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center gap-2 text-blue-800">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Loading player data...</span>
-              </div>
-            </div>
-          )}
-
-          {/* Backend Connection Verification */}
-          {playerData && Object.keys(playerData).length > 0 && (
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center gap-2 text-green-800 mb-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="font-medium">Backend Connected ✓</span>
-              </div>
-              <div className="text-sm text-green-700 space-y-1">
-                <p>• Database: Connected to Supabase</p>
-                <p>• Player Data: {Object.keys(playerData).length} players loaded</p>
-                <p>• Data Source: Sleeper API via Edge Functions</p>
-                <p>• Auto-refresh: Every 5 minutes</p>
-                <p>• Auto-load: Player data loads automatically</p>
-                <p>• Last Update: {new Date().toLocaleString()}</p>
-              </div>
-              {/* Debug: Show sample player data */}
-              <details className="mt-3">
-                <summary className="text-xs text-green-600 cursor-pointer">Debug: Sample Player Data</summary>
-                <pre className="text-xs bg-white p-2 rounded mt-2 overflow-auto max-h-32">
-                  {JSON.stringify(Object.values(playerData)[0], null, 2)}
-                </pre>
-              </details>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            {matchupPairs.length === 0 && !isLoading && (
-              <p className="text-muted-foreground text-center py-8">No matchups for week {week}.</p>
-            )}
-            
-            {matchupPairs.map(({ a, b }) => {
+          {/* Matchup Cards */}
+          <div className="grid gap-4">
+            {matchupPairs.map((pair, index) => {
+              const { a, b } = pair;
               const winner = getWinner(a, b);
-              const isBye = !b;
-              
+              const aProjectedTotal = calculateProjectedTotal((rosterADetails?.starters as string[]) || [], projections);
+              const bProjectedTotal = calculateProjectedTotal((rosterBDetails?.starters as string[]) || [], projections);
+
               return (
                 <Card 
-                  key={`${a.league_id}-${a.week}-${a.roster_id}`}
-                  className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] ${
-                    isBye ? 'border-blue-500/30 bg-blue-500/5' : 'hover:border-primary/50'
-                  }`}
-                  onClick={() => !isBye && handleMatchupClick({ a, b })}
+                  key={index} 
+                  className="cursor-pointer hover:shadow-md transition-shadow" 
+                  onClick={() => handleMatchupClick(pair)}
                 >
                   <CardContent className="p-6">
-                    {/* Week header */}
-                    <div className="text-center mb-4">
-                      <Badge variant="secondary" className="text-xs font-medium">
-                        Week {a.week}
-                      </Badge>
-                    </div>
-
-                    {isBye ? (
-                      <div className="text-center py-8">
-                        <div className="flex items-center justify-center gap-4">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-12 w-12 border-2 border-border">
-                              <AvatarImage alt={`${rosterName.get(a.roster_id) || "Team"} avatar`} />
-                              <AvatarFallback className="bg-secondary text-secondary-foreground">
-                                {(rosterName.get(a.roster_id) || "T").slice(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="text-left">
-                              <div className="font-semibold text-lg truncate max-w-[120px]">
-                                {onRosterSelect ? (
-                                  <button
-                                    onClick={() => onRosterSelect(String(a.roster_id))}
-                                    className="hover:text-primary hover:underline cursor-pointer transition-colors w-full"
-                                  >
-                                    {truncateText(rosterName.get(a.roster_id) || `Roster ${a.roster_id}`, 18)}
-                                  </button>
-                                ) : (
-                                  truncateText(rosterName.get(a.roster_id) || `Roster ${a.roster_id}`, 18)
-                                )}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                Points: {a.points ?? 0}
-                              </div>
+                    <div className="flex items-center justify-between">
+                      {/* Team A */}
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="text-right">
+                          <div className="font-semibold text-lg">
+                            {truncateText(rosterName.get(a.roster_id) || `Team ${a.roster_id}`, 15)}
+                          </div>
+                          <div className="text-2xl font-bold text-primary">
+                            {a.points !== null ? Number(a.points).toFixed(1) : '--'}
+                          </div>
+                          {projections && (
+                            <div className="text-sm text-muted-foreground">
+                              Proj: {aProjectedTotal.toFixed(1)} • {a.winProb}% win
                             </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <X className="h-6 w-6 text-blue-500" />
-                            <span className="text-blue-500 font-semibold text-lg">BYE WEEK</span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-3 gap-4 items-center">
-                        {/* Team A */}
-                        <div className="text-center">
-                          <Avatar className="h-16 w-16 mx-auto mb-3 border-2 border-border">
-                            <AvatarImage alt={`${rosterName.get(a.roster_id) || "Team"} avatar`} />
-                            <AvatarFallback className="bg-secondary text-secondary-foreground text-lg">
-                              {(rosterName.get(a.roster_id) || "T").slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="font-semibold text-lg truncate max-w-[140px] mx-auto">
-                            {onRosterSelect ? (
-                              <button
-                                onClick={() => {
-                                  console.log("MatchupsTab: Team A username clicked for roster:", a.roster_id);
-                                  onRosterSelect(String(a.roster_id));
-                                }}
-                                className="hover:text-primary hover:underline cursor-pointer transition-colors w-full"
-                              >
-                                {truncateText(rosterName.get(a.roster_id) || `Roster ${a.roster_id}`, 20)}
-                              </button>
-                            ) : (
-                              truncateText(rosterName.get(a.roster_id) || `Roster ${a.roster_id}`, 20)
-                            )}
-                          </div>
-                          <div className={`text-2xl font-bold mt-2 ${
-                            winner === a.roster_id ? 'text-green-500' : 
-                            winner === 'tie' ? 'text-yellow-500' : 'text-foreground'
-                          }`}>
-                            {a.points ?? 0}
-                          </div>
-                          {winner === a.roster_id && (
-                            <Trophy className="h-5 w-5 text-yellow-500 mx-auto mt-1" />
                           )}
                         </div>
+                        {winner === a.roster_id && (
+                          <Trophy className="h-6 w-6 text-yellow-500" />
+                        )}
+                      </div>
 
-                        {/* VS */}
-                        <div className="text-center">
-                          <div className="text-muted-foreground text-sm font-medium mb-2">VS</div>
-                          <Separator orientation="vertical" className="h-16 mx-auto" />
-                          <div className="text-xs text-muted-foreground mt-2">
-                            {winner === 'tie' ? 'TIE' : winner ? 'FINAL' : 'LIVE'}
-                          </div>
+                      {/* VS indicator */}
+                      <div className="px-4">
+                        <div className="text-muted-foreground text-sm font-medium bg-muted rounded-full px-3 py-1">
+                          VS
                         </div>
+                      </div>
 
-                        {/* Team B */}
-                        <div className="text-center">
-                          <Avatar className="h-16 w-16 mx-auto mb-3 border-2 border-border">
-                            <AvatarImage alt={`${rosterName.get(b.roster_id) || "Opponent"} avatar`} />
-                            <AvatarFallback className="bg-secondary text-secondary-foreground text-lg">
-                              {(rosterName.get(b.roster_id) || "T").slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="font-semibold text-lg truncate max-w-[140px] mx-auto">
-                            {onRosterSelect ? (
-                              <button
-                                onClick={() => {
-                                  console.log("MatchupsTab: Team B username clicked for roster:", b.roster_id);
-                                  onRosterSelect(String(b.roster_id));
-                                }}
-                                className="hover:text-primary hover:underline cursor-pointer transition-colors w-full"
-                              >
-                                {truncateText(rosterName.get(b.roster_id) || `Roster ${b.roster_id}`, 20)}
-                              </button>
-                            ) : (
-                              truncateText(rosterName.get(b.roster_id) || `Roster ${b.roster_id}`, 20)
-                            )}
+                      {/* Team B */}
+                      <div className="flex items-center gap-3 flex-1">
+                        {winner === (b?.roster_id) && (
+                          <Trophy className="h-6 w-6 text-yellow-500" />
+                        )}
+                        <div className="text-left">
+                          <div className="font-semibold text-lg">
+                            {b ? truncateText(rosterName.get(b.roster_id) || `Team ${b.roster_id}`, 15) : 'BYE'}
                           </div>
-                          <div className={`text-2xl font-bold mt-2 ${
-                            winner === b.roster_id ? 'text-green-500' : 
-                            winner === 'tie' ? 'text-yellow-500' : 'text-foreground'
-                          }`}>
-                            {b.points ?? 0}
+                          <div className="text-2xl font-bold text-primary">
+                            {b?.points !== null ? Number(b.points).toFixed(1) : '--'}
                           </div>
-                          {winner === b.roster_id && (
-                            <Trophy className="h-5 w-5 text-yellow-500 mx-auto mt-1" />
+                          {projections && b && (
+                            <div className="text-sm text-muted-foreground">
+                              Proj: {bProjectedTotal.toFixed(1)} • {b.winProb}% win
+                            </div>
                           )}
                         </div>
                       </div>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -613,355 +483,125 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
         </>
       )}
 
-      {/* Head-to-Head Roster Dialog */}
+      {/* Roster Details Dialog */}
       <Dialog open={isRosterDialogOpen} onOpenChange={setIsRosterDialogOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Head-to-Head: Week {selectedMatchup?.a?.week}
+              Matchup Details
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedMatchup && (
-            <div className="grid grid-cols-2 gap-6">
-              {/* Team A Roster */}
-              <div className="space-y-4">
-                <div className="text-center">
-                  <Avatar className="h-20 w-20 mx-auto mb-3 border-2 border-border">
-                    <AvatarImage alt={`${rosterName.get(selectedMatchup.a.roster_id) || "Team"} avatar`} />
-                    <AvatarFallback className="bg-secondary text-secondary-foreground text-xl">
-                      {(rosterName.get(selectedMatchup.a.roster_id) || "T").slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <h3 className="font-bold text-lg">
-                    {onRosterSelect ? (
-                      <button
-                        onClick={() => onRosterSelect(String(selectedMatchup.a.roster_id))}
-                        className="hover:text-primary hover:underline cursor-pointer transition-colors"
-                      >
-                        {rosterName.get(selectedMatchup.a.roster_id) || `Roster ${selectedMatchup.a.roster_id}`}
-                      </button>
-                    ) : (
-                      rosterName.get(selectedMatchup.a.roster_id) || `Roster ${selectedMatchup.a.roster_id}`
-                    )}
-                  </h3>
-                  <div className="text-2xl font-bold text-primary">
-                    {selectedMatchup.a.points ?? 0} pts
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                    Starters
-                  </h4>
-                  <div className="space-y-2">
-                    {rosterADetails?.starters && Array.isArray(rosterADetails.starters) ? (
-                      rosterADetails.starters.map((playerId: string, index: number) => {
-                        const player = playerData?.[playerId];
-                        const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
-                        
-                        return (
-                          <div key={playerId} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={getPlayerHeadshotUrl(playerId)} alt={`${getPlayerDisplayName(playerId)} headshot`} />
-                                <AvatarFallback className="text-xs">
-                                  {getPlayerDisplayName(playerId)?.slice(0, 2).toUpperCase() || 'N/A'}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col">
-                                <button
-                                  onClick={() => player && handlePlayerClick(playerId)}
-                                  className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
-                                  disabled={!player}
-                                >
-                                  <span className="text-sm font-medium">{getPlayerDisplayName(playerId)}</span>
-                                </button>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <Badge variant="outline" className="text-xs px-1 py-0">
-                                    {position}
-                                  </Badge>
-                                  <span>{getPlayerTeam(playerId)}</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-sm text-muted-foreground">0.0 pts</div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="text-sm text-center py-4">
-                        Loading starters...
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Team B Roster */}
-              <div className="space-y-4">
-                <div className="text-center">
-                  <Avatar className="h-20 w-20 mx-auto mb-3 border-2 border-border">
-                    <AvatarImage alt={`${rosterName.get(selectedMatchup.b.roster_id) || "Opponent"} avatar`} />
-                    <AvatarFallback className="bg-secondary text-secondary-foreground text-xl">
-                      {(rosterName.get(selectedMatchup.b.roster_id) || "T").slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <h3 className="font-bold text-lg">
-                    {onRosterSelect ? (
-                      <button
-                        onClick={() => onRosterSelect(String(selectedMatchup.b.roster_id))}
-                        className="hover:text-primary hover:underline cursor-pointer transition-colors"
-                      >
-                        {rosterName.get(selectedMatchup.b.roster_id) || `Roster ${selectedMatchup.b.roster_id}`}
-                      </button>
-                    ) : (
-                      rosterName.get(selectedMatchup.b.roster_id) || `Roster ${selectedMatchup.b.roster_id}`
-                    )}
-                  </h3>
-                  <div className="text-2xl font-bold text-primary">
-                    {selectedMatchup.b.points ?? 0} pts
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                    Starters
-                  </h4>
-                  <div className="space-y-2">
-                    {rosterBDetails?.starters && Array.isArray(rosterBDetails.starters) ? (
-                      rosterBDetails.starters.map((playerId: string, index: number) => {
-                        const player = playerData?.[playerId];
-                        const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
-                        
-                        return (
-                          <div key={playerId} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={getPlayerHeadshotUrl(playerId)} alt={`${getPlayerDisplayName(playerId)} headshot`} />
-                                <AvatarFallback className="text-xs">
-                                  {getPlayerDisplayName(playerId)?.slice(0, 2).toUpperCase() || 'N/A'}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col">
-                                <button
-                                  onClick={() => player && handlePlayerClick(playerId)}
-                                  className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
-                                  disabled={!player}
-                                >
-                                  <span className="text-sm font-medium">{getPlayerDisplayName(playerId)}</span>
-                                </button>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <Badge variant="outline" className="text-xs px-1 py-0">
-                                    {position}
-                                  </Badge>
-                                  <span>{getPlayerTeam(playerId)}</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-sm text-muted-foreground">0.0 pts</div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="text-sm text-center py-4">
-                        Loading starters...
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Player Bio Dialog */}
-      <Dialog open={isPlayerBioOpen} onOpenChange={setIsPlayerBioOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3">
-              <Avatar className="h-12 w-12">
-                <AvatarImage 
-                  src={selectedPlayer ? getPlayerHeadshotUrl(selectedPlayer.player_id) : undefined} 
-                  alt={`${selectedPlayer?.full_name || 'Player'} headshot`} 
-                />
-                <AvatarFallback className="text-xl bg-primary/10 text-primary font-bold">
-                  {selectedPlayer?.full_name ? selectedPlayer.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h2 className="text-2xl font-bold">{selectedPlayer?.full_name || 'Player'}</h2>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Badge variant="secondary">
-                    {selectedPlayer?.position || 'N/A'}
-                  </Badge>
-                  {selectedPlayer?.team && (
-                    <Badge variant="outline">
-                      {selectedPlayer.team}
-                    </Badge>
-                  )}
-                  {selectedPlayer?.fantasy_positions && selectedPlayer.fantasy_positions.length > 0 && (
-                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                      {selectedPlayer.fantasy_positions.join(', ')}
-                    </Badge>
-                  )}
-                </div>
-                {selectedPlayer?.updated_at && (
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Last updated: {new Date(selectedPlayer.updated_at).toLocaleString()}
-                  </div>
-                )}
-              </div>
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedPlayer && (
             <div className="space-y-6">
-              {/* Player Stats Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="p-4 text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    <span className="text-sm font-medium text-muted-foreground">Fantasy Positions</span>
+              {/* Matchup Header */}
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div className="text-center">
+                  <div className="font-semibold">
+                    {rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`}
                   </div>
-                  <div className="text-2xl font-bold text-green-700">
-                    {selectedPlayer.fantasy_positions && selectedPlayer.fantasy_positions.length > 0 
-                      ? selectedPlayer.fantasy_positions.join(', ') 
-                      : selectedPlayer.position || 'N/A'
+                  <div className="text-2xl font-bold text-primary">
+                    {selectedMatchup.a.points !== null ? Number(selectedMatchup.a.points).toFixed(1) : '--'}
+                  </div>
+                </div>
+                <div className="text-muted-foreground font-medium">VS</div>
+                <div className="text-center">
+                  <div className="font-semibold">
+                    {selectedMatchup.b ? 
+                      (rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`) : 
+                      'BYE'
                     }
                   </div>
-                </Card>
-                
-                <Card className="p-4 text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Activity className="h-5 w-5 text-blue-600" />
-                    <span className="text-sm font-medium text-muted-foreground">Status</span>
+                  <div className="text-2xl font-bold text-primary">
+                    {selectedMatchup.b?.points !== null ? Number(selectedMatchup.b.points).toFixed(1) : '--'}
                   </div>
-                  <div className="text-2xl font-bold text-blue-700">
-                    {selectedPlayer.status || 'Active'}
-                  </div>
-                </Card>
-                
-                <Card className="p-4 text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Shield className="h-5 w-5 text-purple-600" />
-                    <span className="text-sm font-medium text-muted-foreground">Injury Status</span>
-                  </div>
-                  <div className="text-2xl font-bold text-purple-700">
-                    {selectedPlayer.injury_status || 'Healthy'}
-                  </div>
-                </Card>
-                
-                <Card className="p-4 text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Target className="h-5 w-5 text-orange-600" />
-                    <span className="text-sm font-medium text-muted-foreground">Practice</span>
-                  </div>
-                  <div className="text-2xl font-bold text-orange-700">
-                    {selectedPlayer.practice_participation || 'Full'}
-                  </div>
-                </Card>
+                </div>
               </div>
 
-              <Separator />
+              {/* Team/Projections Tabs */}
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="team" className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Team
+                  </TabsTrigger>
+                  <TabsTrigger value="projections" className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Projections
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* Per Game Stats */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-yellow-600" />
-                  Per Game Stats
-                </h3>
-                <Card className="p-4">
-                  {(() => {
-                    const stats = selectedPlayer.per_game_stats || selectedPlayer.current_week_stats || {};
-                    if (!stats || Object.keys(stats).length === 0) {
-                      return (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <p>No stats available yet</p>
-                          <p className="text-sm mt-2">Stats will appear here as the season progresses</p>
-                        </div>
-                      );
-                    }
-                    
-                    return (
-                      <div className="space-y-4">
-                        <div className="text-center">
-                          <div className="text-sm text-muted-foreground">
-                            {selectedPlayer.per_game_stats ? 'Per Game Averages' : 'Current Week Performance'}
-                          </div>
-                          {selectedPlayer.updated_at && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Last updated: {new Date(selectedPlayer.updated_at).toLocaleString()}
-                            </div>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          {Object.entries(stats).map(([key, value]) => (
-                            <div key={key} className="text-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                              <div className="text-sm font-medium text-muted-foreground capitalize mb-1">
-                                {key.replace(/_/g, ' ')}
-                              </div>
-                              <div className="text-lg font-semibold text-yellow-700">
-                                {typeof value === 'number' ? value.toFixed(1) : String(value)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                <TabsContent value="team" className="space-y-6">
+                  {/* Team A Roster */}
+                  <div>
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-yellow-600" />
+                      {rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`} - Starters
+                    </h3>
+                    <div className="space-y-1">
+                      {((rosterADetails?.starters as string[]) || []).map((playerId: string, index: number) => {
+                        const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
+                        return renderPlayerRow(playerId, position);
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Team B Roster */}
+                  {selectedMatchup.b && (
+                    <div>
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <Trophy className="h-4 w-4 text-yellow-600" />
+                        {rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`} - Starters
+                      </h3>
+                      <div className="space-y-1">
+                        {((rosterBDetails?.starters as string[]) || []).map((playerId: string, index: number) => {
+                          const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
+                          return renderPlayerRow(playerId, position);
+                        })}
                       </div>
-                    );
-                  })()}
-                </Card>
-              </div>
+                    </div>
+                  )}
+                </TabsContent>
 
-              {/* Season Stats */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-green-600" />
-                  Season Statistics
-                </h3>
-                <Card className="p-4">
-                  {(() => {
-                    const stats = selectedPlayer.per_game_stats || selectedPlayer.current_week_stats || {};
-                    if (!stats || Object.keys(stats).length === 0) {
-                      return (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <p>No season stats available yet</p>
-                          <p className="text-sm mt-2">Season statistics will appear here as games are played</p>
-                        </div>
-                      );
-                    }
-                    
-                    return (
-                      <div className="space-y-4">
-                        <div className="text-center">
-                          <div className="text-sm text-muted-foreground">
-                            Season Statistics
-                          </div>
-                          {selectedPlayer.updated_at && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Last updated: {new Date(selectedPlayer.updated_at).toLocaleString()}
-                            </div>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {Object.entries(stats).map(([key, value]) => (
-                            <div key={key} className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg">
-                              <div className="text-xs font-medium text-muted-foreground capitalize mb-1">
-                                {key.replace(/_/g, ' ')}
-                              </div>
-                              <div className="text-lg font-bold text-green-700">
-                                {typeof value === 'number' ? value.toFixed(1) : String(value)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                <TabsContent value="projections" className="space-y-6">
+                  {/* Team A Projections */}
+                  <div>
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-blue-600" />
+                      {rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`} - Projections
+                      <span className="text-sm text-muted-foreground ml-2">
+                        Total: {calculateProjectedTotal((rosterADetails?.starters as string[]) || [], projections).toFixed(1)}
+                      </span>
+                    </h3>
+                    <div className="space-y-1">
+                      {((rosterADetails?.starters as string[]) || []).map((playerId: string, index: number) => {
+                        const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
+                        return renderPlayerRow(playerId, position, true);
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Team B Projections */}
+                  {selectedMatchup.b && (
+                    <div>
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4 text-blue-600" />
+                        {rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`} - Projections
+                        <span className="text-sm text-muted-foreground ml-2">
+                          Total: {calculateProjectedTotal((rosterBDetails?.starters as string[]) || [], projections).toFixed(1)}
+                        </span>
+                      </h3>
+                      <div className="space-y-1">
+                        {((rosterBDetails?.starters as string[]) || []).map((playerId: string, index: number) => {
+                          const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
+                          return renderPlayerRow(playerId, position, true);
+                        })}
                       </div>
-                    );
-                  })()}
-                </Card>
-              </div>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
           )}
         </DialogContent>

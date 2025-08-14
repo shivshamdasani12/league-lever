@@ -8,8 +8,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Users, Trophy, User, MapPin, TrendingUp, Activity, Shield, Award, Target, Zap } from "lucide-react";
-import { fetchRosters, LeagueRosterRow } from "@/lib/queries/league";
+import { Users, Trophy, User, MapPin, TrendingUp, Activity, Shield, Award, Target, Zap, BarChart3 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNavigate } from "react-router-dom";
+import { fetchRosters, LeagueRosterRow, fetchApiProjections } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
 
 interface Props { 
@@ -173,14 +175,23 @@ function getMockStatsForPosition(position: string | null) {
 }
 
 export default function RostersTab({ leagueId, selectedRosterId: propSelectedRosterId }: Props) {
+  const navigate = useNavigate();
   const [selectedRosterId, setSelectedRosterId] = useState<string | null>(propSelectedRosterId || null);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerRow | null>(null);
   const [isPlayerBioOpen, setIsPlayerBioOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("team");
 
   const { data: rosters, isLoading, isError, error } = useQuery({
     queryKey: ["league-rosters", leagueId],
     enabled: !!leagueId,
     queryFn: () => fetchRosters(leagueId),
+  });
+
+  // Fetch projections for the current week (assume week 1 for now)
+  const { data: projections } = useQuery({
+    queryKey: ["api-projections", leagueId, 1],
+    enabled: !!leagueId,
+    queryFn: () => fetchApiProjections(leagueId, 1),
   });
 
   // Update selected roster when prop changes
@@ -277,10 +288,9 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
     return player?.position || 'N/A';
   };
 
-  // Function to handle player click and show bio
+  // Function to handle player click and navigate to player profile (unified with MatchupsTab)
   const handlePlayerClick = (player: PlayerRow) => {
-    setSelectedPlayer(player);
-    setIsPlayerBioOpen(true);
+    navigate(`/players/${player.player_id}`);
   };
 
 
