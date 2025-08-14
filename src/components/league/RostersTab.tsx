@@ -198,8 +198,8 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
   const allPlayerIds = useMemo(() => {
     const ids = new Set<string>();
     (rosters || []).forEach((r: LeagueRosterRow) => {
-      (Array.isArray(r.players) ? r.players : []).forEach((id) => ids.add(id));
-      (Array.isArray(r.starters) ? r.starters : []).forEach((id) => ids.add(id));
+      (Array.isArray(r.players) ? r.players as string[] : []).forEach((id) => ids.add(String(id)));
+      (Array.isArray(r.starters) ? r.starters as string[] : []).forEach((id) => ids.add(String(id)));
     });
     return Array.from(ids);
   }, [rosters]);
@@ -236,7 +236,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
   // Get starters and bench players for selected roster
   const starters = useMemo(() => {
     if (!selectedRoster?.starters || !Array.isArray(selectedRoster.starters)) return [];
-    return selectedRoster.starters.map(pid => ({
+    return (selectedRoster.starters as string[]).map(pid => ({
       id: pid,
       player: playerMap[pid],
       isStarter: true
@@ -245,8 +245,8 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
 
   const bench = useMemo(() => {
     if (!selectedRoster?.players || !Array.isArray(selectedRoster.players)) return [];
-    const starterIds = new Set(selectedRoster.starters || []);
-    return selectedRoster.players
+    const starterIds = new Set(selectedRoster.starters as string[] || []);
+    return (selectedRoster.players as string[])
       .filter(pid => !starterIds.has(pid))
       .map(pid => ({
         id: pid,
@@ -417,37 +417,37 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                         const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
                         const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
                         
-                        return (
-                          <TableRow key={id} className="hover:bg-yellow-50/30">
-                            <TableCell>
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage 
-                                  src={getPlayerHeadshotUrl(id, player?.full_name)} 
-                                  alt={`${player?.full_name || 'Player'} headshot`} 
-                                />
-                                <AvatarFallback className="bg-yellow-100 text-yellow-800 font-semibold text-sm">
-                                  {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
-                                </AvatarFallback>
-                              </Avatar>
-                            </TableCell>
-                                                         <TableCell>
-                               <div className="flex flex-col">
-                                 <button
-                                   onClick={() => player && handlePlayerClick(player)}
-                                   className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
-                                   disabled={!player}
-                                 >
-                                   <span className="font-semibold">
-                                     {getPlayerDisplayName(id, player)}
-                                   </span>
-                                   {!player?.full_name && (
-                                     <span className="text-xs text-muted-foreground">
-                                       Sleeper ID: {id}
-                                     </span>
-                                   )}
-                                 </button>
-                               </div>
+                         return (
+                           <TableRow key={String(id)} className="hover:bg-yellow-50/30">
+                             <TableCell>
+                               <Avatar className="h-10 w-10">
+                                 <AvatarImage 
+                                   src={getPlayerHeadshotUrl(String(id), player?.full_name)} 
+                                   alt={`${player?.full_name || 'Player'} headshot`} 
+                                 />
+                                 <AvatarFallback className="bg-yellow-100 text-yellow-800 font-semibold text-sm">
+                                   {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
+                                 </AvatarFallback>
+                               </Avatar>
                              </TableCell>
+                                                          <TableCell>
+                                <div className="flex flex-col">
+                                  <button
+                                    onClick={() => player && handlePlayerClick(player)}
+                                    className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
+                                    disabled={!player}
+                                  >
+                                    <span className="font-semibold">
+                                      {getPlayerDisplayName(String(id), player)}
+                                    </span>
+                                    {!player?.full_name && (
+                                      <span className="text-xs text-muted-foreground">
+                                        Sleeper ID: {String(id)}
+                                      </span>
+                                    )}
+                                  </button>
+                                </div>
+                              </TableCell>
                              <TableCell>
                                <Badge variant="secondary" className={getPositionColor(player?.position)}>
                                  {position}
@@ -512,37 +512,37 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                       bench.map(({ id, player }) => {
                         const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
                         
-                        return (
-                          <TableRow key={id} className="hover:bg-blue-50/30">
-                            <TableCell>
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage 
-                                  src={getPlayerHeadshotUrl(id, player?.full_name)} 
-                                  alt={`${player?.full_name || 'Player'} headshot`} 
-                                />
-                                <AvatarFallback className="bg-blue-100 text-blue-800 font-semibold text-sm">
-                                  {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
-                                </AvatarFallback>
-                              </Avatar>
-                            </TableCell>
-                                                         <TableCell>
-                               <div className="flex flex-col">
-                                 <button
-                                   onClick={() => player && handlePlayerClick(player)}
-                                   className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
-                                   disabled={!player}
-                                 >
-                                   <span className="font-semibold">
-                                     {getPlayerDisplayName(id, player)}
-                                   </span>
-                                   {!player?.full_name && (
-                                     <span className="text-xs text-muted-foreground">
-                                       Sleeper ID: {id}
-                                     </span>
-                                   )}
-                                 </button>
-                               </div>
+                         return (
+                           <TableRow key={String(id)} className="hover:bg-blue-50/30">
+                             <TableCell>
+                               <Avatar className="h-10 w-10">
+                                 <AvatarImage 
+                                   src={getPlayerHeadshotUrl(String(id), player?.full_name)} 
+                                   alt={`${player?.full_name || 'Player'} headshot`} 
+                                 />
+                                 <AvatarFallback className="bg-blue-100 text-blue-800 font-semibold text-sm">
+                                   {player?.full_name ? player.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
+                                 </AvatarFallback>
+                               </Avatar>
                              </TableCell>
+                                                          <TableCell>
+                                <div className="flex flex-col">
+                                  <button
+                                    onClick={() => player && handlePlayerClick(player)}
+                                    className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
+                                    disabled={!player}
+                                  >
+                                    <span className="font-semibold">
+                                      {getPlayerDisplayName(String(id), player)}
+                                    </span>
+                                    {!player?.full_name && (
+                                      <span className="text-xs text-muted-foreground">
+                                        Sleeper ID: {String(id)}
+                                      </span>
+                                    )}
+                                  </button>
+                                </div>
+                              </TableCell>
                              <TableCell>
                                {getPlayerPosition(player) !== 'N/A' ? (
                                  <Badge variant="secondary" className={getPositionColor(player.position)}>
