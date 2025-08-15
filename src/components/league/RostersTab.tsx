@@ -176,6 +176,8 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
   const [selectedRosterId, setSelectedRosterId] = useState<string | null>(propSelectedRosterId || null);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerRow | null>(null);
   const [isPlayerBioOpen, setIsPlayerBioOpen] = useState(false);
+  
+
 
   const { data: rosters, isLoading, isError, error } = useQuery({
     queryKey: ["league-rosters", leagueId],
@@ -288,7 +290,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
   // Helper function to get player projection
   const getPlayerProjection = (playerId: string) => {
     if (!projections) return 0;
-    const playerProjection = projections.find((p: any) => p.player_id === playerId);
+    const playerProjection = projections.find((p: { player_id: string; projection_points?: number }) => p.player_id === playerId);
     return playerProjection?.projection_points || 0;
   };
 
@@ -407,7 +409,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                         <div className="text-sm text-muted-foreground">Total Projected</div>
                         <div className="text-2xl font-bold text-yellow-700">
                           {starters.reduce((total, { id }) => {
-                            const projection = projections.find((p: any) => p.player_id === id);
+                            const projection = projections.find((p: { player_id: string; projection_points?: number }) => p.player_id === id);
                             return total + (projection?.projection_points || 0);
                           }, 0).toFixed(1)}
                         </div>
@@ -438,7 +440,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                         starters.map(({ id, player }, index) => {
                           const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
                           const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
-                          const projection = projections?.find((p: any) => p.player_id === id);
+                          const projection = projections.find((p: { player_id: string; projection_points?: number }) => p.player_id === id);
                           const projectedPoints = projection?.projection_points || 0;
                           
                           return (
@@ -475,13 +477,27 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                               </TableCell>
                               <TableCell className="font-medium">{getPlayerTeam(player)}</TableCell>
                               <TableCell className="text-right">
-                                {projections ? (
-                                  <div className="text-right">
-                                    <div className="font-bold text-primary">{projectedPoints.toFixed(1)}</div>
-                                    <div className="text-xs text-muted-foreground">pts</div>
-                                  </div>
+                                {projectionsById ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="text-right cursor-help">
+                                        <div className="font-bold text-primary">{projectedPoints.toFixed(1)}</div>
+                                        <div className="text-xs text-muted-foreground">pts</div>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Source: FantasyPros • Week {week} • {scoring}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 ) : (
-                                  <div className="text-xs text-muted-foreground">--</div>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="text-xs text-muted-foreground cursor-help">--</div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Projection unavailable</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 )}
                               </TableCell>
                               <TableCell className="text-right">
@@ -518,7 +534,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                         <div className="text-sm text-muted-foreground">Total Projected</div>
                         <div className="text-2xl font-bold text-blue-700">
                           {bench.reduce((total, { id }) => {
-                            const projection = projections.find((p: any) => p.player_id === id);
+                            const projection = projections.find((p: { player_id: string; projection_points?: number }) => p.player_id === id);
                             return total + (projection?.projection_points || 0);
                           }, 0).toFixed(1)}
                         </div>
@@ -548,7 +564,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                       ) : (
                         bench.map(({ id, player }) => {
                           const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
-                          const projection = projections?.find((p: any) => p.player_id === id);
+                          const projection = projections.find((p: { player_id: string; projection_points?: number }) => p.player_id === id);
                           const projectedPoints = projection?.projection_points || 0;
                           
                           return (
@@ -582,13 +598,27 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                               </TableCell>
                               <TableCell className="font-medium">{getPlayerTeam(player)}</TableCell>
                               <TableCell className="text-right">
-                                {projections ? (
-                                  <div className="text-right">
-                                    <div className="font-bold text-primary">{projectedPoints.toFixed(1)}</div>
-                                    <div className="text-xs text-muted-foreground">pts</div>
-                                  </div>
+                                {projectionsById ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="text-right cursor-help">
+                                        <div className="font-bold text-primary">{projectedPoints.toFixed(1)}</div>
+                                        <div className="text-xs text-muted-foreground">pts</div>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Source: FantasyPros • Week {week} • {scoring}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 ) : (
-                                  <div className="text-xs text-muted-foreground">--</div>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="text-xs text-muted-foreground cursor-help">--</div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Projection unavailable</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 )}
                               </TableCell>
                               <TableCell className="text-right">
@@ -658,10 +688,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
               {/* Player Details */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-3">
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Player Info
-                  </h3>
+                  <h3 className="font-semibold text-lg">Player Info</h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Position:</span>
@@ -676,43 +703,20 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                       <span className="font-medium">{selectedPlayer.status || 'Unknown'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Injury Status:</span>
+                      <span className="text-muted-foreground">Injury:</span>
                       <span className="font-medium">{selectedPlayer.injury_status || 'Healthy'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Practice:</span>
-                      <span className="font-medium">{selectedPlayer.practice_participation || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4" />
-                    Projection
-                  </h3>
+                  <h3 className="font-semibold text-lg">Projection</h3>
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
                     <div className="text-3xl font-bold text-primary">
                       {getPlayerProjection(selectedPlayer.player_id).toFixed(1)}
                     </div>
                     <div className="text-sm text-muted-foreground">Week 1 Projected Points</div>
                   </div>
-                </div>
-              </div>
-
-              {/* Season Statistics */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-lg flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Season Statistics
-                </h3>
-                <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
-                  {Object.entries(getMockStatsForPosition(selectedPlayer.position) || {}).map(([key, value]) => (
-                    <div key={key} className="text-center">
-                      <div className="text-2xl font-bold text-primary">{typeof value === 'number' ? value.toFixed(1) : value}</div>
-                      <div className="text-xs text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</div>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>

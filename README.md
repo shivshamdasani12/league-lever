@@ -79,10 +79,10 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-trick
 This app supports importing Sleeper leagues via Supabase Edge Functions (no token required).
 
 Flow:
-- Go to /import/sleeper (also available via “Import from Sleeper” button on Dashboard/Sidebar)
-- Choose “By Username” (enter Sleeper username + season) or “By League ID”
+- Go to /import/sleeper (also available via "Import from Sleeper" button on Dashboard/Sidebar)
+- Choose "By Username" (enter Sleeper username + season) or "By League ID"
 - Select a league (username path) → Review → Import
-- On success you’ll be redirected to the League page populated with teams/rosters (and matchups if provided).
+- On success you'll be redirected to the League page populated with teams/rosters (and matchups if provided).
 
 Edge Functions used:
 - sleeper-lookup-user → resolve Sleeper user_id from username
@@ -98,4 +98,26 @@ Notes:
 Run locally:
 - npm i && npm run dev
 - Open the preview URL shown by Lovable; sign in, then go to /import/sleeper
+
+---
+
+## Projections pipeline (local)
+
+1) Install deps
+   ```bash
+   npm i
+   npm run playwright:install
+   ```
+
+2) Run scraper (prints sample JSON)
+   ```bash
+   npm run scrape:projections -- --season 2025 --week 1 --scoring PPR
+   ```
+
+3) To ingest to Supabase, export:
+   ```bash
+   export INGEST_URL="https://<your-project>.supabase.co/functions/v1/ingest-projections"
+   export INGEST_API_KEY="<your-ingest-key>"
+   ```
+   Then re-run the scraper with the same args.
 

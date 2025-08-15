@@ -1,0 +1,62 @@
+name: Scrape FantasyPros Projections
+
+on:
+  schedule:
+    # Run every Tuesday at 2 AM UTC (when projections are typically updated)
+    - cron: '0 2 * * 2'
+  workflow_dispatch:
+    inputs:
+      season:
+        description: 'NFL Season (e.g., 2025)'
+        required: true
+        default: '2025'
+      week:
+        description: 'NFL Week (e.g., 1)'
+        required: true
+        default: '1'
+      scoring:
+        description: 'Scoring format'
+        required: true
+        default: 'PPR'
+        type: choice
+        options:
+          - PPR
+          - Half
+          - STD
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npm run playwright:install
+
+      - name: Run projections scraper
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_API_KEY: ${{ secrets.INGEST_API_KEY }}
+        run: |
+          npm run scrape:projections -- \
+            --season ${{ github.event.inputs.season || '2025' }} \
+            --week ${{ github.event.inputs.week || '1' }} \
+            --scoring ${{ github.event.inputs.scoring || 'PPR' }}
+
+      - name: Handle empty results gracefully
+        if: failure()
+        run: |
+          echo "Scraper may have returned no data - this is normal for offseason weeks"
+          echo "Check the logs above for actual errors vs. empty results"
+        continue-on-error: true

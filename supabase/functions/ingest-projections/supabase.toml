@@ -1,0 +1,2 @@
+[functions."ingest-projections"]
+verify_jwt = false

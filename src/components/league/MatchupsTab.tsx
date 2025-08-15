@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Loader2, Users, Trophy, ArrowRight, X, Zap, TrendingUp, Activity, Shield, Award, Target, BarChart3, User } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { fetchWeeks, fetchLeagueMatchupsByWeek, LeagueWeekRow, fetchRosterDetails, fetchRosters, fetchApiProjections } from "@/lib/queries/league";
@@ -51,6 +52,8 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerRow | null>(null);
   const [isPlayerBioOpen, setIsPlayerBioOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("projections");
+  
+
 
   const weeksQ = useQuery({
     queryKey: ["league-weeks", leagueId],
@@ -109,7 +112,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
 
   // Fetch projections for the current week
   const { data: projections } = useQuery({
-    queryKey: ["api-projections", leagueId, week],
+    queryKey: ['api-projections', leagueId, week],
     enabled: !!leagueId && !!week,
     queryFn: () => fetchApiProjections(leagueId, week!),
   });
@@ -210,7 +213,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
     });
     
     return pairs;
-  }, [rows, projections, rosterADetails, rosterBDetails]);
+      }, [rows, projections, rosterADetails, rosterBDetails]);
 
   // Helper function to calculate projected total for a roster
   const calculateProjectedTotal = (starters: string[], projections: any) => {
@@ -621,9 +624,9 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                               >
                                 {rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`}
                               </button>
-                              <span className="text-xs text-muted-foreground ml-2">
-                                ({calculateProjectedTotal((rosterBDetails?.starters as string[]) || [], projections).toFixed(1)} pts)
-                              </span>
+                                                          <span className="text-xs text-muted-foreground ml-2">
+                              ({calculateProjectedTotal((rosterBDetails?.starters as string[]) || [], projections).toFixed(1)} pts)
+                            </span>
                             </CardTitle>
                           </div>
                         </CardHeader>
@@ -699,7 +702,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Status:</span>
-                      <span className="font-medium">{selectedPlayer.status || 'Unknown'}</span>
+                      <span className="font-medium">{selectedPlayer.status || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Injury:</span>
