@@ -114,7 +114,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
   const { data: projections = [] } = useQuery({
     queryKey: ['api-projections', leagueId, week, 2025],
     enabled: !!leagueId && !!week,
-    queryFn: () => fetchApiProjections(leagueId, week!, 2025),
+    queryFn: () => fetchApiProjections(leagueId, week!, 2025, 'PPR'),
   });
 
   // Fetch roster details when a matchup is selected
@@ -167,6 +167,30 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
     return () => clearInterval(interval);
   }, [leagueId, allPlayerIds.length, qc]);
 
+  // Debug logging for projections
+  useEffect(() => {
+    console.log("=== MATCHUPS TAB PROJECTIONS DEBUG ===");
+    console.log("League ID:", leagueId);
+    console.log("Week:", week);
+    console.log("Projections data:", projections);
+    console.log("Projections count:", projections?.length || 0);
+    console.log("Sample projection:", projections?.[0]);
+    console.log("================================");
+  }, [leagueId, week, projections]);
+
+  // Helper function to calculate projected total for a roster
+  const calculateProjectedTotal = (starters: string[], projectionsData: PlayerProjection[]) => {
+    if (!Array.isArray(starters) || !Array.isArray(projectionsData) || projectionsData.length === 0) {
+      return 0;
+    }
+    
+    return starters.reduce((total, playerId) => {
+      if (!playerId) return total;
+      const playerProjection = projectionsData.find((p: PlayerProjection) => p && p.player_id === playerId);
+      return total + (playerProjection?.projection_points || 0);
+    }, 0);
+  };
+
   // Memoize the roster name mapping to prevent recalculation on every render
   const rosterName = useMemo(() => {
     const map = new Map<number, string>();
@@ -191,56 +215,14 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
     const pairs = Object.values(groups).map(g => {
       const [a, b] = g.sort((x, y) => x.roster_id - y.roster_id);
       
-      // Calculate win probabilities based on projected points
-      let aWinProb = 50;
-      let bWinProb = 50;
-      
-      if (Array.isArray(projections) && projections.length > 0 && rosterADetails && rosterBDetails) {
-        const aProjectedTotal = calculateProjectedTotal((rosterADetails.starters as string[]) || [], projections);
-        const bProjectedTotal = calculateProjectedTotal((rosterBDetails.starters as string[]) || [], projections);
-        
-        if (aProjectedTotal > 0 && bProjectedTotal > 0) {
-          const totalPoints = aProjectedTotal + bProjectedTotal;
-          aWinProb = Math.round((aProjectedTotal / totalPoints) * 100);
-          bWinProb = 100 - aWinProb;
-        }
-      }
-      
       return { 
-        a: { ...a, winProb: aWinProb }, 
-        b: b ? { ...b, winProb: bWinProb } : null 
+        a: { ...a }, 
+        b: b ? { ...b } : null 
       };
     });
     
     return pairs;
-      }, [rows, projections, rosterADetails, rosterBDetails]);
-
-  // Helper function to calculate projected total for a roster
-  const calculateProjectedTotal = (starters: string[], projectionsData: PlayerProjection[]) => {
-    if (!Array.isArray(starters) || !Array.isArray(projectionsData) || projectionsData.length === 0) {
-      return 0;
-    }
-    
-    return starters.reduce((total, playerId) => {
-      if (!playerId) return total;
-      const playerProjection = projectionsData.find((p: PlayerProjection) => p && p.player_id === playerId);
-      return total + (playerProjection?.projection_points || 0);
-    }, 0);
-  };
-
-  // Win probability calculation
-  const calculateWinProbability = (teamATotal: number, teamBTotal: number) => {
-    if (teamATotal <= 0 || teamBTotal <= 0) return { aWinProb: 50, bWinProb: 50 };
-    
-    const sigma = 25; // Standard deviation for fantasy scoring variance
-    const diff = teamATotal - teamBTotal;
-    const aWinProb = 1 / (1 + Math.exp(-diff / sigma));
-    
-    return {
-      aWinProb: Math.round(aWinProb * 100),
-      bWinProb: Math.round((1 - aWinProb) * 100)
-    };
-  };
+  }, [rows, projections, rosterADetails, rosterBDetails]);
 
   // Memoize the weeks data to prevent unnecessary re-renders
   const weeks = useMemo(() => weeksQ.data || [], [weeksQ.data]);
@@ -449,8 +431,6 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
               // This would need to be fetched for each matchup to show projections
               const aProjectedTotal = 0; // calculateProjectedTotal((aRosterDetails?.starters as string[]) || [], projections);
               const bProjectedTotal = 0; // calculateProjectedTotal((bRosterDetails?.starters as string[]) || [], projections);
-              
-              const { aWinProb, bWinProb } = calculateWinProbability(aProjectedTotal, bProjectedTotal);
 
               return (
                 <Card 
@@ -463,13 +443,13 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                       {/* Team A */}
                       <div className="flex items-center gap-3 flex-1">
                         <div className="text-right">
-                          <div className="font-semibold text-lg">
+                          <div className="font-semibold text-lg text-white">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onRosterSelect?.(String(a.roster_id));
                               }}
-                              className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                              className="hover:text-primary hover:underline cursor-pointer transition-colors text-white"
                             >
                               {truncateText(rosterName.get(a.roster_id) || `Team ${a.roster_id}`, 15)}
                             </button>
@@ -477,7 +457,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                           <div className="text-2xl font-bold text-primary">
                             {a.points !== null ? Number(a.points).toFixed(1) : '--'}
                           </div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-sm text-white">
                             {aProjectedTotal > 0 ? `Proj: ${aProjectedTotal.toFixed(1)}` : 'Click to view projections'}
                           </div>
                         </div>
@@ -499,14 +479,14 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                           <Trophy className="h-6 w-6 text-yellow-500" />
                         )}
                         <div className="text-left">
-                          <div className="font-semibold text-lg">
+                          <div className="font-semibold text-lg text-white">
                             {b ? (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onRosterSelect?.(String(b.roster_id));
                                 }}
-                                className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                                className="hover:text-primary hover:underline cursor-pointer transition-colors text-white"
                               >
                                 {truncateText(rosterName.get(b.roster_id) || `Team ${b.roster_id}`, 15)}
                               </button>
@@ -518,7 +498,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                             {b?.points !== null ? Number(b.points).toFixed(1) : '--'}
                           </div>
                            {b && (
-                             <div className="text-sm text-muted-foreground">
+                             <div className="text-sm text-white">
                                {bProjectedTotal > 0 ? `Proj: ${bProjectedTotal.toFixed(1)}` : 'Click to view projections'}
                              </div>
                            )}
@@ -548,36 +528,40 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
               {/* Matchup Header */}
               <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                 <div className="text-center">
-                  <div className="font-semibold">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRosterSelect?.(String(selectedMatchup.a.roster_id));
-                      }}
-                      className="hover:text-primary hover:underline cursor-pointer transition-colors"
-                    >
-                      {rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`}
-                    </button>
+                  <div className="font-semibold text-white">
+                    {selectedMatchup.a ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRosterSelect?.(String(selectedMatchup.a.roster_id));
+                        }}
+                        className="hover:text-primary hover:underline cursor-pointer transition-colors text-white"
+                      >
+                        {rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`}
+                      </button>
+                    ) : (
+                      'BYE'
+                    )}
                   </div>
                   <div className="text-2xl font-bold text-primary">
                     {selectedMatchup.a.points !== null ? Number(selectedMatchup.a.points).toFixed(1) : '--'}
                   </div>
                   {projections && (
-                    <div className="text-sm text-muted-foreground">
-                      {calculateProjectedTotal((rosterADetails?.starters as string[]) || [], projections).toFixed(1)} proj • {selectedMatchup.a.winProb}% win
+                    <div className="text-sm text-white">
+                      {calculateProjectedTotal((rosterADetails?.starters as string[]) || [], projections).toFixed(1)} proj
                     </div>
                   )}
                 </div>
                 <div className="text-muted-foreground font-medium">VS</div>
                 <div className="text-center">
-                  <div className="font-semibold">
+                  <div className="font-semibold text-white">
                     {selectedMatchup.b ? (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           onRosterSelect?.(String(selectedMatchup.b.roster_id));
                         }}
-                        className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                        className="hover:text-primary hover:underline cursor-pointer transition-colors text-white"
                       >
                         {rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`}
                       </button>
@@ -589,8 +573,8 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                     {selectedMatchup.b?.points !== null ? Number(selectedMatchup.b.points).toFixed(1) : '--'}
                   </div>
                   {projections && selectedMatchup.b && (
-                    <div className="text-sm text-muted-foreground">
-                      {calculateProjectedTotal((rosterBDetails?.starters as string[]) || [], projections).toFixed(1)} proj • {selectedMatchup.b.winProb}% win
+                    <div className="text-sm text-white">
+                      {calculateProjectedTotal((rosterBDetails?.starters as string[]) || [], projections).toFixed(1)} proj
                     </div>
                   )}
                 </div>
@@ -612,7 +596,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                                 e.stopPropagation();
                                 onRosterSelect?.(String(selectedMatchup.a.roster_id));
                               }}
-                              className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                              className="hover:text-primary hover:underline cursor-pointer transition-colors text-black"
                             >
                               {rosterName.get(selectedMatchup.a.roster_id) || `Team ${selectedMatchup.a.roster_id}`}
                             </button>
@@ -644,7 +628,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                                   e.stopPropagation();
                                   onRosterSelect?.(String(selectedMatchup.b.roster_id));
                                 }}
-                                className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                                className="hover:text-primary hover:underline cursor-pointer transition-colors text-black"
                               >
                                 {rosterName.get(selectedMatchup.b.roster_id) || `Team ${selectedMatchup.b.roster_id}`}
                               </button>

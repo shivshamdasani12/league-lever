@@ -97,7 +97,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
   const { data: projections = [] } = useQuery({
     queryKey: ["api-projections", leagueId, 1, 2025],
     enabled: !!leagueId,
-    queryFn: () => fetchApiProjections(leagueId, 1, 2025),
+    queryFn: () => fetchApiProjections(leagueId, 1, 2025, 'PPR'),
   });
 
   // Update selected roster when prop changes
@@ -137,9 +137,12 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
       console.log("Player error:", playersQ.error);
       console.log("Player map keys:", Object.keys(playerMap));
       console.log("Sample player data:", Object.values(playerMap)[0]);
+      console.log("Projections data:", projections);
+      console.log("Projections count:", projections?.length || 0);
+      console.log("Sample projection:", projections?.[0]);
       console.log("=========================");
     }
-  }, [selectedRosterId, rosters, allPlayerIds, playersQ.data, playersQ.error, playerMap]);
+  }, [selectedRosterId, rosters, allPlayerIds, playersQ.data, playersQ.error, playerMap, projections]);
 
   // Get the selected roster data
   const selectedRoster = useMemo(() => {

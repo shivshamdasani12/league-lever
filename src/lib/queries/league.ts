@@ -125,63 +125,84 @@ export interface PlayerProjection {
 }
 
 export async function fetchApiProjections(leagueId: string, week: number, season: number = 2025, scoring: string = 'PPR') {
-  const { data, error } = await supabase.functions.invoke('api-projections', {
-    method: 'GET',
-    body: null,
-    headers: {
-      'Content-Type': 'application/json'
+  console.log('=== fetchApiProjections DEBUG ===');
+  console.log('League ID:', leagueId);
+  console.log('Week:', week);
+  console.log('Season:', season);
+  console.log('Scoring:', scoring);
+  
+  try {
+    // Get player IDs relevant to this league
+    const { data: playerIds } = await supabase
+      .from('league_player_ids_v')
+      .select('player_id')
+      .eq('league_id', leagueId);
+
+    if (!playerIds || playerIds.length === 0) {
+      console.log('No player IDs found for league');
+      return [];
     }
-  });
 
-  if (error) throw error;
-  
-  // Since we can't pass query params directly via the invoke method, we'll use the existing direct approach
-  // but with better error handling for the find() issue
-  const { data: playerIds } = await supabase
-    .from('league_player_ids_v')
-    .select('player_id')
-    .eq('league_id', leagueId);
+    const relevantPlayerIds = playerIds.map(p => p.player_id);
+    console.log('Relevant player IDs:', relevantPlayerIds.length);
 
-  if (!playerIds || playerIds.length === 0) return [];
+    // Query the projections table where your FantasyPros scraped data lives
+    const { data: projectionData, error: projError } = await supabase
+      .from('projections')
+      .select(`
+        player_id, 
+        points, 
+        raw, 
+        updated_at,
+        position,
+        source
+      `)
+      .eq('season', season)
+      .eq('week', week)
+      .eq('scoring', scoring)
+      .in('player_id', relevantPlayerIds)
+      .order('points', { ascending: false, nullsFirst: true });
+    
+    if (projError) {
+      console.error('Projections query error:', projError);
+      throw projError;
+    }
 
-  const relevantPlayerIds = playerIds.map(p => p.player_id);
+    console.log('Projections data from projections table:', projectionData);
+    console.log('Projections count:', projectionData?.length || 0);
+    console.log('Sample projection:', projectionData?.[0]);
 
-  const { data: projectionData, error: projError } = await supabase
-    .from('player_projections')
-    .select(`
-      player_id, 
-      projection_points, 
-      projection_data, 
-      updated_at
-    `)
-    .eq('season', season)
-    .eq('week', week)
-    .in('player_id', relevantPlayerIds)
-    .order('projection_points', { ascending: false, nullsFirst: true });
-  
-  if (projError) throw projError;
+    // Get player details separately
+    const { data: playerData } = await supabase
+      .from('players')
+      .select('player_id, full_name, position, team')
+      .in('player_id', relevantPlayerIds);
 
-  // Get player details separately to avoid join issues
-  const { data: playerData } = await supabase
-    .from('players')
-    .select('player_id, full_name, position, team')
-    .in('player_id', relevantPlayerIds);
+    const playerMap = new Map((playerData || []).map(p => [p.player_id, p]));
 
-  const playerMap = new Map((playerData || []).map(p => [p.player_id, p]));
+    // Transform to match PlayerProjection interface
+    const result = (projectionData || []).map(proj => {
+      const player = playerMap.get(proj.player_id);
+      return {
+        player_id: proj.player_id,
+        projection_points: proj.points || 0, // Use 'points' from projections table
+        updated_at: proj.updated_at,
+        full_name: player?.full_name || null,
+        team: player?.team || null,
+        player_position: player?.position || proj.position,
+        projection_data: proj.raw || null
+      } as PlayerProjection;
+    });
 
-  // Combine projections with player details
-  return (projectionData || []).map(proj => {
-    const player = playerMap.get(proj.player_id);
-    return {
-      player_id: proj.player_id,
-      projection_points: proj.projection_points,
-      updated_at: proj.updated_at,
-      full_name: player?.full_name || null,
-      team: player?.team || null,
-      player_position: player?.position || null,
-      projection_data: proj.projection_data
-    } as PlayerProjection;
-  });
+    console.log('Final result:', result);
+    console.log('=== END DEBUG ===');
+    
+    return result;
+    
+  } catch (error) {
+    console.error('Error in fetchApiProjections:', error);
+    throw error;
+  }
 }
 
 export async function fetchApiPlayers(search: string = '', leagueId?: string, limit: number = 50) {
