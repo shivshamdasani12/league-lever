@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -185,6 +185,66 @@ export type Database = {
         }
         Relationships: []
       }
+      matchup_lines: {
+        Row: {
+          away_roster_id: string
+          home_roster_id: string
+          home_wp: number
+          league_id: string
+          spread: number
+          total: number
+          updated_at: string | null
+          week: number
+        }
+        Insert: {
+          away_roster_id: string
+          home_roster_id: string
+          home_wp: number
+          league_id: string
+          spread: number
+          total: number
+          updated_at?: string | null
+          week: number
+        }
+        Update: {
+          away_roster_id?: string
+          home_roster_id?: string
+          home_wp?: number
+          league_id?: string
+          spread?: number
+          total?: number
+          updated_at?: string | null
+          week?: number
+        }
+        Relationships: []
+      }
+      player_map: {
+        Row: {
+          confidence: number | null
+          ext_player_key: string
+          manual: boolean | null
+          sleeper_player_id: string | null
+          source: string
+          updated_at: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          ext_player_key: string
+          manual?: boolean | null
+          sleeper_player_id?: string | null
+          source: string
+          updated_at?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          ext_player_key?: string
+          manual?: boolean | null
+          sleeper_player_id?: string | null
+          source?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       player_projections: {
         Row: {
           id: number
@@ -281,6 +341,90 @@ export type Database = {
           id?: string
           token_balance?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      projections: {
+        Row: {
+          created_at: string | null
+          id: number
+          player_id: string
+          points: number | null
+          position: string
+          raw: Json
+          scoring: string
+          season: number
+          source: string
+          updated_at: string | null
+          week: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          player_id: string
+          points?: number | null
+          position: string
+          raw: Json
+          scoring: string
+          season: number
+          source: string
+          updated_at?: string | null
+          week: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          player_id?: string
+          points?: number | null
+          position?: string
+          raw?: Json
+          scoring?: string
+          season?: number
+          source?: string
+          updated_at?: string | null
+          week?: number
+        }
+        Relationships: []
+      }
+      projections_raw: {
+        Row: {
+          collected_at: string | null
+          ext_player_key: string
+          id: number
+          player_name: string
+          position: string | null
+          projected_points: number | null
+          season: number
+          source: string
+          stats: Json | null
+          team: string | null
+          week: number
+        }
+        Insert: {
+          collected_at?: string | null
+          ext_player_key: string
+          id?: number
+          player_name: string
+          position?: string | null
+          projected_points?: number | null
+          season: number
+          source: string
+          stats?: Json | null
+          team?: string | null
+          week: number
+        }
+        Update: {
+          collected_at?: string | null
+          ext_player_key?: string
+          id?: number
+          player_name?: string
+          position?: string | null
+          projected_points?: number | null
+          season?: number
+          source?: string
+          stats?: Json | null
+          team?: string | null
+          week?: number
         }
         Relationships: []
       }
