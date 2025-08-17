@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Users, Trophy, User, MapPin, TrendingUp, Activity, Shield, Award, Target, Zap, BarChart3 } from "lucide-react";
-import { fetchRosters, LeagueRosterRow, fetchApiProjections } from "@/lib/queries/league";
+import { fetchRosters, LeagueRosterRow, fetchApiProjections, PlayerProjection } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
 
 interface Props { 
@@ -94,10 +94,10 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
   });
 
   // Fetch projections for the current week (assume week 1 for now)
-  const { data: projections } = useQuery({
-    queryKey: ["api-projections", leagueId, 1],
+  const { data: projections = [] } = useQuery({
+    queryKey: ["api-projections", leagueId, 1, 2025],
     enabled: !!leagueId,
-    queryFn: () => fetchApiProjections(leagueId, 1),
+    queryFn: () => fetchApiProjections(leagueId, 1, 2025),
   });
 
   // Update selected roster when prop changes
@@ -196,10 +196,16 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
   };
 
   // Helper function to get player projection
-  const getPlayerProjection = (playerId: string) => {
-    if (!projections) return 0;
-    const playerProjection = projections.find((p: { player_id: string; projection_points?: number }) => p.player_id === playerId);
+  const getPlayerProjection = (playerId: string): number => {
+    if (!projections || !Array.isArray(projections)) return 0;
+    const playerProjection = projections.find((p: PlayerProjection) => p.player_id === playerId);
     return playerProjection?.projection_points || 0;
+  };
+
+  // Helper function to get projection data for tooltip
+  const getProjectionData = (playerId: string) => {
+    if (!projections || !Array.isArray(projections)) return null;
+    return projections.find((p: PlayerProjection) => p.player_id === playerId);
   };
 
   if (isLoading) return (
@@ -312,14 +318,11 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                       <Trophy className="h-5 w-5 text-yellow-600" />
                       <CardTitle className="text-lg text-yellow-700">Starters</CardTitle>
                     </div>
-                    {projections && (
+                    {Array.isArray(projections) && projections.length > 0 && (
                       <div className="text-right">
                         <div className="text-sm text-muted-foreground">Total Projected</div>
                         <div className="text-2xl font-bold text-yellow-700">
-                          {starters.reduce((total, { id }) => {
-                            const projection = projections.find((p: { player_id: string; projection_points?: number }) => p.player_id === id);
-                            return total + (projection?.projection_points || 0);
-                          }, 0).toFixed(1)}
+                          {starters.reduce((total, { id }) => total + getPlayerProjection(id), 0).toFixed(1)}
                         </div>
                       </div>
                     )}
@@ -348,8 +351,8 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                         starters.map(({ id, player }, index) => {
                           const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
                           const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
-                          const projection = projections?.find((p: { player_id: string; projection_points?: number }) => p.player_id === id);
-                          const projectedPoints = projection?.projection_points || 0;
+                          const projectedPoints = getPlayerProjection(id);
+                          const projectionData = getProjectionData(id);
                           
                           return (
                             <TableRow key={String(id)} className="hover:bg-yellow-50/30">

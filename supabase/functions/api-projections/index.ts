@@ -3,6 +3,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 const corsHeaders = {
@@ -32,7 +33,8 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const league_id = url.searchParams.get('league_id');
     const week = parseInt(url.searchParams.get('week') || '1');
-    const season = parseInt(url.searchParams.get('season') || '2024');
+    const season = parseInt(url.searchParams.get('season') || '2025');
+    const scoring = url.searchParams.get('scoring') || 'PPR';
 
     if (!league_id) {
       return new Response(JSON.stringify({ error: "league_id required" }), { 
@@ -56,6 +58,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Create admin client for RPC call
+    const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
     // Get player IDs relevant to this league
     const { data: playerIds } = await userClient
       .from('league_player_ids_v')
@@ -68,7 +73,8 @@ Deno.serve(async (req) => {
         league_id,
         week,
         season,
-        updated_at: new Date().toISOString(),
+        scoring,
+        updated_max: null,
         count: 0
       }), { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -77,61 +83,46 @@ Deno.serve(async (req) => {
 
     const relevantPlayerIds = playerIds.map(p => p.player_id);
 
-    // Get projections for the specified week and season
-    const { data: projections, error } = await userClient
-      .from('player_projections')
-      .select('player_id, projection_points, projection_data, updated_at')
-      .eq('season', season)
-      .eq('week', week)
-      .in('player_id', relevantPlayerIds)
-      .order('projection_points', { ascending: false, nullsLast: true });
+    // Use RPC function to get projections with proper source preference
+    const { data: projections, error } = await adminClient
+      .rpc('get_league_projections', {
+        in_league_player_ids: relevantPlayerIds,
+        in_season: season,
+        in_week: week
+      });
 
     if (error) {
+      console.error('RPC error:', error);
       return new Response(JSON.stringify({ error: error.message }), { 
         status: 500, 
         headers: corsHeaders 
       });
     }
 
-    // Get player details
-    const { data: players } = await userClient
-      .from('players')
-      .select('player_id, full_name, position, team, current_week_projection')
-      .in('player_id', relevantPlayerIds);
-
-    const playerMap = new Map((players || []).map(p => [p.player_id, p]));
-
-    // Combine projections with player details
-    const enrichedProjections = (projections || []).map(proj => {
-      const player = playerMap.get(proj.player_id);
-      return {
-        ...proj,
-        player_name: player?.full_name,
-        position: player?.position,
-        team: player?.team,
-        current_week_projection: player?.current_week_projection
-      };
-    });
-
-    // Get last updated timestamp
-    const latestUpdate = enrichedProjections.length > 0 
-      ? enrichedProjections.reduce((latest, proj) => 
-          new Date(proj.updated_at) > new Date(latest) ? proj.updated_at : latest
-        , enrichedProjections[0].updated_at)
-      : new Date().toISOString();
+    // Calculate updated_max from the results
+    let updated_max: string | null = null;
+    if (projections && projections.length > 0) {
+      for (const p of projections) {
+        if (!updated_max || (p.updated_at && p.updated_at > updated_max)) {
+          updated_max = p.updated_at;
+        }
+      }
+    }
 
     return new Response(JSON.stringify({
-      projections: enrichedProjections,
+      projections: projections || [],
       league_id,
       week,
       season,
-      updated_at: latestUpdate,
-      count: enrichedProjections.length
+      scoring,
+      updated_max,
+      count: (projections || []).length
     }), { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (e: any) {
+    console.error('Edge function error:', e);
     return new Response(JSON.stringify({ error: e?.message ?? "Internal error" }), { 
       status: 500, 
       headers: corsHeaders 

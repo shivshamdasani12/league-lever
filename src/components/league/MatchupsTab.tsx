@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Loader2, Users, Trophy, ArrowRight, X, Zap, TrendingUp, Activity, Shield, Award, Target, BarChart3, User } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
-import { fetchWeeks, fetchLeagueMatchupsByWeek, LeagueWeekRow, fetchRosterDetails, fetchRosters, fetchApiProjections } from "@/lib/queries/league";
+import { fetchWeeks, fetchLeagueMatchupsByWeek, LeagueWeekRow, fetchRosterDetails, fetchRosters, fetchApiProjections, PlayerProjection } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
 import { useEnsureLeagueMatchups } from "@/hooks/useEnsureLeagueMatchups";
 
@@ -111,10 +111,10 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
   });
 
   // Fetch projections for the current week
-  const { data: projections } = useQuery({
-    queryKey: ['api-projections', leagueId, week],
+  const { data: projections = [] } = useQuery({
+    queryKey: ['api-projections', leagueId, week, 2025],
     enabled: !!leagueId && !!week,
-    queryFn: () => fetchApiProjections(leagueId, week!),
+    queryFn: () => fetchApiProjections(leagueId, week!, 2025),
   });
 
   // Fetch roster details when a matchup is selected
@@ -195,7 +195,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
       let aWinProb = 50;
       let bWinProb = 50;
       
-      if (projections && rosterADetails && rosterBDetails) {
+      if (Array.isArray(projections) && projections.length > 0 && rosterADetails && rosterBDetails) {
         const aProjectedTotal = calculateProjectedTotal((rosterADetails.starters as string[]) || [], projections);
         const bProjectedTotal = calculateProjectedTotal((rosterBDetails.starters as string[]) || [], projections);
         
@@ -216,13 +216,30 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
       }, [rows, projections, rosterADetails, rosterBDetails]);
 
   // Helper function to calculate projected total for a roster
-  const calculateProjectedTotal = (starters: string[], projections: any) => {
-    if (!projections || !Array.isArray(starters)) return 0;
+  const calculateProjectedTotal = (starters: string[], projectionsData: PlayerProjection[]) => {
+    if (!Array.isArray(starters) || !Array.isArray(projectionsData) || projectionsData.length === 0) {
+      return 0;
+    }
     
     return starters.reduce((total, playerId) => {
-      const playerProjection = projections.find((p: any) => p.player_id === playerId);
+      if (!playerId) return total;
+      const playerProjection = projectionsData.find((p: PlayerProjection) => p && p.player_id === playerId);
       return total + (playerProjection?.projection_points || 0);
     }, 0);
+  };
+
+  // Win probability calculation
+  const calculateWinProbability = (teamATotal: number, teamBTotal: number) => {
+    if (teamATotal <= 0 || teamBTotal <= 0) return { aWinProb: 50, bWinProb: 50 };
+    
+    const sigma = 25; // Standard deviation for fantasy scoring variance
+    const diff = teamATotal - teamBTotal;
+    const aWinProb = 1 / (1 + Math.exp(-diff / sigma));
+    
+    return {
+      aWinProb: Math.round(aWinProb * 100),
+      bWinProb: Math.round((1 - aWinProb) * 100)
+    };
   };
 
   // Memoize the weeks data to prevent unnecessary re-renders
@@ -306,9 +323,9 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
     return `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`;
   };
 
-  const getPlayerProjection = (playerId: string) => {
-    if (!projections) return 0;
-    const playerProjection = projections.find((p: any) => p.player_id === playerId);
+  const getPlayerProjection = (playerId: string): number => {
+    if (!projections || !Array.isArray(projections)) return 0;
+    const playerProjection = projections.find((p: PlayerProjection) => p.player_id === playerId);
     return playerProjection?.projection_points || 0;
   };
 
@@ -423,8 +440,17 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
             {matchupPairs.map((pair, index) => {
               const { a, b } = pair;
               const winner = getWinner(a, b);
-              const aProjectedTotal = calculateProjectedTotal((rosterADetails?.starters as string[]) || [], projections);
-              const bProjectedTotal = calculateProjectedTotal((rosterBDetails?.starters as string[]) || [], projections);
+              
+              // Calculate projected totals for this specific matchup
+              const aRosterDetails = rosterADetails && selectedMatchup?.a?.roster_id === a.roster_id ? rosterADetails : null;
+              const bRosterDetails = rosterBDetails && selectedMatchup?.b?.roster_id === b?.roster_id ? rosterBDetails : null;
+              
+              // For general display, we don't have roster details for all matchups yet
+              // This would need to be fetched for each matchup to show projections
+              const aProjectedTotal = 0; // calculateProjectedTotal((aRosterDetails?.starters as string[]) || [], projections);
+              const bProjectedTotal = 0; // calculateProjectedTotal((bRosterDetails?.starters as string[]) || [], projections);
+              
+              const { aWinProb, bWinProb } = calculateWinProbability(aProjectedTotal, bProjectedTotal);
 
               return (
                 <Card 
@@ -451,11 +477,9 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                           <div className="text-2xl font-bold text-primary">
                             {a.points !== null ? Number(a.points).toFixed(1) : '--'}
                           </div>
-                          {projections && (
-                            <div className="text-sm text-muted-foreground">
-                              Proj: {aProjectedTotal.toFixed(1)} • {a.winProb}% win
-                            </div>
-                          )}
+                          <div className="text-sm text-muted-foreground">
+                            {aProjectedTotal > 0 ? `Proj: ${aProjectedTotal.toFixed(1)}` : 'Click to view projections'}
+                          </div>
                         </div>
                         {winner === a.roster_id && (
                           <Trophy className="h-6 w-6 text-yellow-500" />
@@ -493,11 +517,11 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                           <div className="text-2xl font-bold text-primary">
                             {b?.points !== null ? Number(b.points).toFixed(1) : '--'}
                           </div>
-                          {projections && b && (
-                            <div className="text-sm text-muted-foreground">
-                              Proj: {bProjectedTotal.toFixed(1)} • {b.winProb}% win
-                            </div>
-                          )}
+                           {b && (
+                             <div className="text-sm text-muted-foreground">
+                               {bProjectedTotal > 0 ? `Proj: ${bProjectedTotal.toFixed(1)}` : 'Click to view projections'}
+                             </div>
+                           )}
                         </div>
                       </div>
                     </div>

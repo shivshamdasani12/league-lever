@@ -797,6 +797,22 @@ export type Database = {
         Args: { _invite_code: string }
         Returns: Json
       }
+      get_league_projections: {
+        Args: {
+          in_league_player_ids: string[]
+          in_season: number
+          in_week: number
+        }
+        Returns: {
+          full_name: string
+          player_id: string
+          player_position: string
+          projection_data: Json
+          projection_points: number
+          team: string
+          updated_at: string
+        }[]
+      }
       is_league_creator: {
         Args: { _league_id: string; _user_id: string }
         Returns: boolean
