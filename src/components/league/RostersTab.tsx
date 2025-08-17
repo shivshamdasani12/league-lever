@@ -82,102 +82,10 @@ function getInjuryDisplay(injuryStatus: string | null, practiceParticipation: st
   return null;
 }
 
-// Helper function to generate mock stats based on position
-function getMockStatsForPosition(position: string | null) {
-  if (!position) return null;
-  
-  const pos = position.toUpperCase();
-  
-  // Quarterback stats
-  if (pos === 'QB') {
-    return {
-      passing_yards: 0,
-      passing_touchdowns: 0,
-      passing_interceptions: 0,
-      passing_attempts: 0,
-      passing_completions: 0,
-      rushing_yards: 0,
-      rushing_touchdowns: 0,
-      fantasy_points: 0
-    };
-  }
-  
-  // Running back stats
-  if (pos === 'RB') {
-    return {
-      rushing_yards: 0,
-      rushing_touchdowns: 0,
-      rushing_attempts: 0,
-      receiving_yards: 0,
-      receiving_touchdowns: 0,
-      receiving_targets: 0,
-      receiving_receptions: 0,
-      fantasy_points: 0
-    };
-  }
-  
-  // Wide receiver stats
-  if (pos === 'WR') {
-    return {
-      receiving_yards: 0,
-      receiving_touchdowns: 0,
-      receiving_targets: 0,
-      receiving_receptions: 0,
-      rushing_yards: 0,
-      rushing_touchdowns: 0,
-      fantasy_points: 0
-    };
-  }
-  
-  // Tight end stats
-  if (pos === 'TE') {
-    return {
-      receiving_yards: 0,
-      receiving_touchdowns: 0,
-      receiving_targets: 0,
-      receiving_receptions: 0,
-      fantasy_points: 0
-    };
-  }
-  
-  // Kicker stats
-  if (pos === 'K') {
-    return {
-      field_goals_made: 0,
-      field_goals_attempted: 0,
-      extra_points_made: 0,
-      extra_points_attempted: 0,
-      fantasy_points: 0
-    };
-  }
-  
-  // Defense stats
-  if (pos === 'DEF') {
-    return {
-      tackles: 0,
-      sacks: 0,
-      interceptions: 0,
-      passes_defended: 0,
-      fumbles_forced: 0,
-      fumbles_recovered: 0,
-      fantasy_points: 0
-    };
-  }
-  
-  // Default stats for other positions
-  return {
-    fantasy_points: 0,
-    total_yards: 0,
-    touchdowns: 0
-  };
-}
-
 export default function RostersTab({ leagueId, selectedRosterId: propSelectedRosterId }: Props) {
   const [selectedRosterId, setSelectedRosterId] = useState<string | null>(propSelectedRosterId || null);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerRow | null>(null);
   const [isPlayerBioOpen, setIsPlayerBioOpen] = useState(false);
-  
-
 
   const { data: rosters, isLoading, isError, error } = useQuery({
     queryKey: ["league-rosters", leagueId],
@@ -440,7 +348,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                         starters.map(({ id, player }, index) => {
                           const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
                           const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
-                          const projection = projections.find((p: { player_id: string; projection_points?: number }) => p.player_id === id);
+                          const projection = projections?.find((p: { player_id: string; projection_points?: number }) => p.player_id === id);
                           const projectedPoints = projection?.projection_points || 0;
                           
                           return (
@@ -477,7 +385,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                               </TableCell>
                               <TableCell className="font-medium">{getPlayerTeam(player)}</TableCell>
                               <TableCell className="text-right">
-                                {projectionsById ? (
+                                {projections && projections.length > 0 ? (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <div className="text-right cursor-help">
@@ -486,7 +394,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                                       </div>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>Source: FantasyPros • Week {week} • {scoring}</p>
+                                      <p>Source: FantasyPros • Week 1 • PPR</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 ) : (
@@ -564,7 +472,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                       ) : (
                         bench.map(({ id, player }) => {
                           const injuryDisplay = getInjuryDisplay(player?.injury_status, player?.practice_participation);
-                          const projection = projections.find((p: { player_id: string; projection_points?: number }) => p.player_id === id);
+                          const projection = projections?.find((p: { player_id: string; projection_points?: number }) => p.player_id === id);
                           const projectedPoints = projection?.projection_points || 0;
                           
                           return (
@@ -598,7 +506,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                               </TableCell>
                               <TableCell className="font-medium">{getPlayerTeam(player)}</TableCell>
                               <TableCell className="text-right">
-                                {projectionsById ? (
+                                {projections && projections.length > 0 ? (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <div className="text-right cursor-help">
@@ -607,7 +515,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                                       </div>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>Source: FantasyPros • Week {week} • {scoring}</p>
+                                      <p>Source: FantasyPros • Week 1 • PPR</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 ) : (
@@ -644,85 +552,85 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
             </div>
           </div>
         )}
+
+        {/* Player Bio Dialog */}
+        <Dialog open={isPlayerBioOpen} onOpenChange={setIsPlayerBioOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Player Profile
+              </DialogTitle>
+            </DialogHeader>
+
+            {selectedPlayer && (
+              <div className="space-y-6">
+                {/* Player Header */}
+                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage 
+                      src={getPlayerHeadshotUrl(selectedPlayer.player_id, selectedPlayer.full_name)} 
+                      alt={`${selectedPlayer.full_name || 'Player'} headshot`} 
+                    />
+                    <AvatarFallback className="text-2xl bg-primary/10 text-primary font-bold">
+                      {selectedPlayer.full_name ? selectedPlayer.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold">{selectedPlayer.full_name || `Player ${selectedPlayer.player_id}`}</h2>
+                    <div className="flex items-center gap-4 mt-2">
+                      <Badge variant="outline" className={getPositionColor(selectedPlayer.position)}>
+                        {selectedPlayer.position || 'N/A'}
+                      </Badge>
+                      <Badge variant="outline" className="border-blue-300 text-blue-700">
+                        {selectedPlayer.team || 'N/A'}
+                      </Badge>
+                      <Badge variant="outline" className={getStatusColor(selectedPlayer.status)}>
+                        {selectedPlayer.status || 'Unknown'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Player Details */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">Player Info</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Position:</span>
+                        <span className="font-medium">{selectedPlayer.position || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Team:</span>
+                        <span className="font-medium">{selectedPlayer.team || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Status:</span>
+                        <span className="font-medium">{selectedPlayer.status || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Injury:</span>
+                        <span className="font-medium">{selectedPlayer.injury_status || 'Healthy'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">Projection</h3>
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <div className="text-3xl font-bold text-primary">
+                        {getPlayerProjection(selectedPlayer.player_id).toFixed(1)}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Week 1 Projected Points</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {/* Player Bio Dialog */}
-      <Dialog open={isPlayerBioOpen} onOpenChange={setIsPlayerBioOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Player Profile
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedPlayer && (
-            <div className="space-y-6">
-              {/* Player Header */}
-              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage 
-                    src={getPlayerHeadshotUrl(selectedPlayer.player_id, selectedPlayer.full_name)} 
-                    alt={`${selectedPlayer.full_name || 'Player'} headshot`} 
-                  />
-                  <AvatarFallback className="text-2xl bg-primary/10 text-primary font-bold">
-                    {selectedPlayer.full_name ? selectedPlayer.full_name.split(' ').map(n => n[0]).join('').slice(0,2) : '??'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold">{selectedPlayer.full_name || `Player ${selectedPlayer.player_id}`}</h2>
-                  <div className="flex items-center gap-4 mt-2">
-                    <Badge variant="outline" className={getPositionColor(selectedPlayer.position)}>
-                      {selectedPlayer.position || 'N/A'}
-                    </Badge>
-                    <Badge variant="outline" className="border-blue-300 text-blue-700">
-                      {selectedPlayer.team || 'N/A'}
-                    </Badge>
-                    <Badge variant="outline" className={getStatusColor(selectedPlayer.status)}>
-                      {selectedPlayer.status || 'Unknown'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-
-              {/* Player Details */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg">Player Info</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Position:</span>
-                      <span className="font-medium">{selectedPlayer.position || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Team:</span>
-                      <span className="font-medium">{selectedPlayer.team || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Status:</span>
-                      <span className="font-medium">{selectedPlayer.status || 'Unknown'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Injury:</span>
-                      <span className="font-medium">{selectedPlayer.injury_status || 'Healthy'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg">Projection</h3>
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-3xl font-bold text-primary">
-                      {getPlayerProjection(selectedPlayer.player_id).toFixed(1)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Week 1 Projected Points</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </TooltipProvider>
   );
 }
