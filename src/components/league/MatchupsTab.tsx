@@ -435,7 +435,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
               return (
                 <Card 
                   key={index} 
-                  className="cursor-pointer hover:shadow-md transition-shadow" 
+                  className="cursor-pointer hover:shadow-lg hover:bg-muted/20 transition-all duration-200 ease-in-out border-2 hover:border-primary/30" 
                   onClick={() => handleMatchupClick(pair)}
                 >
                   <CardContent className="p-6">
@@ -457,9 +457,6 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                           <div className="text-2xl font-bold text-primary">
                             {a.points !== null ? Number(a.points).toFixed(1) : '--'}
                           </div>
-                          <div className="text-sm text-white">
-                            {aProjectedTotal > 0 ? `Proj: ${aProjectedTotal.toFixed(1)}` : 'Click to view projections'}
-                          </div>
                         </div>
                         {winner === a.roster_id && (
                           <Trophy className="h-6 w-6 text-yellow-500" />
@@ -467,7 +464,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                       </div>
 
                       {/* VS indicator */}
-                      <div className="px-4 flex-shrink-0">
+                      <div className="px-8 flex-shrink-0">
                         <div className="text-muted-foreground text-sm font-medium bg-muted rounded-full px-3 py-1 text-center">
                           VS
                         </div>
@@ -497,11 +494,6 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                           <div className="text-2xl font-bold text-primary">
                             {b?.points !== null ? Number(b.points).toFixed(1) : '--'}
                           </div>
-                           {b && (
-                             <div className="text-sm text-white">
-                               {bProjectedTotal > 0 ? `Proj: ${bProjectedTotal.toFixed(1)}` : 'Click to view projections'}
-                             </div>
-                           )}
                         </div>
                       </div>
                     </div>
