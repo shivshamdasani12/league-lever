@@ -148,15 +148,37 @@ function matchPlayer(
   
   // Special handling for defenses - lower threshold and team-based matching
   const isDefense = pos === 'dst';
-  const threshold = isDefense ? 0.3 : 0.6; // Lower threshold for defenses
+  const threshold = isDefense ? 0.2 : 0.6; // Even lower threshold for defenses
   
   for (const c of candidates) {
     const score = compareTwoStrings(target, normalizeName(c.full_name ?? ""));
-    const teamBoost = teamHint && c.team && teamHint === c.team ? 0.05 : 0;
+    let teamBoost = 0;
+    
+    // Enhanced team matching for defenses
+    if (isDefense && teamHint && c.team) {
+      if (teamHint === c.team) {
+        teamBoost = 0.3; // Strong team match
+      } else if (teamHint.includes(c.team) || c.team.includes(teamHint)) {
+        teamBoost = 0.15; // Partial team match
+      }
+    } else if (teamHint && c.team && teamHint === c.team) {
+      teamBoost = 0.05; // Regular team boost for non-defenses
+    }
+    
     const total = score + teamBoost;
     if (total > bestScore) {
       best = c;
       bestScore = total;
+    }
+  }
+  
+  // For defenses, also try to find by team abbreviation if no good match found
+  if (isDefense && !best && teamHint) {
+    console.log(`Trying to find defense by team abbreviation: ${teamHint}`);
+    const teamMatch = candidates.find(c => c.team === teamHint);
+    if (teamMatch) {
+      console.log(`Found defense by team: ${teamMatch.full_name} (${teamMatch.team})`);
+      return teamMatch;
     }
   }
   
@@ -182,26 +204,26 @@ async function scrapePosition(browser: Browser, pos: FPPos) {
     );
     
     const bodyRows = Array.from(table.querySelectorAll("tbody tr"));
-    const out = [];
-    
-    for (const tr of bodyRows) {
-      const tds = Array.from(tr.querySelectorAll("td"));
-      const row = {};
+          const out: any[] = [];
       
-      tds.forEach((td, i) => {
-        const key = headers[i] || `col_${i}`;
-        row[key] = (td.textContent || "").trim();
-      });
-      
-      // Extract team hint from player cell
-      if (tds[0]) {
-        const playerText = (tds[0].textContent || "").trim();
-        const teamMatch = playerText.match(/\(([^)]+)\)/);
-        if (teamMatch) row._team_hint = teamMatch[1];
+      for (const tr of bodyRows) {
+        const tds = Array.from(tr.querySelectorAll("td"));
+        const row: any = {};
+        
+        tds.forEach((td, i) => {
+          const key = headers[i] || `col_${i}`;
+          row[key] = (td.textContent || "").trim();
+        });
+        
+        // Extract team hint from player cell
+        if (tds[0]) {
+          const playerText = (tds[0].textContent || "").trim();
+          const teamMatch = playerText.match(/\(([^)]+)\)/);
+          if (teamMatch) row._team_hint = teamMatch[1];
+        }
+        
+        out.push(row);
       }
-      
-      out.push(row);
-    }
     
     return out;
   });
@@ -289,34 +311,6 @@ async function main() {
         console.log(`Match result for ${name} (${pos}):`, matched ? `Matched to ${matched.player_id}` : 'No match');
         
         if (!matched) {
-          // For defenses, if we have a team hint, create a synthetic projection
-          if (pos === 'dst' && teamHint) {
-            console.log(`Creating synthetic defense for ${teamHint}`);
-            const points = parsePoints(r);
-            console.log(`Defense points: ${points}`);
-            
-            const out: OutRow = {
-              source: "fantasypros",
-              season: SEASON,
-              week: WEEK,
-              scoring: SCORING,
-              player_id: teamHint,
-              position: 'DST',
-              points: points,
-              raw: r,
-            };
-            
-            try {
-              // validate shape
-              OutRow.parse(out);
-              all.push(out);
-              console.log(`Successfully added defense: ${teamHint}`);
-            } catch (error) {
-              console.error(`Failed to validate defense ${teamHint}:`, error);
-            }
-            continue;
-          }
-          
           console.log(`No match found for ${name} (${pos})`);
           continue;
         }
