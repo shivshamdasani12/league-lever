@@ -10,7 +10,8 @@
         "lint": "eslint .",
         "preview": "vite preview",
         "scrape:projections": "tsx scripts/scrape-fantasypros.ts",
-        "playwright:install": "npx playwright install --with-deps"
+        "playwright:install": "npx playwright install --with-deps",
+        "inspect:defenses": "tsx scripts/inspect-defense-players.ts"
     },
     "dependencies": {
         "@hookform/resolvers": "^3.10.0",

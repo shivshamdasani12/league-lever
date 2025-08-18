@@ -46,6 +46,7 @@
 
 // Deno / Supabase Edge Function
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, INGEST_API_KEY
+// Updated: 2025-01-15 - Fixed defense projections matching logic
 import { serve } from "https://deno.land/std/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 

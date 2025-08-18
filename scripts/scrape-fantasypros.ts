@@ -125,13 +125,35 @@ async function getSleeperIndex() {
   const res = await fetch(SLEEPER_PLAYERS_URL);
   const all = (await res.json()) as Record<string, any>;
   const byPos: Record<string, SleeperPlayer[]> = {};
+  
   for (const [id, p] of Object.entries<any>(all)) {
-    if (!p?.full_name || !p?.position) continue;
+    if (!p?.position) continue;
+    
+    // For defenses, we need to handle the case where full_name might be null
+    if (p.position === 'DEF') {
+      if (!p?.team) continue; // Must have a team
+      const sp: SleeperPlayer = { 
+        ...p, 
+        player_id: id,
+        full_name: p.full_name || `Team ${p.team}` // Provide fallback name
+      };
+      if (!byPos['DEF']) byPos['DEF'] = [];
+      byPos['DEF'].push(sp);
+      continue;
+    }
+    
+    // For other positions, require full_name
+    if (!p?.full_name) continue;
     const sp: SleeperPlayer = { ...p, player_id: id };
     const pos = String(p.position).toUpperCase();
     if (!byPos[pos]) byPos[pos] = [];
     byPos[pos].push(sp);
   }
+  
+  console.log(`Sleeper index created:`, Object.fromEntries(
+    Object.entries(byPos).map(([pos, players]) => [pos, players.length])
+  ));
+  
   return byPos;
 }
 
@@ -307,12 +329,38 @@ async function main() {
           }
         }
 
-        const matched = matchPlayer(name, r._pos as FPPos, teamHint, sleeperIndex);
+        let matched: SleeperPlayer | null = null;
+        
+        // Special handling for defenses - match by team abbreviation instead of name
+        if (pos === 'dst') {
+          if (teamHint) {
+            // For defenses, we'll use the team abbreviation as the player_id
+            // This matches how Sleeper stores defense players (team abbreviation as ID)
+            matched = {
+              player_id: teamHint,
+              full_name: `${teamHint} Defense`,
+              position: 'DEF',
+              team: teamHint
+            } as SleeperPlayer;
+            console.log(`Defense created for team: ${teamHint} -> ${matched.player_id}`);
+          } else {
+            console.log(`No team hint for defense: ${name}`);
+          }
+        } else {
+          // Regular position matching
+          matched = matchPlayer(name, r._pos as FPPos, teamHint, sleeperIndex);
+        }
+        
         console.log(`Match result for ${name} (${pos}):`, matched ? `Matched to ${matched.player_id}` : 'No match');
         
         if (!matched) {
           console.log(`No match found for ${name} (${pos})`);
           continue;
+        }
+        
+        // For defenses, ensure we create the projection properly
+        if (pos === 'dst' && matched) {
+          console.log(`Creating defense projection for ${matched.team} (${matched.player_id})`);
         }
 
         const out: OutRow = {
@@ -325,32 +373,47 @@ async function main() {
           points: parsePoints(r),
           raw: r,
         };
+        
+        // Debug logging for defenses
+        if (pos === 'dst') {
+          console.log(`Defense projection object:`, JSON.stringify(out, null, 2));
+        }
+        
         // validate shape
-        OutRow.parse(out);
-        all.push(out);
+        try {
+          OutRow.parse(out);
+          all.push(out);
+          if (pos === 'dst') {
+            console.log(`Defense projection validated and added: ${matched.team}`);
+          }
+        } catch (error) {
+          console.error(`Validation failed for ${pos} projection:`, error);
+          if (pos === 'dst') {
+            console.error(`Defense validation error for ${matched.team}:`, error);
+          }
+        }
       }
     }
 
     const payload = { ok: all.length > 0, count: all.length, data: all };
     // print summary
     console.log(`Final array size: ${all.length}`);
-    console.log(`Defenses in array: ${all.filter(item => item.position === 'DST').length}`);
+    console.log(`Defenses in array: ${all.filter(item => item.position === 'DEF' || item.position === 'DST').length}`);
     console.log(JSON.stringify({ ok: payload.ok, count: payload.count, sample: all.slice(0, 5) }, null, 2));
 
     // optional POST to Supabase if configured
     const INGEST_URL = process.env.INGEST_URL;
     const INGEST_API_KEY = process.env.INGEST_API_KEY;
 
-    if (payload.ok && INGEST_URL && INGEST_API_KEY) {
-      const res = await fetch(INGEST_URL, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "Authorization": `Bearer ${INGEST_API_KEY}`,
-          "apikey": INGEST_API_KEY,
-        },
-        body: JSON.stringify({ data: all }),
-      });
+            if (payload.ok && INGEST_URL && INGEST_API_KEY) {
+          const res = await fetch(INGEST_URL, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "authorization": `Bearer ${INGEST_API_KEY}`,
+            },
+            body: JSON.stringify({ data: all }),
+          });
       if (!res.ok) {
         const text = await res.text();
         console.error("Ingest failed:", res.status, text);
