@@ -56,14 +56,17 @@ function parseArgs(list: string[]) {
   }
   return out;
 }
+
 function toInt(s: string) {
   const n = Number(s);
   if (!Number.isFinite(n)) throw new Error(`Expected number, got ${s}`);
   return n | 0;
 }
+
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
+
 function normalizeName(n: string) {
   return n
     .toLowerCase()
@@ -72,6 +75,43 @@ function normalizeName(n: string) {
     .replace(/-/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function getTeamAbbreviation(fullTeamName: string): string {
+  const teamMap: Record<string, string> = {
+    'PITTSBURGH': 'PIT',
+    'DENVER': 'DEN',
+    'WASHINGTON': 'WAS',
+    'ARIZONA': 'ARI',
+    'CINCINNATI': 'CIN',
+    'NEWENGLAND': 'NE',
+    'PHILADELPHIA': 'PHI',
+    'MINNESOTA': 'MIN',
+    'SANFRANCISCO': 'SF',
+    'CHICAGO': 'CHI',
+    'LOSANGELES': 'LAR', // Default to Rams, will handle Chargers separately
+    'HOUSTON': 'HOU',
+    'MIAMI': 'MIA',
+    'KANSASCITY': 'KC',
+    'NEWYORK': 'NYG', // Default to Giants, will handle Jets separately
+    'TAMPABAY': 'TB',
+    'ATLANTA': 'ATL',
+    'SEATTLE': 'SEA',
+    'CLEVELAND': 'CLE',
+    'JACKSONVILLE': 'JAX',
+    'DALLAS': 'DAL',
+    'GREENBAY': 'GB',
+    'BUFFALO': 'BUF',
+    'DETROIT': 'DET',
+    'INDIANAPOLIS': 'IND',
+    'LASVEGAS': 'LV',
+    'BALTIMORE': 'BAL',
+    'CAROLINA': 'CAR',
+    'NEWORLEANS': 'NO',
+    'TENNESSEE': 'TEN'
+  };
+  
+  return teamMap[fullTeamName] || fullTeamName;
 }
 // ---------- Sleeper index ----------
 type SleeperPlayer = {
@@ -105,6 +145,11 @@ function matchPlayer(
   const target = normalizeName(fpName);
   let best: SleeperPlayer | null = null;
   let bestScore = 0;
+  
+  // Special handling for defenses - lower threshold and team-based matching
+  const isDefense = pos === 'dst';
+  const threshold = isDefense ? 0.3 : 0.6; // Lower threshold for defenses
+  
   for (const c of candidates) {
     const score = compareTwoStrings(target, normalizeName(c.full_name ?? ""));
     const teamBoost = teamHint && c.team && teamHint === c.team ? 0.05 : 0;
@@ -114,7 +159,8 @@ function matchPlayer(
       bestScore = total;
     }
   }
-  return bestScore >= 0.6 ? best : null; // threshold
+  
+  return bestScore >= threshold ? best : null;
 }
 
 // ---------- scraping ----------
@@ -197,17 +243,83 @@ async function main() {
 
     const all: OutRow[] = [];
     for (const pos of POSITIONS) {
+      console.log(`Scraping position: ${pos}`);
       const rows = await limit(() => scrapePosition(browser, pos));
+      console.log(`Found ${rows.length} rows for ${pos}`);
       await sleep(600); // small delay between positions
 
       for (const r of rows as any[]) {
         const name = parsePlayerName(r);
         if (!name) continue;
-        const teamHint =
-          (r["_team_hint"] ?? "").toString().toUpperCase().replace(/[^\w]/g, "") || undefined;
+        
+        // Special handling for defenses - extract team from name
+        let teamHint = (r["_team_hint"] ?? "").toString().toUpperCase().replace(/[^\w]/g, "") || undefined;
+        
+        if (pos === 'dst' && !teamHint) {
+          // For defenses, try to extract team from the name
+          console.log(`Processing defense: ${name}`);
+          
+          // Handle special cases first
+          if (name.includes('Los Angeles Chargers')) {
+            teamHint = 'LAC';
+          } else if (name.includes('Los Angeles Rams')) {
+            teamHint = 'LAR';
+          } else if (name.includes('New York Jets')) {
+            teamHint = 'NYJ';
+          } else if (name.includes('New York Giants')) {
+            teamHint = 'NYG';
+          } else {
+            // Use regex for other teams
+            const teamMatch = name.match(/(\w+(?:\s+\w+)*?)\s+(?:Steelers|Broncos|Commanders|Cardinals|Bengals|Patriots|Eagles|Vikings|49ers|Bears|Rams|Texans|Dolphins|Chiefs|Giants|Buccaneers|Falcons|Seahawks|Browns|Jaguars|Cowboys|Packers|Bills|Lions|Colts|Raiders|Chargers|Ravens|Jets|Panthers|Saints|Titans)$/i);
+            if (teamMatch) {
+              const fullTeamName = teamMatch[1].toUpperCase().replace(/[^\w]/g, "");
+              teamHint = getTeamAbbreviation(fullTeamName);
+              console.log(`Extracted team hint: ${fullTeamName} -> ${teamHint}`);
+            } else {
+              console.log(`Could not extract team from: ${name}`);
+            }
+          }
+          
+          if (teamHint) {
+            console.log(`Final team hint: ${teamHint}`);
+          }
+        }
 
         const matched = matchPlayer(name, r._pos as FPPos, teamHint, sleeperIndex);
-        if (!matched) continue;
+        console.log(`Match result for ${name} (${pos}):`, matched ? `Matched to ${matched.player_id}` : 'No match');
+        
+        if (!matched) {
+          // For defenses, if we have a team hint, create a synthetic projection
+          if (pos === 'dst' && teamHint) {
+            console.log(`Creating synthetic defense for ${teamHint}`);
+            const points = parsePoints(r);
+            console.log(`Defense points: ${points}`);
+            
+            const out: OutRow = {
+              source: "fantasypros",
+              season: SEASON,
+              week: WEEK,
+              scoring: SCORING,
+              player_id: teamHint,
+              position: 'DST',
+              points: points,
+              raw: r,
+            };
+            
+            try {
+              // validate shape
+              OutRow.parse(out);
+              all.push(out);
+              console.log(`Successfully added defense: ${teamHint}`);
+            } catch (error) {
+              console.error(`Failed to validate defense ${teamHint}:`, error);
+            }
+            continue;
+          }
+          
+          console.log(`No match found for ${name} (${pos})`);
+          continue;
+        }
 
         const out: OutRow = {
           source: "fantasypros",
@@ -227,6 +339,8 @@ async function main() {
 
     const payload = { ok: all.length > 0, count: all.length, data: all };
     // print summary
+    console.log(`Final array size: ${all.length}`);
+    console.log(`Defenses in array: ${all.filter(item => item.position === 'DST').length}`);
     console.log(JSON.stringify({ ok: payload.ok, count: payload.count, sample: all.slice(0, 5) }, null, 2));
 
     // optional POST to Supabase if configured
