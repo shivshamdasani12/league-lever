@@ -25,7 +25,7 @@ export function AppSidebar() {
   const { signOut } = useAuth();
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" variant="inset">
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
