@@ -379,9 +379,7 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
                                   >
                                     <span className="font-semibold">{getPlayerDisplayName(String(id), player)}</span>
                                   </button>
-                                  <span className="text-xs text-muted-foreground">
-                                    Slot: {position}
-                                  </span>
+
                                 </div>
                               </TableCell>
                               <TableCell>

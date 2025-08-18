@@ -441,7 +441,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       {/* Team A */}
-                      <div className="flex items-center gap-3 flex-1 justify-end">
+                      <div className="flex items-center gap-3 flex-1 justify-end pr-8">
                         <div className="text-center">
                           <div className="font-semibold text-lg text-white">
                             <button
@@ -464,14 +464,14 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                       </div>
 
                       {/* VS indicator */}
-                      <div className="px-12 flex-shrink-0">
+                      <div className="px-4 flex-shrink-0">
                         <div className="text-muted-foreground text-sm font-medium bg-muted rounded-full px-3 py-1 text-center">
                           VS
                         </div>
                       </div>
 
                       {/* Team B */}
-                      <div className="flex items-center gap-3 flex-1 justify-start">
+                      <div className="flex items-center gap-3 flex-1 justify-start pl-8">
                         {winner === (b?.roster_id) && (
                           <Trophy className="h-6 w-6 text-yellow-500" />
                         )}
