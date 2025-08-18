@@ -47,10 +47,14 @@ export default function SportsbooksTab({ leagueId }: Props) {
     }, 0);
   };
 
-  // Helper function to get roster name
-  const getRosterName = (rosterId: number) => {
+  // Helper function to get roster name and username
+  const getRosterInfo = (rosterId: number) => {
     const roster = rosters.find(r => r.roster_id === rosterId);
-    return roster?.display_name || `Team ${rosterId}`;
+    return {
+      displayName: roster?.display_name || `Team ${rosterId}`,
+      ownerName: roster?.owner_name || roster?.owner_username || `User ${rosterId}`,
+      ownerUsername: roster?.owner_username || roster?.owner_name || `user${rosterId}`
+    };
   };
 
   // Helper function to get player display name
@@ -113,13 +117,19 @@ export default function SportsbooksTab({ leagueId }: Props) {
       // Calculate spread (positive means team A is favored, negative means team B is favored)
       const spread = aProjectedTotal - bProjectedTotal;
       
+      // Get team info for display
+      const teamAInfo = getRosterInfo(pair.a.roster_id);
+      const teamBInfo = pair.b ? getRosterInfo(pair.b.roster_id) : null;
+      
       return {
         ...pair,
         aProjectedTotal,
         bProjectedTotal,
         spread,
         isTeamAFavored: spread > 0,
-        spreadDisplay: Math.abs(spread).toFixed(1)
+        spreadDisplay: Math.abs(spread).toFixed(1),
+        teamAInfo,
+        teamBInfo
       };
     });
   }, [matchupPairs, rosters, projections]);
@@ -160,19 +170,19 @@ export default function SportsbooksTab({ leagueId }: Props) {
             
             <CardContent className="p-6">
               <div className="grid grid-cols-3 gap-6 items-center">
-                {/* Team A */}
-                <div className="text-center space-y-3">
-                  <div className="flex flex-col items-center gap-2">
-                    <Avatar className="h-16 w-16 border-2 border-primary/20">
-                      <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
-                        {getRosterName(matchup.a.roster_id).split(' ').map(n => n[0]).join('').slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-bold text-lg">{getRosterName(matchup.a.roster_id)}</h3>
-                      <p className="text-sm text-muted-foreground">Team A</p>
-                    </div>
-                  </div>
+                                 {/* Team A */}
+                 <div className="text-center space-y-3">
+                   <div className="flex flex-col items-center gap-2">
+                     <Avatar className="h-16 w-16 border-2 border-primary/20">
+                       <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
+                         {getRosterInfo(matchup.a.roster_id).displayName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                       </AvatarFallback>
+                     </Avatar>
+                     <div>
+                       <h3 className="font-bold text-lg">{getRosterInfo(matchup.a.roster_id).displayName}</h3>
+                       <p className="text-sm text-muted-foreground">@{getRosterInfo(matchup.a.roster_id).ownerUsername}</p>
+                     </div>
+                   </div>
                   
                   <div className="space-y-2">
                     <div className="text-center">
@@ -205,27 +215,29 @@ export default function SportsbooksTab({ leagueId }: Props) {
                       <div className="text-xs text-muted-foreground">Spread</div>
                     </div>
                     
-                    <Badge variant="outline" className="bg-muted/50">
-                      {matchup.isTeamAFavored ? 'Team A Favored' : 'Team B Favored'}
-                    </Badge>
+                                         <Badge variant="outline" className="bg-muted/50">
+                       {matchup.isTeamAFavored ? `${matchup.teamAInfo.displayName} Favored` : `${matchup.teamBInfo?.displayName || 'Opponent'} Favored`}
+                     </Badge>
                   </div>
                 </div>
 
-                {/* Team B */}
-                <div className="text-center space-y-3">
-                  <div className="flex flex-col items-center gap-2">
-                    <Avatar className="h-16 w-16 border-2 border-primary/20">
-                      <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
-                        {matchup.b ? getRosterName(matchup.b.roster_id).split(' ').map(n => n[0]).join('').slice(0, 2) : 'BYE'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-bold text-lg">
-                        {matchup.b ? getRosterName(matchup.b.roster_id) : 'BYE'}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">Team B</p>
-                    </div>
-                  </div>
+                                 {/* Team B */}
+                 <div className="text-center space-y-3">
+                   <div className="flex flex-col items-center gap-2">
+                     <Avatar className="h-16 w-16 border-2 border-primary/20">
+                       <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
+                         {matchup.b ? getRosterInfo(matchup.b.roster_id).displayName.split(' ').map(n => n[0]).join('').slice(0, 2) : 'BYE'}
+                       </AvatarFallback>
+                     </Avatar>
+                     <div>
+                       <h3 className="text-lg font-bold">
+                         {matchup.b ? getRosterInfo(matchup.b.roster_id).displayName : 'BYE'}
+                       </h3>
+                       <p className="text-sm text-muted-foreground">
+                         {matchup.b ? `@${getRosterInfo(matchup.b.roster_id).ownerUsername}` : 'No opponent'}
+                       </p>
+                     </div>
+                   </div>
                   
                   <div className="space-y-2">
                     <div className="text-center">
