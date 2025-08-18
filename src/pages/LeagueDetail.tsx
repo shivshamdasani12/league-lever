@@ -195,7 +195,7 @@ export default function LeagueDetail() {
             <TabsTrigger value="rosters">Rosters</TabsTrigger>
             <TabsTrigger value="matchups">Matchups</TabsTrigger>
             <TabsTrigger value="standings">Standings</TabsTrigger>
-            <TabsTrigger value="sportsbooks">Sportsbooks</TabsTrigger>
+                            <TabsTrigger value="sportsbooks">Sportsbook</TabsTrigger>
             <TabsTrigger value="wagers">Wagers</TabsTrigger>
           </TabsList>
         </div>

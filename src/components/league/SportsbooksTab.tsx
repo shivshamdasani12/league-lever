@@ -51,7 +51,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
   const getRosterInfo = (rosterId: number) => {
     const roster = rosters.find(r => r.roster_id === rosterId);
     return {
-      displayName: roster?.display_name || `Team ${rosterId}`,
+      displayName: roster?.owner_name || roster?.owner_username || `Team ${rosterId}`,
       ownerName: roster?.owner_name || roster?.owner_username || `User ${rosterId}`,
       ownerUsername: roster?.owner_username || roster?.owner_name || `user${rosterId}`
     };

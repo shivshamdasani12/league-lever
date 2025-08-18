@@ -464,7 +464,7 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                       </div>
 
                       {/* VS indicator */}
-                      <div className="px-8 flex-shrink-0">
+                      <div className="px-12 flex-shrink-0">
                         <div className="text-muted-foreground text-sm font-medium bg-muted rounded-full px-3 py-1 text-center">
                           VS
                         </div>

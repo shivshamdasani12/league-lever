@@ -21,3 +21,4 @@ import('./scrape-fantasypros.js').then(async (module) => {
   process.exit(1);
 });
 
+
