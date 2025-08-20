@@ -109,10 +109,19 @@ export default function WagersTab({ leagueId }: Props) {
     const spreadMatch = bet.type.match(/[+-]?\d+\.?\d*/);
     const currentSpread = spreadMatch ? parseFloat(spreadMatch[0]) : 0;
     
+    // For counter offers, we want the OPPOSITE position
+    // If original bet is "Team A +3.5", counter should default to "Team B -3.5"
+    // So we flip the sign of the spread
+    const oppositeSpread = -currentSpread;
+    
+    // Set competitive default payout (slightly better than original to attract attention)
+    const originalPayoutRatio = bet.terms?.payoutRatio || 2.0;
+    const competitivePayoutRatio = Math.min(originalPayoutRatio + 0.1, 5.0);
+    
     setCounterOfferData({
       originalBet: bet,
-      adjustedSpread: currentSpread,
-      payoutRatio: bet.terms?.payoutRatio || 2.0,
+      adjustedSpread: oppositeSpread,
+      payoutRatio: competitivePayoutRatio,
       tokenAmount: bet.token_amount
     });
     setIsCounterOfferOpen(true);
@@ -126,18 +135,23 @@ export default function WagersTab({ leagueId }: Props) {
       const uid = userData.user?.id;
       if (!uid) throw new Error("Not authenticated");
       
+      // Create the opposite position bet type
+      const originalBetType = counterOfferData.originalBet.type;
+      const oppositeBetType = getOppositePosition(originalBetType, { adjustedSpread: counterOfferData.adjustedSpread });
+      
       // Create a new bet with the counter offer terms
       const { error } = await supabase.from("bets").insert({
         league_id: leagueId,
         created_by: uid,
-        type: `Counter to: ${counterOfferData.originalBet.type}`,
+        type: oppositeBetType,
         status: "offered",
         token_amount: counterOfferData.tokenAmount,
         terms: {
           originalBetId: counterOfferData.originalBet.id,
           adjustedSpread: counterOfferData.adjustedSpread,
           payoutRatio: counterOfferData.payoutRatio,
-          isCounterOffer: true
+          isCounterOffer: true,
+          counterTo: originalBetType
         }
       });
       
@@ -346,7 +360,7 @@ export default function WagersTab({ leagueId }: Props) {
                             <div className="pt-2 border-t">
                               <span className="text-muted-foreground text-sm">Countering:</span>
                               <div className="font-medium text-sm text-orange-600">
-                                {bet.type.replace('Counter to: ', '')}
+                                {bet.terms?.counterTo || bet.type}
                               </div>
                             </div>
                           )}
@@ -565,11 +579,21 @@ export default function WagersTab({ leagueId }: Props) {
                 </p>
               </div>
               
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h4 className="font-semibold text-sm mb-2 text-blue-700">Your Counter Position</h4>
+                <p className="text-sm text-blue-600">
+                  {getOppositePosition(counterOfferData.originalBet.type, { adjustedSpread: counterOfferData.adjustedSpread })}
+                </p>
+                <p className="text-xs text-blue-500 mt-1">
+                  You're taking the opposite side of this bet
+                </p>
+              </div>
+              
               {/* Spread Adjustment */}
               <div className="space-y-3">
                 <Label htmlFor="counterSpread" className="text-sm font-semibold flex items-center gap-2">
                   <Settings className="h-4 w-4" />
-                  Adjust Spread (Optional)
+                  Adjust Opposite Spread
                 </Label>
                 <Input
                   id="counterSpread"
@@ -584,7 +608,9 @@ export default function WagersTab({ leagueId }: Props) {
                   placeholder="Enter adjusted spread"
                 />
                 <div className="text-xs text-muted-foreground">
-                  Leave unchanged to keep the same spread
+                  Current: {counterOfferData.adjustedSpread > 0 ? `+${counterOfferData.adjustedSpread.toFixed(1)}` : counterOfferData.adjustedSpread.toFixed(1)}
+                  <br />
+                  Adjust this spread to make your counter offer more attractive
                 </div>
               </div>
               
