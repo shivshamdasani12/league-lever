@@ -43,7 +43,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
   const [betOffer, setBetOffer] = useState<BetOffer | null>(null);
   const [tokenAmount, setTokenAmount] = useState<number>(10);
   const [adjustedSpread, setAdjustedSpread] = useState<number>(0);
-  const [payoutRatio, setPayoutRatio] = useState<number>(1.9);
+  const [payoutRatio, setPayoutRatio] = useState<number>(2.0);
   const [isCreatingBet, setIsCreatingBet] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
@@ -562,14 +562,14 @@ export default function SportsbooksTab({ leagueId }: Props) {
                   max="5.0"
                   value={payoutRatio}
                   onChange={(e) => {
-                    const newRatio = parseFloat(e.target.value) || 1.9;
+                    const newRatio = parseFloat(e.target.value) || 2.0;
                     setPayoutRatio(Math.max(1.0, Math.min(5.0, newRatio)));
                   }}
                   className="h-12 text-base"
                   placeholder="Enter payout ratio (1.0-5.0)"
                 />
                 <div className="space-y-1 text-xs text-muted-foreground">
-                  <p>Standard payout: 1.9x (you win 1.9x your bet)</p>
+                  <p>Standard payout: 2.0x (you win 2.0x your bet)</p>
                   <p className="text-blue-600">
                     Higher ratio = more attractive to acceptors, but you risk more tokens
                   </p>

@@ -601,7 +601,8 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                       <CardContent className="p-3">
                         <div className="space-y-2">
                           {((rosterADetails?.starters as string[]) || []).map((playerId: string, index: number) => {
-                            const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
+                            const player = playerData?.[playerId];
+                            const position = player?.position || 'N/A';
                             return renderPlayerRow(playerId, position, true);
                           })}
                         </div>
@@ -633,7 +634,8 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
                         <CardContent className="p-3">
                           <div className="space-y-2">
                             {((rosterBDetails?.starters as string[]) || []).map((playerId: string, index: number) => {
-                              const position = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'K'][index] || 'BN';
+                              const player = playerData?.[playerId];
+                              const position = player?.position || 'N/A';
                               return renderPlayerRow(playerId, position, true);
                             })}
                           </div>
