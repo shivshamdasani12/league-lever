@@ -113,6 +113,24 @@ export default function WagersTab({ leagueId }: Props) {
     });
   };
 
+  // Function to get the opposite position for display
+  const getOppositePosition = (betType: string) => {
+    // Parse the bet type to extract the spread and create opposite position
+    // Example: "Team A +1.9 vs Team B" becomes "Team B -1.9 vs Team A"
+    const match = betType.match(/^(.+?)\s+([+-]\d+\.?\d*)\s+vs\s+(.+)$/);
+    if (match) {
+      const [, team1, spread, team2] = match;
+      const oppositeSpread = spread.startsWith('+') ? spread.replace('+', '-') : spread.replace('-', '+');
+      return `${team2} ${oppositeSpread} vs ${team1}`;
+    }
+    return betType; // Return original if we can't parse it
+  };
+
+  // Function to calculate payout (2x the bet amount for a standard bet)
+  const calculatePayout = (tokenAmount: number) => {
+    return tokenAmount * 2;
+  };
+
   return (
     <div className="space-y-6">
       {/* Wagers Tabs */}
@@ -182,14 +200,18 @@ export default function WagersTab({ leagueId }: Props) {
                       <div className="flex items-start justify-between">
                         <div className="flex-1 space-y-3">
                           <div className="flex items-center gap-3">
-                            <h3 className="text-lg font-semibold text-foreground">{bet.type}</h3>
+                            <h3 className="text-lg font-semibold text-foreground">{getOppositePosition(bet.type)}</h3>
                             {getStatusBadge(bet.status)}
                           </div>
                           
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
-                              <span className="text-muted-foreground">Amount:</span>
-                              <div className="font-semibold text-lg text-primary">{bet.token_amount} tokens</div>
+                              <span className="text-muted-foreground">Cost to Accept:</span>
+                              <div className="font-semibold text-lg text-blue-700">{bet.token_amount} tokens</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Potential Payout:</span>
+                              <div className="font-semibold text-lg text-green-700">{calculatePayout(bet.token_amount)} tokens</div>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Offered by:</span>
@@ -199,13 +221,14 @@ export default function WagersTab({ leagueId }: Props) {
                               <span className="text-muted-foreground">Created:</span>
                               <div className="font-medium">{formatDate(bet.created_at)}</div>
                             </div>
-                            {bet.terms?.description && (
-                              <div>
-                                <span className="text-muted-foreground">Terms:</span>
-                                <div className="font-medium">{bet.terms.description}</div>
-                              </div>
-                            )}
                           </div>
+                          
+                          {bet.terms?.description && (
+                            <div className="pt-2 border-t">
+                              <span className="text-muted-foreground text-sm">Terms:</span>
+                              <div className="font-medium text-sm">{bet.terms.description}</div>
+                            </div>
+                          )}
                         </div>
                         
                         <div className="flex flex-col gap-2 ml-4">
@@ -246,8 +269,12 @@ export default function WagersTab({ leagueId }: Props) {
                         
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
-                            <span className="text-muted-foreground">Amount:</span>
-                            <div className="font-semibold text-lg text-primary">{bet.token_amount} tokens</div>
+                            <span className="text-muted-foreground">Bet Amount:</span>
+                            <div className="font-semibold text-lg text-blue-700">{bet.token_amount} tokens</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Potential Payout:</span>
+                            <div className="font-semibold text-lg text-green-700">{calculatePayout(bet.token_amount)} tokens</div>
                           </div>
                           <div>
                             <span className="text-muted-foreground">Offered by:</span>
@@ -257,9 +284,16 @@ export default function WagersTab({ leagueId }: Props) {
                             <span className="text-muted-foreground">Accepted by:</span>
                             <div className="font-medium">{getUserDisplayName(bet.accepted_by!)}</div>
                           </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
                             <span className="text-muted-foreground">Started:</span>
                             <div className="font-medium">{formatDate(bet.accepted_at!)}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Total Pot:</span>
+                            <div className="font-semibold text-lg text-purple-700">{bet.token_amount * 2} tokens</div>
                           </div>
                         </div>
                         
@@ -303,8 +337,12 @@ export default function WagersTab({ leagueId }: Props) {
                         
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
-                            <span className="text-muted-foreground">Amount:</span>
-                            <div className="font-semibold text-lg text-primary">{bet.token_amount} tokens</div>
+                            <span className="text-muted-foreground">Original Bet:</span>
+                            <div className="font-semibold text-lg text-blue-700">{bet.token_amount} tokens</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Potential Payout:</span>
+                            <div className="font-semibold text-lg text-green-700">{calculatePayout(bet.token_amount)} tokens</div>
                           </div>
                           <div>
                             <span className="text-muted-foreground">Offered by:</span>
@@ -314,9 +352,16 @@ export default function WagersTab({ leagueId }: Props) {
                             <span className="text-muted-foreground">Accepted by:</span>
                             <div className="font-medium">{getUserDisplayName(bet.accepted_by!)}</div>
                           </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
                             <span className="text-muted-foreground">Settled:</span>
                             <div className="font-medium">{bet.settled_at ? formatDate(bet.settled_at) : 'Pending'}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Total Pot:</span>
+                            <div className="font-semibold text-lg text-purple-700">{bet.token_amount * 2} tokens</div>
                           </div>
                         </div>
                         
