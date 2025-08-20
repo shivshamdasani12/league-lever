@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Settings, DollarSign } from "lucide-react";
 import React from "react";
 
 interface Props { leagueId: string }
@@ -32,6 +36,18 @@ export default function WagersTab({ leagueId }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState("offered");
+  const [isCounterOfferOpen, setIsCounterOfferOpen] = useState(false);
+  const [counterOfferData, setCounterOfferData] = useState<{
+    originalBet: BetRow | null;
+    adjustedSpread: number;
+    payoutRatio: number;
+    tokenAmount: number;
+  }>({
+    originalBet: null,
+    adjustedSpread: 0,
+    payoutRatio: 2.0,
+    tokenAmount: 10
+  });
 
   const betsQuery = useQuery({
     queryKey: ["bets", leagueId],
@@ -86,6 +102,53 @@ export default function WagersTab({ leagueId }: Props) {
   const getUserDisplayName = (userId: string) => {
     // For now, just show a shortened user ID since we can't access other users' profiles
     return `@${userId.slice(0, 8)}...`;
+  };
+
+  const openCounterOffer = (bet: BetRow) => {
+    // Extract the current spread from the bet type
+    const spreadMatch = bet.type.match(/[+-]?\d+\.?\d*/);
+    const currentSpread = spreadMatch ? parseFloat(spreadMatch[0]) : 0;
+    
+    setCounterOfferData({
+      originalBet: bet,
+      adjustedSpread: currentSpread,
+      payoutRatio: bet.terms?.payoutRatio || 2.0,
+      tokenAmount: bet.token_amount
+    });
+    setIsCounterOfferOpen(true);
+  };
+
+  const createCounterOffer = async () => {
+    if (!counterOfferData.originalBet) return;
+    
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) throw new Error("Not authenticated");
+      
+      // Create a new bet with the counter offer terms
+      const { error } = await supabase.from("bets").insert({
+        league_id: leagueId,
+        created_by: uid,
+        type: `Counter to: ${counterOfferData.originalBet.type}`,
+        status: "offered",
+        token_amount: counterOfferData.tokenAmount,
+        terms: {
+          originalBetId: counterOfferData.originalBet.id,
+          adjustedSpread: counterOfferData.adjustedSpread,
+          payoutRatio: counterOfferData.payoutRatio,
+          isCounterOffer: true
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast({ title: "Counter offer created", description: "Your counter offer has been posted." });
+      setIsCounterOfferOpen(false);
+      await qc.invalidateQueries({ queryKey: ["bets", leagueId] });
+    } catch (err: any) {
+      toast({ title: "Error creating counter offer", description: err.message });
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -241,6 +304,11 @@ export default function WagersTab({ leagueId }: Props) {
                           <div className="flex items-center gap-3">
                             <h3 className="text-lg font-semibold text-foreground">{getOppositePosition(bet.type, bet.terms)}</h3>
                             {getStatusBadge(bet.status)}
+                            {bet.terms?.isCounterOffer && (
+                              <Badge variant="outline" className="border-orange-300 text-orange-700 bg-orange-50">
+                                Counter Offer
+                              </Badge>
+                            )}
                           </div>
                           
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -273,6 +341,15 @@ export default function WagersTab({ leagueId }: Props) {
                               <div className="font-medium text-sm">{bet.terms.description}</div>
                             </div>
                           )}
+                          
+                          {bet.terms?.isCounterOffer && (
+                            <div className="pt-2 border-t">
+                              <span className="text-muted-foreground text-sm">Countering:</span>
+                              <div className="font-medium text-sm text-orange-600">
+                                {bet.type.replace('Counter to: ', '')}
+                              </div>
+                            </div>
+                          )}
                         </div>
                         
                         <div className="flex flex-col gap-2 ml-4">
@@ -281,6 +358,13 @@ export default function WagersTab({ leagueId }: Props) {
                             className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                           >
                             Accept Bet
+                          </Button>
+                          <Button 
+                            onClick={() => openCounterOffer(bet)}
+                            variant="outline"
+                            className="border-blue-300 text-blue-700 hover:bg-blue-50 px-6 py-2 font-semibold transition-all duration-200"
+                          >
+                            Counter Offer
                           </Button>
                           <span className="text-xs text-muted-foreground text-center">Join this wager</span>
                         </div>
@@ -460,6 +544,122 @@ export default function WagersTab({ leagueId }: Props) {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Counter Offer Dialog */}
+      <Dialog open={isCounterOfferOpen} onOpenChange={setIsCounterOfferOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Make Counter Offer
+            </DialogTitle>
+          </DialogHeader>
+          
+          {counterOfferData.originalBet && (
+            <div className="space-y-4">
+              <div className="bg-muted/30 p-4 rounded-lg">
+                <h4 className="font-semibold text-sm mb-2">Original Bet</h4>
+                <p className="text-sm text-muted-foreground">{counterOfferData.originalBet.type}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Offered by: {getUserDisplayName(counterOfferData.originalBet.created_by)}
+                </p>
+              </div>
+              
+              {/* Spread Adjustment */}
+              <div className="space-y-3">
+                <Label htmlFor="counterSpread" className="text-sm font-semibold flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Adjust Spread (Optional)
+                </Label>
+                <Input
+                  id="counterSpread"
+                  type="number"
+                  step="0.1"
+                  value={counterOfferData.adjustedSpread}
+                  onChange={(e) => {
+                    const newSpread = parseFloat(e.target.value) || 0;
+                    setCounterOfferData(prev => ({ ...prev, adjustedSpread: newSpread }));
+                  }}
+                  className="h-12 text-base"
+                  placeholder="Enter adjusted spread"
+                />
+                <div className="text-xs text-muted-foreground">
+                  Leave unchanged to keep the same spread
+                </div>
+              </div>
+              
+              {/* Payout Ratio Adjustment */}
+              <div className="space-y-3">
+                <Label htmlFor="counterPayoutRatio" className="text-sm font-semibold flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Payout Ratio: {counterOfferData.payoutRatio.toFixed(1)}x
+                </Label>
+                <div className="space-y-2">
+                  <input
+                    id="counterPayoutRatio"
+                    type="range"
+                    min="1.0"
+                    max="5.0"
+                    step="0.1"
+                    value={counterOfferData.payoutRatio}
+                    onChange={(e) => setCounterOfferData(prev => ({ ...prev, payoutRatio: parseFloat(e.target.value) }))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    style={{
+                      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((counterOfferData.payoutRatio - 1) / 4) * 100}%, #e5e7eb ${((counterOfferData.payoutRatio - 1) / 4) * 100}%, #e5e7eb 100%)`
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>1.0x</span>
+                    <span>2.0x</span>
+                    <span>3.0x</span>
+                    <span>4.0x</span>
+                    <span>5.0x</span>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Potential payout: {counterOfferData.tokenAmount * counterOfferData.payoutRatio} tokens
+                </div>
+              </div>
+              
+              {/* Token Amount */}
+              <div className="space-y-3">
+                <Label htmlFor="counterTokenAmount" className="text-sm font-semibold">
+                  Token Amount
+                </Label>
+                <Input
+                  id="counterTokenAmount"
+                  type="number"
+                  min="1"
+                  value={counterOfferData.tokenAmount}
+                  onChange={(e) => setCounterOfferData(prev => ({ ...prev, tokenAmount: parseInt(e.target.value) || 0 }))}
+                  className="h-12 text-base"
+                  placeholder="Enter token amount"
+                />
+                <div className="text-xs text-muted-foreground">
+                  Minimum: 1 token
+                </div>
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCounterOfferOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={createCounterOffer}
+                  disabled={counterOfferData.tokenAmount < 1}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  Create Counter Offer
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
