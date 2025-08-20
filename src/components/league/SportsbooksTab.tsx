@@ -552,38 +552,30 @@ export default function SportsbooksTab({ leagueId }: Props) {
               <div className="space-y-3">
                 <Label htmlFor="payoutRatio" className="text-sm font-semibold flex items-center gap-2">
                   <DollarSign className="h-4 w-4" />
-                  Payout Ratio
+                  Payout Ratio: {payoutRatio.toFixed(1)}x
                 </Label>
-                <Input
-                  id="payoutRatio"
-                  type="number"
-                  step="0.1"
-                  min="1.0"
-                  max="5.0"
-                  value={payoutRatio.toFixed(1)}
-                  onChange={(e) => {
-                    const inputValue = e.target.value;
-                    if (inputValue === '') {
-                      setPayoutRatio(2.0);
-                    } else {
-                      const newRatio = parseFloat(inputValue);
-                      if (!isNaN(newRatio)) {
-                        setPayoutRatio(Math.max(1.0, Math.min(5.0, newRatio)));
-                      }
-                    }
-                  }}
-                  onBlur={(e) => {
-                    // Ensure we have a valid number on blur
-                    const value = parseFloat(e.target.value);
-                    if (isNaN(value) || value < 1.0) {
-                      setPayoutRatio(2.0);
-                    } else if (value > 5.0) {
-                      setPayoutRatio(5.0);
-                    }
-                  }}
-                  className="h-12 text-base"
-                  placeholder="Enter payout ratio (1.0-5.0)"
-                />
+                <div className="space-y-2">
+                  <input
+                    id="payoutRatio"
+                    type="range"
+                    min="1.0"
+                    max="5.0"
+                    step="0.1"
+                    value={payoutRatio}
+                    onChange={(e) => setPayoutRatio(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    style={{
+                      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((payoutRatio - 1) / 4) * 100}%, #e5e7eb ${((payoutRatio - 1) / 4) * 100}%, #e5e7eb 100%)`
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>1.0x</span>
+                    <span>2.0x</span>
+                    <span>3.0x</span>
+                    <span>4.0x</span>
+                    <span>5.0x</span>
+                  </div>
+                </div>
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <p>Standard payout: 2.0x (you win 2.0x your bet)</p>
                   <p className="text-blue-600">
