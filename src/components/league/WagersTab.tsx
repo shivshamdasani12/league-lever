@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import React from "react"; // Added missing import for React
+import React from "react";
 
 interface Props { leagueId: string }
 
@@ -83,26 +83,6 @@ export default function WagersTab({ leagueId }: Props) {
     }
   };
 
-  // Function to settle a bet (move from active to settled)
-  const settleBet = async (bet: BetRow, outcome: 'won' | 'lost') => {
-    try {
-      const { error } = await supabase
-        .from("bets")
-        .update({ 
-          status: "settled", 
-          settled_at: new Date().toISOString(),
-          outcome: outcome
-        })
-        .eq("id", bet.id);
-      
-      if (error) throw error;
-      toast({ title: "Bet settled", description: `Bet marked as ${outcome}.` });
-      await qc.invalidateQueries({ queryKey: ["bets", leagueId] });
-    } catch (err: any) {
-      toast({ title: "Error settling bet", description: err.message });
-    }
-  };
-
   const getUserDisplayName = (userId: string) => {
     // For now, just show a shortened user ID since we can't access other users' profiles
     return `@${userId.slice(0, 8)}...`;
@@ -163,39 +143,20 @@ export default function WagersTab({ leagueId }: Props) {
     return tokenAmount * 2;
   };
 
-  // Function to check if a bet should be matured (moved to past wagers)
-  const shouldMatureBet = (bet: BetRow) => {
-    if (bet.status !== 'active') return false;
-    
-    // For now, let's assume bets mature after a certain time period
-    // In a real implementation, this would check against actual game results
-    const acceptedDate = new Date(bet.accepted_at!);
-    const now = new Date();
-    const daysSinceAccepted = (now.getTime() - acceptedDate.getTime()) / (1000 * 60 * 60 * 24);
-    
-    // Mature after 7 days (for demo purposes)
-    return daysSinceAccepted >= 7;
-  };
-
-  // Auto-mature bets that should be settled
-  const matureBets = async () => {
-    const activeBets = filterBetsByStatus("active");
-    const betsToMature = activeBets.filter(shouldMatureBet);
-    
-    for (const bet of betsToMature) {
-      // For demo purposes, randomly assign outcome
-      // In real implementation, this would check actual game results
-      const outcome = Math.random() > 0.5 ? 'won' : 'lost';
-      await settleBet(bet, outcome);
+  // Function to get settlement details for display
+  const getSettlementDetails = (bet: BetRow) => {
+    if (bet.status !== 'settled' || !bet.terms?.game_result) {
+      return null;
     }
-  };
 
-  // Run maturation check when component mounts or when active bets change
-  React.useEffect(() => {
-    if (filterBetsByStatus("active").length > 0) {
-      matureBets();
-    }
-  }, [betsQuery.data]);
+    const gameResult = bet.terms.game_result;
+    return {
+      homeScore: gameResult.home_roster_points,
+      awayScore: gameResult.away_roster_points,
+      settlementDate: bet.terms.settlement_date,
+      settlementReason: bet.terms.settlement_reason
+    };
+  };
 
   return (
     <div className="space-y-6">
@@ -369,31 +330,6 @@ export default function WagersTab({ leagueId }: Props) {
                             <div className="font-medium text-sm">{bet.terms.description}</div>
                           </div>
                         )}
-
-                        {/* Manual Settlement Buttons (for demo/testing) */}
-                        <div className="pt-3 border-t">
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => settleBet(bet, 'won')}
-                              className="text-green-600 border-green-300 hover:bg-green-50"
-                            >
-                              Mark as Won
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => settleBet(bet, 'lost')}
-                              className="text-red-600 border-red-300 hover:bg-red-50"
-                            >
-                              Mark as Lost
-                            </Button>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Demo: Manually settle bets for testing
-                          </p>
-                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -412,60 +348,86 @@ export default function WagersTab({ leagueId }: Props) {
               )}
               
               <div className="space-y-4">
-                {filterBetsByStatus("settled").map((bet) => (
-                  <Card key={bet.id} className="border-l-4 border-l-gray-500 bg-gradient-to-r from-gray-50/50 to-transparent hover:shadow-md transition-all duration-200">
-                    <CardContent className="p-6">
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold text-foreground">{bet.type}</h3>
-                          {getStatusBadge(bet.status)}
-                          {bet.outcome && (
-                            <Badge variant={bet.outcome === 'won' ? 'default' : 'destructive'}>
-                              {bet.outcome === 'won' ? 'Won' : 'Lost'}
-                            </Badge>
+                {filterBetsByStatus("settled").map((bet) => {
+                  const settlementDetails = getSettlementDetails(bet);
+                  
+                  return (
+                    <Card key={bet.id} className="border-l-4 border-l-gray-500 bg-gradient-to-r from-gray-50/50 to-transparent hover:shadow-md transition-all duration-200">
+                      <CardContent className="p-6">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-lg font-semibold text-foreground">{bet.type}</h3>
+                            {getStatusBadge(bet.status)}
+                            {bet.outcome && (
+                              <Badge variant={bet.outcome === 'won' ? 'default' : 
+                                            bet.outcome === 'lost' ? 'destructive' : 'secondary'}>
+                                {bet.outcome === 'won' ? 'Won' : 
+                                 bet.outcome === 'lost' ? 'Lost' : 'Push'}
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Original Bet:</span>
+                              <div className="font-semibold text-lg text-blue-700">{bet.token_amount} tokens</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Potential Payout:</span>
+                              <div className="font-semibold text-lg text-green-700">{calculatePayout(bet.token_amount)} tokens</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Offered by:</span>
+                              <div className="font-medium">{getUserDisplayName(bet.created_by)}</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Accepted by:</span>
+                              <div className="font-medium">{getUserDisplayName(bet.accepted_by!)}</div>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Settled:</span>
+                              <div className="font-medium">{bet.settled_at ? formatDate(bet.settled_at) : 'Pending'}</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Total Pot:</span>
+                              <div className="font-semibold text-lg text-purple-700">{bet.token_amount * 2} tokens</div>
+                            </div>
+                          </div>
+                          
+                          {/* Settlement Details */}
+                          {settlementDetails && (
+                            <div className="pt-2 border-t">
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                  <span className="text-muted-foreground">Final Score:</span>
+                                  <div className="font-medium">{settlementDetails.homeScore} - {settlementDetails.awayScore}</div>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Settlement Date:</span>
+                                  <div className="font-medium">{settlementDetails.settlementDate ? formatDate(settlementDetails.settlementDate) : 'N/A'}</div>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Reason:</span>
+                                  <div className="font-medium">{settlementDetails.settlementReason || 'Game completed'}</div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {bet.terms?.description && (
+                            <div className="pt-2 border-t">
+                              <span className="text-muted-foreground text-sm">Terms:</span>
+                              <div className="font-medium text-sm">{bet.terms.description}</div>
+                            </div>
                           )}
                         </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Original Bet:</span>
-                            <div className="font-semibold text-lg text-blue-700">{bet.token_amount} tokens</div>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Potential Payout:</span>
-                            <div className="font-semibold text-lg text-green-700">{calculatePayout(bet.token_amount)} tokens</div>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Offered by:</span>
-                            <div className="font-medium">{getUserDisplayName(bet.created_by)}</div>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Accepted by:</span>
-                            <div className="font-medium">{getUserDisplayName(bet.accepted_by!)}</div>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Settled:</span>
-                            <div className="font-medium">{bet.settled_at ? formatDate(bet.settled_at) : 'Pending'}</div>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Total Pot:</span>
-                            <div className="font-semibold text-lg text-purple-700">{bet.token_amount * 2} tokens</div>
-                          </div>
-                        </div>
-                        
-                        {bet.terms?.description && (
-                          <div className="pt-2 border-t">
-                            <span className="text-muted-foreground text-sm">Terms:</span>
-                            <div className="font-medium text-sm">{bet.terms.description}</div>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </TabsContent>
           </Tabs>

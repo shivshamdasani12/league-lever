@@ -12,7 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchLeagueMatchupsByWeek, LeagueWeekRow, fetchRosterDetails, fetchApiProjections, PlayerProjection } from "@/lib/queries/league";
 import { fetchRosters } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
-import { TrendingUp, Users, Trophy, ArrowRight, DollarSign, Settings } from "lucide-react";
+import { calculateOptimalSpread } from "@/lib/services/betSettlement";
+import { TrendingUp, Users, Trophy, ArrowRight, DollarSign, Settings, Brain, Target } from "lucide-react";
 import { useMemo } from "react";
 
 interface Props {
@@ -26,6 +27,13 @@ interface BetOffer {
   betType: string;
   adjustedSpread: number;
   originalSpread: number;
+  optimalSpread: number;
+  marketConditions: {
+    betVolume: number;
+    acceptanceRate: number;
+    timeUntilGame: number;
+    teamPopularity: number;
+  };
 }
 
 export default function SportsbooksTab({ leagueId }: Props) {
@@ -36,6 +44,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
   const [adjustedSpread, setAdjustedSpread] = useState<number>(0);
   const [isCreatingBet, setIsCreatingBet] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   // Fetch week 1 matchups
   const { data: week1Matchups = [] } = useQuery({
@@ -56,6 +65,22 @@ export default function SportsbooksTab({ leagueId }: Props) {
     queryKey: ['rosters', leagueId],
     enabled: !!leagueId,
     queryFn: () => fetchRosters(leagueId),
+  });
+
+  // Fetch existing bets for market analysis
+  const { data: existingBets = [] } = useQuery({
+    queryKey: ['existing-bets', leagueId],
+    enabled: !!leagueId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bets")
+        .select("*")
+        .eq("league_id", leagueId)
+        .eq("week", 1)
+        .eq("season", 2025);
+      if (error) throw error;
+      return data || [];
+    },
   });
 
   // Helper function to calculate projected total for a roster
@@ -108,6 +133,38 @@ export default function SportsbooksTab({ leagueId }: Props) {
       case 'DEF': return 'bg-red-100 text-red-800 border-red-300';
       default: return 'bg-gray-100 text-gray-800 border-gray-300';
     }
+  };
+
+  // Calculate market conditions for spread adjustment
+  const calculateMarketConditions = (matchupIndex: number, side: 'teamA' | 'teamB') => {
+    const matchup = matchupsWithSpreads[matchupIndex];
+    if (!matchup) return null;
+
+    // Count existing bets for this matchup
+    const matchupBets = existingBets.filter(bet => {
+      const betMatchupIndex = bet.terms?.matchupIndex;
+      return betMatchupIndex === matchupIndex;
+    });
+
+    const betVolume = matchupBets.length;
+    const acceptedBets = matchupBets.filter(bet => bet.status === 'active');
+    const acceptanceRate = betVolume > 0 ? acceptedBets.length / betVolume : 0;
+
+    // Calculate time until game (for demo, assume 7 days)
+    const timeUntilGame = 7 * 24; // hours
+
+    // Calculate team popularity based on existing bets
+    const teamPopularity = matchupBets.filter(bet => {
+      const betSide = bet.terms?.side;
+      return betSide === side;
+    }).length / Math.max(betVolume, 1);
+
+    return {
+      betVolume,
+      acceptanceRate,
+      timeUntilGame,
+      teamPopularity
+    };
   };
 
   // Group matchups into pairs
@@ -166,8 +223,15 @@ export default function SportsbooksTab({ leagueId }: Props) {
     const sideName = side === 'teamA' ? matchup.teamAInfo.displayName : matchup.teamBInfo?.displayName;
     const originalSpread = matchup.spread;
     
-    // Set initial adjusted spread to the original spread
-    setAdjustedSpread(originalSpread);
+    // Calculate market conditions
+    const marketConditions = calculateMarketConditions(matchupIndex, side);
+    
+    // Calculate optimal spread using advanced algorithm
+    const optimalSpread = marketConditions ? 
+      calculateOptimalSpread(originalSpread, marketConditions) : originalSpread;
+    
+    // Set initial adjusted spread to the optimal spread
+    setAdjustedSpread(optimalSpread);
     
     // Calculate the spread for the side being bet on
     let spreadForSide: number;
@@ -185,7 +249,14 @@ export default function SportsbooksTab({ leagueId }: Props) {
       tokenAmount: 10,
       betType: `${sideName} ${spreadText} vs ${side === 'teamA' ? matchup.teamBInfo?.displayName : matchup.teamAInfo.displayName}`,
       adjustedSpread: spreadForSide,
-      originalSpread: originalSpread
+      originalSpread: originalSpread,
+      optimalSpread: optimalSpread,
+      marketConditions: marketConditions || {
+        betVolume: 0,
+        acceptanceRate: 0,
+        timeUntilGame: 168,
+        teamPopularity: 0.5
+      }
     });
     setTokenAmount(10);
     setIsDialogOpen(true);
@@ -198,7 +269,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
     const matchup = matchupsWithSpreads[betOffer.matchupIndex];
     if (!matchup) return;
     
-    const sideName = betOffer.side === 'teamA' ? matchup.teamAInfo.displayName : matchup.teamBInfo?.displayName;
+    const sideName = betOffer.side === 'teamA' ? matchup.teamAInfo.displayName : matchup.teamAInfo.displayName;
     const opponentName = betOffer.side === 'teamA' ? matchup.teamBInfo?.displayName : matchup.teamAInfo.displayName;
     
     const spreadText = newSpread > 0 ? `+${newSpread.toFixed(1)}` : `${newSpread.toFixed(1)}`;
@@ -231,7 +302,9 @@ export default function SportsbooksTab({ leagueId }: Props) {
           week: 1,
           season: 2025,
           originalSpread: betOffer.originalSpread,
-          adjustedSpread: betOffer.adjustedSpread
+          adjustedSpread: betOffer.adjustedSpread,
+          optimalSpread: betOffer.optimalSpread,
+          marketConditions: betOffer.marketConditions
         },
         status: "offered"
       });
@@ -273,7 +346,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
       {/* Header */}
       <div className="text-center">
         <h2 className="text-2xl font-bold text-primary mb-2">Week 1 Sportsbook</h2>
-        <p className="text-muted-foreground">Place bets on either side of the spread • Adjust spreads to your preference</p>
+        <p className="text-muted-foreground">Place bets on either side of the spread • AI-powered spread optimization</p>
       </div>
 
       {/* Matchups Grid */}
@@ -429,6 +502,21 @@ export default function SportsbooksTab({ leagueId }: Props) {
                 <p className="text-sm text-muted-foreground">{betOffer.betType}</p>
               </div>
               
+              {/* Market Analysis */}
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2 text-blue-700">
+                  <Brain className="h-4 w-4" />
+                  AI Market Analysis
+                </h4>
+                <div className="grid grid-cols-2 gap-2 text-xs text-blue-600">
+                  <div>Bet Volume: {betOffer.marketConditions.betVolume}</div>
+                  <div>Acceptance Rate: {(betOffer.marketConditions.acceptanceRate * 100).toFixed(1)}%</div>
+                  <div>Time to Game: {Math.round(betOffer.marketConditions.timeUntilGame / 24)} days</div>
+                  <div>Team Popularity: {(betOffer.marketConditions.teamPopularity * 100).toFixed(1)}%</div>
+                </div>
+              </div>
+              
+              {/* Spread Adjustment */}
               <div className="space-y-3">
                 <Label htmlFor="adjustedSpread" className="text-sm font-semibold flex items-center gap-2">
                   <Settings className="h-4 w-4" />
@@ -447,9 +535,38 @@ export default function SportsbooksTab({ leagueId }: Props) {
                   className="h-12 text-base"
                   placeholder="Enter adjusted spread"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Original spread: {betOffer.originalSpread > 0 ? `+${betOffer.originalSpread.toFixed(1)}` : betOffer.originalSpread.toFixed(1)}
-                </p>
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <p>Original spread: {betOffer.originalSpread > 0 ? `+${betOffer.originalSpread.toFixed(1)}` : betOffer.originalSpread.toFixed(1)}</p>
+                  <p className="flex items-center gap-1 text-blue-600">
+                    <Target className="h-3 w-3" />
+                    AI recommended: {betOffer.optimalSpread > 0 ? `+${betOffer.optimalSpread.toFixed(1)}` : betOffer.optimalSpread.toFixed(1)}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Advanced Options Toggle */}
+              <div className="space-y-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                  className="w-full"
+                >
+                  {showAdvancedOptions ? 'Hide' : 'Show'} Advanced Options
+                </Button>
+                
+                {showAdvancedOptions && (
+                  <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                    <div className="text-xs text-muted-foreground">
+                      <p><strong>Market Conditions:</strong></p>
+                      <p>• Bet Volume: {betOffer.marketConditions.betVolume} bets</p>
+                      <p>• Acceptance Rate: {(betOffer.marketConditions.acceptanceRate * 100).toFixed(1)}%</p>
+                      <p>• Time Until Game: {Math.round(betOffer.marketConditions.timeUntilGame / 24)} days</p>
+                      <p>• Team Popularity: {(betOffer.marketConditions.teamPopularity * 100).toFixed(1)}%</p>
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div className="space-y-3">
@@ -497,6 +614,9 @@ export default function SportsbooksTab({ leagueId }: Props) {
           <div className="text-center text-sm text-muted-foreground">
             <p className="mb-2">
               <strong>How it works:</strong> Click "Bet on [Team]" to place a wager on either side of the spread.
+            </p>
+            <p className="mb-2">
+              Our AI analyzes market conditions and suggests optimal spreads to maximize bet acceptance.
             </p>
             <p className="mb-2">
               You can adjust the spread to make your bet more attractive to other users.

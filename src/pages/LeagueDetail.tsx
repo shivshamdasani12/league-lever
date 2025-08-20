@@ -15,6 +15,7 @@ import StandingsTab from "@/components/league/StandingsTab";
 import GeneralTab from "@/components/league/GeneralTab";
 import SportsbooksTab from "@/components/league/SportsbooksTab";
 import WagersTab from "@/components/league/WagersTab";
+import BetAnalytics from "@/components/league/BetAnalytics";
 
 interface Bet {
   id: string;
@@ -195,8 +196,9 @@ export default function LeagueDetail() {
             <TabsTrigger value="rosters">Rosters</TabsTrigger>
             <TabsTrigger value="matchups">Matchups</TabsTrigger>
             <TabsTrigger value="standings">Standings</TabsTrigger>
-                            <TabsTrigger value="sportsbooks">Sportsbook</TabsTrigger>
+            <TabsTrigger value="sportsbooks">Sportsbook</TabsTrigger>
             <TabsTrigger value="wagers">Wagers</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="general">
@@ -216,6 +218,9 @@ export default function LeagueDetail() {
         </TabsContent>
         <TabsContent value="wagers">
           <WagersTab leagueId={leagueId} />
+        </TabsContent>
+        <TabsContent value="analytics">
+          <BetAnalytics leagueId={leagueId} />
         </TabsContent>
       </Tabs>
 
