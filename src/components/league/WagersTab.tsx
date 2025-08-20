@@ -138,9 +138,21 @@ export default function WagersTab({ leagueId }: Props) {
     return betType; // Return original if we can't parse it
   };
 
-  // Function to calculate payout (2x the bet amount for a standard bet)
-  const calculatePayout = (tokenAmount: number) => {
-    return tokenAmount * 2;
+  // Function to calculate payout based on custom payout ratio
+  const calculatePayout = (tokenAmount: number, payoutRatio?: number) => {
+    if (payoutRatio && payoutRatio > 1.0) {
+      return tokenAmount * payoutRatio;
+    }
+    return tokenAmount * 2; // Default 2x payout
+  };
+
+  // Function to get payout display text
+  const getPayoutDisplay = (bet: BetRow) => {
+    const payoutRatio = bet.terms?.payoutRatio;
+    if (payoutRatio && payoutRatio > 1.0) {
+      return `${payoutRatio.toFixed(1)}x payout`;
+    }
+    return "2x payout";
   };
 
   // Function to get settlement details for display
@@ -238,7 +250,12 @@ export default function WagersTab({ leagueId }: Props) {
                             </div>
                             <div>
                               <span className="text-muted-foreground">Potential Payout:</span>
-                              <div className="font-semibold text-lg text-green-700">{calculatePayout(bet.token_amount)} tokens</div>
+                              <div className="font-semibold text-lg text-green-700">
+                                {calculatePayout(bet.token_amount, bet.terms?.payoutRatio)} tokens
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {getPayoutDisplay(bet)}
+                              </div>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Offered by:</span>
@@ -301,17 +318,22 @@ export default function WagersTab({ leagueId }: Props) {
                           </div>
                           <div>
                             <span className="text-muted-foreground">Potential Payout:</span>
-                            <div className="font-semibold text-lg text-green-700">{calculatePayout(bet.token_amount)} tokens</div>
+                            <div className="font-semibold text-lg text-green-700">
+                                {calculatePayout(bet.token_amount, bet.terms?.payoutRatio)} tokens
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {getPayoutDisplay(bet)}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Offered by:</span>
+                              <div className="font-medium">{getUserDisplayName(bet.created_by)}</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Accepted by:</span>
+                              <div className="font-medium">{getUserDisplayName(bet.accepted_by!)}</div>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-muted-foreground">Offered by:</span>
-                            <div className="font-medium">{getUserDisplayName(bet.created_by)}</div>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Accepted by:</span>
-                            <div className="font-medium">{getUserDisplayName(bet.accepted_by!)}</div>
-                          </div>
-                        </div>
                         
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
@@ -374,7 +396,12 @@ export default function WagersTab({ leagueId }: Props) {
                             </div>
                             <div>
                               <span className="text-muted-foreground">Potential Payout:</span>
-                              <div className="font-semibold text-lg text-green-700">{calculatePayout(bet.token_amount)} tokens</div>
+                              <div className="font-semibold text-lg text-green-700">
+                                {calculatePayout(bet.token_amount, bet.terms?.payoutRatio)} tokens
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {getPayoutDisplay(bet)}
+                              </div>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Offered by:</span>

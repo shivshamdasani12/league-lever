@@ -28,6 +28,7 @@ interface BetOffer {
   adjustedSpread: number;
   originalSpread: number;
   optimalSpread: number;
+  payoutRatio: number;
   marketConditions: {
     betVolume: number;
     acceptanceRate: number;
@@ -42,6 +43,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
   const [betOffer, setBetOffer] = useState<BetOffer | null>(null);
   const [tokenAmount, setTokenAmount] = useState<number>(10);
   const [adjustedSpread, setAdjustedSpread] = useState<number>(0);
+  const [payoutRatio, setPayoutRatio] = useState<number>(1.9);
   const [isCreatingBet, setIsCreatingBet] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
@@ -251,6 +253,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
       adjustedSpread: spreadForSide,
       originalSpread: originalSpread,
       optimalSpread: optimalSpread,
+      payoutRatio: payoutRatio,
       marketConditions: marketConditions || {
         betVolume: 0,
         acceptanceRate: 0,
@@ -304,6 +307,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
           originalSpread: betOffer.originalSpread,
           adjustedSpread: betOffer.adjustedSpread,
           optimalSpread: betOffer.optimalSpread,
+          payoutRatio: betOffer.payoutRatio,
           marketConditions: betOffer.marketConditions
         },
         status: "offered"
@@ -544,6 +548,37 @@ export default function SportsbooksTab({ leagueId }: Props) {
                 </div>
               </div>
               
+              {/* Payout Ratio Adjustment */}
+              <div className="space-y-3">
+                <Label htmlFor="payoutRatio" className="text-sm font-semibold flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Payout Ratio
+                </Label>
+                <Input
+                  id="payoutRatio"
+                  type="number"
+                  step="0.1"
+                  min="1.0"
+                  max="5.0"
+                  value={payoutRatio}
+                  onChange={(e) => {
+                    const newRatio = parseFloat(e.target.value) || 1.9;
+                    setPayoutRatio(Math.max(1.0, Math.min(5.0, newRatio)));
+                  }}
+                  className="h-12 text-base"
+                  placeholder="Enter payout ratio (1.0-5.0)"
+                />
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <p>Standard payout: 1.9x (you win 1.9x your bet)</p>
+                  <p className="text-blue-600">
+                    Higher ratio = more attractive to acceptors, but you risk more tokens
+                  </p>
+                  <p className="text-green-600">
+                    Potential payout: {tokenAmount * payoutRatio} tokens
+                  </p>
+                </div>
+              </div>
+              
               {/* Advanced Options Toggle */}
               <div className="space-y-3">
                 <Button
@@ -620,6 +655,9 @@ export default function SportsbooksTab({ leagueId }: Props) {
             </p>
             <p className="mb-2">
               You can adjust the spread to make your bet more attractive to other users.
+            </p>
+            <p className="mb-2">
+              <strong>Customize payouts:</strong> Set payout ratios from 1.0x to 5.0x to make your bets more competitive.
             </p>
             <p className="mb-2">
               Positive spread means the team is favored by that many points. 

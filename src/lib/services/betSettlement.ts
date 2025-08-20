@@ -95,8 +95,9 @@ export const settleBet = async (
     const winner_id = outcome === 'won' ? bet.created_by : bet.accepted_by;
     const loser_id = outcome === 'won' ? bet.accepted_by : bet.created_by;
     
-    // Calculate payout (2x bet amount for winner)
-    const payout_amount = bet.token_amount * 2;
+    // Calculate payout based on custom payout ratio or default 2x
+    const payoutRatio = bet.terms?.payoutRatio || 2.0;
+    const payout_amount = bet.token_amount * payoutRatio;
     
     // Update bet status
     const { error: betError } = await supabase
@@ -108,7 +109,9 @@ export const settleBet = async (
         terms: {
           ...bet.terms,
           game_result: gameResult,
-          settlement_date: new Date().toISOString()
+          settlement_date: new Date().toISOString(),
+          actual_payout: payout_amount,
+          payout_ratio_used: payoutRatio
         }
       })
       .eq('id', bet.id);
