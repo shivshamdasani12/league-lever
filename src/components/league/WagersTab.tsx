@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 interface Props { leagueId: string }
 
@@ -18,6 +20,13 @@ interface BetRow {
   accepted_by: string | null;
   created_at: string;
   accepted_at: string | null;
+  settled_at: string | null;
+  outcome: string | null;
+  terms?: any;
+}
+
+interface User {
+  user_id: string;
 }
 
 export default function WagersTab({ leagueId }: Props) {
@@ -25,7 +34,9 @@ export default function WagersTab({ leagueId }: Props) {
   const qc = useQueryClient();
   const [betType, setBetType] = useState("");
   const [betAmount, setBetAmount] = useState<number>(10);
+  const [betTerms, setBetTerms] = useState("");
   const [creatingBet, setCreatingBet] = useState(false);
+  const [activeTab, setActiveTab] = useState("offered");
 
   const betsQuery = useQuery({
     queryKey: ["bets", leagueId],
@@ -33,11 +44,24 @@ export default function WagersTab({ leagueId }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bets")
-        .select("id,type,status,token_amount,created_by,accepted_by,created_at,accepted_at")
+        .select("id,type,status,token_amount,created_by,accepted_by,created_at,accepted_at,settled_at,outcome,terms")
         .eq("league_id", leagueId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as BetRow[];
+    },
+  });
+
+  const usersQuery = useQuery({
+    queryKey: ["league-users", leagueId],
+    enabled: !!leagueId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("league_members")
+        .select("user_id")
+        .eq("league_id", leagueId);
+      if (error) throw error;
+      return (data ?? []) as User[];
     },
   });
 
@@ -49,15 +73,20 @@ export default function WagersTab({ leagueId }: Props) {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) throw new Error("Not authenticated");
+      
       const { error } = await supabase.from("bets").insert({
         league_id: leagueId,
         created_by: uid,
         type: betType.trim(),
         token_amount: Number(betAmount) || 0,
+        terms: betTerms.trim() ? { description: betTerms.trim() } : null,
+        status: "offered"
       });
+      
       if (error) throw error;
       setBetType("");
       setBetAmount(10);
+      setBetTerms("");
       toast({ title: "Bet offered", description: "Your bet is now available to accept." });
       await qc.invalidateQueries({ queryKey: ["bets", leagueId] });
     } catch (err: any) {
@@ -69,10 +98,19 @@ export default function WagersTab({ leagueId }: Props) {
 
   const acceptBet = async (bet: BetRow) => {
     try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) throw new Error("Not authenticated");
+      
       const { error } = await supabase
         .from("bets")
-        .update({ status: "accepted", accepted_at: new Date().toISOString() })
+        .update({ 
+          status: "active", 
+          accepted_by: uid,
+          accepted_at: new Date().toISOString() 
+        })
         .eq("id", bet.id);
+      
       if (error) throw error;
       toast({ title: "Bet accepted", description: "You joined this bet." });
       await qc.invalidateQueries({ queryKey: ["bets", leagueId] });
@@ -81,54 +119,312 @@ export default function WagersTab({ leagueId }: Props) {
     }
   };
 
+  const getUserDisplayName = (userId: string) => {
+    // For now, just show a shortened user ID since we can't access other users' profiles
+    return `@${userId.slice(0, 8)}...`;
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "offered":
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">Offered</Badge>;
+      case "active":
+        return <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100">Active</Badge>;
+      case "settled":
+        return <Badge variant="secondary" className="bg-gray-100 text-gray-800 hover:bg-gray-100">Settled</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const filterBetsByStatus = (status: string) => {
+    return betsQuery.data?.filter(bet => bet.status === status) || [];
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
-    <div className="space-y-4">
-      <Card className="bg-card border shadow-card">
-        <CardHeader>
-          <CardTitle>Offer a Bet</CardTitle>
+    <div className="space-y-6">
+      {/* Bet Offering Section - FanDuel Style */}
+      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 shadow-lg">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
+            <span className="text-3xl">🎯</span>
+            Offer a New Bet
+          </CardTitle>
+          <p className="text-muted-foreground">Challenge your league mates with a custom wager</p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={createBet} className="space-y-3">
-            <div className="space-y-1">
-              <Label htmlFor="betType">Bet description</Label>
-              <Input id="betType" placeholder="e.g., Team A beats Team B" value={betType} onChange={(e) => setBetType(e.target.value)} />
+          <form onSubmit={createBet} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="betType" className="text-sm font-semibold">Bet Description</Label>
+                <Input 
+                  id="betType" 
+                  placeholder="e.g., My team scores 25+ points this week" 
+                  value={betType} 
+                  onChange={(e) => setBetType(e.target.value)}
+                  className="h-12 text-base"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="betAmount" className="text-sm font-semibold">Token Amount</Label>
+                <Input 
+                  id="betAmount" 
+                  type="number" 
+                  min={1} 
+                  value={betAmount} 
+                  onChange={(e) => setBetAmount(parseInt(e.target.value || "0", 10))}
+                  className="h-12 text-base"
+                />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="betAmount">Token amount</Label>
-              <Input id="betAmount" type="number" min={1} value={betAmount} onChange={(e) => setBetAmount(parseInt(e.target.value || "0", 10))} />
+            <div className="space-y-2">
+              <Label htmlFor="betTerms" className="text-sm font-semibold">Additional Terms (Optional)</Label>
+              <Input 
+                id="betTerms" 
+                placeholder="e.g., Must be accepted within 24 hours" 
+                value={betTerms} 
+                onChange={(e) => setBetTerms(e.target.value)}
+                className="h-12 text-base"
+              />
             </div>
-            <Button type="submit" disabled={!betType.trim() || creatingBet}>
-              {creatingBet ? "Offering..." : "Offer bet"}
+            <Button 
+              type="submit" 
+              disabled={!betType.trim() || creatingBet}
+              className="w-full h-12 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              {creatingBet ? "Offering Bet..." : "🎯 Offer Bet"}
             </Button>
           </form>
         </CardContent>
       </Card>
 
+      {/* Wagers Tabs */}
       <Card className="bg-card border shadow-card">
         <CardHeader>
-          <CardTitle>Open & Recent Bets</CardTitle>
+          <CardTitle className="text-xl font-bold">Your Wagers</CardTitle>
         </CardHeader>
         <CardContent>
-          {betsQuery.isLoading && <p className="text-muted-foreground">Loading bets...</p>}
-          {betsQuery.isError && <p className="text-destructive">Failed to load bets.</p>}
-          {betsQuery.data?.length === 0 && !betsQuery.isLoading && (
-            <p className="text-muted-foreground">No bets yet. Offer one above.</p>
-          )}
-          <ul className="space-y-3">
-            {betsQuery.data?.map((b) => (
-              <li key={b.id} className="flex items-center justify-between border rounded p-3">
-                <div>
-                  <div className="font-medium">{b.type}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {b.token_amount} tokens • {b.status}
-                  </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 rounded-lg">
+              <TabsTrigger 
+                value="offered" 
+                className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                Offered Wagers
+                <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-800">
+                  {filterBetsByStatus("offered").length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="active" 
+                className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                Active Wagers
+                <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800">
+                  {filterBetsByStatus("active").length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="past" 
+                className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                Past Wagers
+                <Badge variant="secondary" className="ml-2 bg-gray-100 text-gray-800">
+                  {filterBetsByStatus("settled").length}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Offered Wagers Tab */}
+            <TabsContent value="offered" className="mt-6">
+              {betsQuery.isLoading && (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-muted-foreground mt-2">Loading offered wagers...</p>
                 </div>
-                {b.status === "offered" && (
-                  <Button size="sm" onClick={() => acceptBet(b)}>Accept</Button>
-                )}
-              </li>
-            ))}
-          </ul>
+              )}
+              
+              {betsQuery.isError && (
+                <div className="text-center py-8">
+                  <p className="text-destructive">Failed to load wagers.</p>
+                </div>
+              )}
+              
+              {filterBetsByStatus("offered").length === 0 && !betsQuery.isLoading && (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">🎯</div>
+                  <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Offered Wagers</h3>
+                  <p className="text-sm text-muted-foreground">Create a bet above to get started!</p>
+                </div>
+              )}
+              
+              <div className="space-y-4">
+                {filterBetsByStatus("offered").map((bet) => (
+                  <Card key={bet.id} className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50/50 to-transparent hover:shadow-md transition-all duration-200">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-lg font-semibold text-foreground">{bet.type}</h3>
+                            {getStatusBadge(bet.status)}
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Amount:</span>
+                              <div className="font-semibold text-lg text-primary">{bet.token_amount} tokens</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Offered by:</span>
+                              <div className="font-medium">{getUserDisplayName(bet.created_by)}</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Created:</span>
+                              <div className="font-medium">{formatDate(bet.created_at)}</div>
+                            </div>
+                            {bet.terms?.description && (
+                              <div>
+                                <span className="text-muted-foreground">Terms:</span>
+                                <div className="font-medium">{bet.terms.description}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col gap-2 ml-4">
+                          <Button 
+                            onClick={() => acceptBet(bet)}
+                            className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                          >
+                            Accept Bet
+                          </Button>
+                          <span className="text-xs text-muted-foreground text-center">Join this wager</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* Active Wagers Tab */}
+            <TabsContent value="active" className="mt-6">
+              {filterBetsByStatus("active").length === 0 && !betsQuery.isLoading && (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">⚡</div>
+                  <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Active Wagers</h3>
+                  <p className="text-sm text-muted-foreground">Accept a bet to see it here!</p>
+                </div>
+              )}
+              
+              <div className="space-y-4">
+                {filterBetsByStatus("active").map((bet) => (
+                  <Card key={bet.id} className="border-l-4 border-l-green-500 bg-gradient-to-r from-green-50/50 to-transparent hover:shadow-md transition-all duration-200">
+                    <CardContent className="p-6">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-semibold text-foreground">{bet.type}</h3>
+                          {getStatusBadge(bet.status)}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Amount:</span>
+                            <div className="font-semibold text-lg text-primary">{bet.token_amount} tokens</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Offered by:</span>
+                            <div className="font-medium">{getUserDisplayName(bet.created_by)}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Accepted by:</span>
+                            <div className="font-medium">{getUserDisplayName(bet.accepted_by!)}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Started:</span>
+                            <div className="font-medium">{formatDate(bet.accepted_at!)}</div>
+                          </div>
+                        </div>
+                        
+                        {bet.terms?.description && (
+                          <div className="pt-2 border-t">
+                            <span className="text-muted-foreground text-sm">Terms:</span>
+                            <div className="font-medium text-sm">{bet.terms.description}</div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* Past Wagers Tab */}
+            <TabsContent value="past" className="mt-6">
+              {filterBetsByStatus("settled").length === 0 && !betsQuery.isLoading && (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">🏆</div>
+                  <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Past Wagers</h3>
+                  <p className="text-sm text-muted-foreground">Completed bets will appear here!</p>
+                </div>
+              )}
+              
+              <div className="space-y-4">
+                {filterBetsByStatus("settled").map((bet) => (
+                  <Card key={bet.id} className="border-l-4 border-l-gray-500 bg-gradient-to-r from-gray-50/50 to-transparent hover:shadow-md transition-all duration-200">
+                    <CardContent className="p-6">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-semibold text-foreground">{bet.type}</h3>
+                          {getStatusBadge(bet.status)}
+                          {bet.outcome && (
+                            <Badge variant={bet.outcome === 'won' ? 'default' : 'destructive'}>
+                              {bet.outcome === 'won' ? 'Won' : 'Lost'}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Amount:</span>
+                            <div className="font-semibold text-lg text-primary">{bet.token_amount} tokens</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Offered by:</span>
+                            <div className="font-medium">{getUserDisplayName(bet.created_by)}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Accepted by:</span>
+                            <div className="font-medium">{getUserDisplayName(bet.accepted_by!)}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Settled:</span>
+                            <div className="font-medium">{bet.settled_at ? formatDate(bet.settled_at) : 'Pending'}</div>
+                          </div>
+                        </div>
+                        
+                        {bet.terms?.description && (
+                          <div className="pt-2 border-t">
+                            <span className="text-muted-foreground text-sm">Terms:</span>
+                            <div className="font-medium text-sm">{bet.terms.description}</div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

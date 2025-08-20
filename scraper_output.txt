@@ -1,0 +1,1161 @@
+
+> vite_react_shadcn_ts@0.0.0 scrape:projections
+> tsx scripts/scrape-fantasypros.ts --season 2025 --week 1 --scoring PPR
+
+Scraping position: qb
+Found 103 rows for qb
+Match result for Jalen Hurts PHI (qb): Matched to 6904
+Match result for Josh Allen BUF (qb): Matched to 4984
+Match result for Lamar Jackson BAL (qb): Matched to 4881
+Match result for Jayden Daniels WAS (qb): Matched to 11566
+Match result for Joe Burrow CIN (qb): Matched to 6770
+Match result for Patrick Mahomes II KC (qb): Matched to 4046
+Match result for Baker Mayfield TB (qb): Matched to 4892
+Match result for Bo Nix DEN (qb): Matched to 11563
+Match result for Kyler Murray ARI (qb): Matched to 5849
+Match result for Trevor Lawrence JAC (qb): Matched to 7523
+Match result for Brock Purdy SF (qb): Matched to 8183
+Match result for Drake Maye NE (qb): Matched to 11564
+Match result for J.J. McCarthy MIN (qb): Matched to 11565
+Match result for Justin Herbert LAC (qb): Matched to 6797
+Match result for Dak Prescott DAL (qb): Matched to 3294
+Match result for Jordan Love GB (qb): Matched to 6804
+Match result for C.J. Stroud HOU (qb): Matched to 9758
+Match result for Jared Goff DET (qb): Matched to 3163
+Match result for Caleb Williams CHI (qb): Matched to 11560
+Match result for Kenny Pickett CLE (qb): Matched to 8160
+Match result for Bryce Young CAR (qb): Matched to 9228
+Match result for Tua Tagovailoa MIA (qb): Matched to 6768
+Match result for Justin Fields NYJ (qb): Matched to 7591
+Match result for Russell Wilson NYG (qb): Matched to 1234
+Match result for Matthew Stafford LAR (qb): Matched to 421
+Match result for Sam Darnold SEA (qb): Matched to 4943
+Match result for Michael Penix Jr. ATL (qb): Matched to 11559
+Match result for Geno Smith LV (qb): Matched to 1373
+Match result for Joe Flacco CLE (qb): Matched to 19
+Match result for Cam Ward TEN (qb): Matched to 12522
+Match result for Aaron Rodgers PIT (qb): Matched to 96
+Match result for Daniel Jones IND (qb): Matched to 5870
+Match result for Tyler Shough NO (qb): Matched to 12545
+Match result for Anthony Richardson Sr. IND (qb): Matched to 9229
+Match result for Spencer Rattler NO (qb): Matched to 11562
+Match result for Jalen Milroe SEA (qb): Matched to 12510
+Match result for Nick Mullens JAC (qb): Matched to 4464
+Match result for Jake Browning CIN (qb): Matched to 6111
+Match result for Gardner Minshew II KC (qb): Matched to 6011
+Match result for Sam Howell MIN (qb): Matched to 8162
+Match result for Jimmy Garoppolo LAR (qb): Matched to 1837
+Match result for Marcus Mariota WAS (qb): Matched to 2307
+Match result for Kyle Trask TB (qb): Matched to 7605
+Match result for Jarrett Stidham DEN (qb): Matched to 6136
+Match result for Cooper Rush BAL (qb): Matched to 4574
+Match result for Joe Milton III DAL (qb): Matched to 11557
+Match result for Taylor Heinicke LAC (qb): Matched to 2711
+Match result for Kirk Cousins ATL (qb): Matched to 1166
+Match result for Andy Dalton CAR (qb): Matched to 829
+Match result for Davis Mills HOU (qb): Matched to 7585
+Match result for Drew Lock SEA (qb): Matched to 5854
+Match result for Zach Wilson MIA (qb): Matched to 7538
+Match result for Malik Willis GB (qb): Matched to 8161
+Match result for Aidan O'Connell LV (qb): Matched to 10866
+Match result for Hendon Hooker DET (qb): Matched to 9998
+Match result for Tyrod Taylor NYJ (qb): Matched to 827
+Match result for Jacoby Brissett ARI (qb): Matched to 3257
+Match result for Mason Rudolph PIT (qb): Matched to 4972
+Match result for Mac Jones SF (qb): Matched to 7527
+Match result for Joshua Dobbs NE (qb): Matched to 4179
+Match result for Mitchell Trubisky BUF (qb): Matched to 3976
+Match result for Tanner McKee PHI (qb): Matched to 9230
+Match result for Case Keenum CHI (qb): Matched to 1737
+Match result for Brandon Allen TEN (qb): Matched to 3357
+Match result for Jaxson Dart NYG (qb): Matched to 12508
+Match result for Dillon Gabriel CLE (qb): Matched to 12486
+Match result for Shedeur Sanders CLE (qb): Matched to 12524
+Match result for Jameis Winston NYG (qb): Matched to 2306
+Match result for Kyle Allen DET (qb): Matched to 5127
+Match result for Mike White BUF (qb): Matched to 5089
+Match result for Trevor Siemian TEN (qb): Matched to 2549
+Match result for Brett Rypien MIN (qb): Matched to 6037
+Match result for Easton Stick ATL (qb): Matched to 6185
+Match result for Logan Woodside PIT (qb): Matched to 5128
+Match result for Deshaun Watson CLE (qb): Matched to 4017
+Match result for Teddy Bridgewater TB (qb): Matched to 2152
+Match result for Josh Johnson WAS (qb): Matched to 260
+Match result for John Wolford JAC (qb): Matched to 5806
+Match result for Tyler Huntley CLE (qb): Matched to 7083
+Match result for Trey Lance LAC (qb): Matched to 7610
+Match result for Sam Ehlinger DEN (qb): Matched to 7583
+Match result for Desmond Ridder CIN (qb): Matched to 8159
+Match result for Bailey Zappe KC (qb): Matched to 8157
+Match result for Skylar Thompson PIT (qb): Matched to 8206
+Match result for Chris Oladokun KC (qb): Matched to 8413
+Match result for Shane Buechele BUF (qb): Matched to 8002
+Match result for Stetson Bennett IV LAR (qb): Matched to 10857
+Match result for Sean Clifford GB (qb): Matched to 10983
+Match result for Jake Haener NO (qb): Matched to 10215
+Match result for Dorian Thompson-Robinson PHI (qb): Matched to 10862
+Match result for Clayton Tune ARI (qb): Matched to 10217
+Match result for Tyson Bagent CHI (qb): Matched to 11256
+Match result for Tommy DeVito NYG (qb): Matched to 11292
+Match result for Devin Leary BAL (qb): Matched to 11556
+Match result for Quinn Ewers MIA (qb): Matched to 12500
+Match result for Graham Mertz HOU (qb): Matched to 12705
+Match result for Kurtis Rourke SF (qb): Matched to 12477
+Match result for Cam Miller LV (qb): Matched to 12688
+Match result for Kyle McCord PHI (qb): Matched to 12494
+Match result for Riley Leonard IND (qb): Matched to 12470
+Match result for Will Howard PIT (qb): Matched to 12511
+Match result for Ben DiNucci ATL (qb): Matched to 7143
+Match result for Michael Pratt TB (qb): Matched to 11561
+Scraping position: rb
+Found 190 rows for rb
+Match result for Saquon Barkley PHI (rb): Matched to 4866
+Match result for Christian McCaffrey SF (rb): Matched to 4034
+Match result for Bijan Robinson ATL (rb): Matched to 9509
+Match result for Jahmyr Gibbs DET (rb): Matched to 9221
+Match result for De'Von Achane MIA (rb): Matched to 9226
+Match result for Bucky Irving TB (rb): Matched to 11584
+Match result for Derrick Henry BAL (rb): Matched to 3198
+Match result for Jonathan Taylor IND (rb): Matched to 6813
+Match result for Josh Jacobs GB (rb): Matched to 5850
+Match result for Ashton Jeanty LV (rb): Matched to 12527
+Match result for Chase Brown CIN (rb): Matched to 9224
+Match result for Kyren Williams LAR (rb): Matched to 8150
+Match result for Alvin Kamara NO (rb): Matched to 4035
+Match result for James Cook BUF (rb): Matched to 8138
+Match result for James Conner ARI (rb): Matched to 4137
+Match result for Omarion Hampton LAC (rb): Matched to 12507
+Match result for Kenneth Walker III SEA (rb): Matched to 8151
+Match result for Chuba Hubbard CAR (rb): Matched to 7594
+Match result for Breece Hall NYJ (rb): Matched to 8155
+Match result for TreVeyon Henderson NE (rb): Matched to 12529
+Match result for Quinshon Judkins CLE (rb): Matched to 12512
+Match result for RJ Harvey DEN (rb): Matched to 12489
+Match result for D'Andre Swift CHI (rb): Matched to 6790
+Match result for David Montgomery DET (rb): Matched to 5892
+Match result for Isiah Pacheco KC (rb): Matched to 8205
+Match result for Aaron Jones Sr. MIN (rb): Matched to 4199
+Match result for Tyrone Tracy Jr. NYG (rb): Matched to 11655
+Match result for Jaylen Warren PIT (rb): Matched to 8228
+Match result for J.K. Dobbins DEN (rb): Matched to 6806
+Match result for Brian Robinson Jr. WAS (rb): Matched to 8154
+Match result for Tony Pollard TEN (rb): Matched to 5967
+Match result for Kaleb Johnson PIT (rb): Matched to 12504
+Match result for Rhamondre Stevenson NE (rb): Matched to 7611
+Match result for Travis Etienne Jr. JAC (rb): Matched to 7543
+Match result for Austin Ekeler WAS (rb): Matched to 4663
+Match result for Javonte Williams DAL (rb): Matched to 7588
+Match result for Rachaad White TB (rb): Matched to 8136
+Match result for Zach Charbonnet SEA (rb): Matched to 9753
+Match result for Nick Chubb HOU (rb): Matched to 4988
+Match result for Trey Benson ARI (rb): Matched to 11589
+Match result for Jordan Mason MIN (rb): Matched to 8408
+Match result for Tyjae Spears TEN (rb): Matched to 9508
+Match result for Tank Bigsby JAC (rb): Matched to 9225
+Match result for Cam Skattebo NYG (rb): Matched to 12481
+Match result for Najee Harris LAC (rb): Matched to 7528
+Match result for Justice Hill BAL (rb): Matched to 5995
+Match result for Woody Marks HOU (rb): Matched to 12474
+Match result for Ray Davis BUF (rb): Matched to 11575
+Match result for Jaydon Blue DAL (rb): Matched to 12457
+Match result for Tyler Allgeier ATL (rb): Matched to 8132
+Match result for Jerome Ford CLE (rb): Matched to 8143
+Match result for Jaylen Wright MIA (rb): Matched to 11643
+Match result for Rico Dowdle CAR (rb): Matched to 7021
+Match result for Bhayshul Tuten JAC (rb): Matched to 12490
+Match result for Roschon Johnson CHI (rb): Matched to 10235
+Match result for Kareem Hunt KC (rb): Matched to 4098
+Match result for Isaac Guerendo SF (rb): Matched to 11651
+Match result for Braelon Allen NYJ (rb): Matched to 11576
+Match result for Ty Johnson BUF (rb): Matched to 6039
+Match result for Miles Sanders DAL (rb): Matched to 6151
+Match result for Dylan Sampson CLE (rb): Matched to 12469
+Match result for Will Shipley PHI (rb): Matched to 11577
+Match result for Samaje Perine CIN (rb): Matched to 4147
+Match result for Raheem Mostert LV (rb): Matched to 2749
+Match result for MarShawn Lloyd GB (rb): Matched to 11581
+Match result for Kendre Miller NO (rb): Matched to 9757
+Match result for Dare Ogunbowale HOU (rb): Matched to 4718
+Match result for Kenneth Gainwell PIT (rb): Matched to 7567
+Match result for Kyle Monangai CHI (rb): Matched to 12534
+Match result for Elijah Mitchell KC (rb): Matched to 7561
+Match result for Blake Corum LAR (rb): Matched to 11586
+Match result for Devin Neal NO (rb): Matched to 12476
+Match result for Joe Mixon HOU (rb): Matched to 4018
+Match result for Devin Singletary NYG (rb): Matched to 6130
+Match result for Isaiah Davis NYJ (rb): Matched to 11571
+Match result for Jacory Croskey-Merritt WAS (rb): Matched to 12533
+Match result for Tahj Brooks CIN (rb): Matched to 12543
+Match result for Jaleel McLaughlin DEN (rb): Matched to 11439
+Match result for Dameon Pierce HOU (rb): Matched to 8129
+Match result for Brashard Smith KC (rb): Matched to 12455
+Match result for Trevor Etienne CAR (rb): Matched to 12531
+Match result for Emanuel Wilson GB (rb): Matched to 11435
+Match result for Antonio Gibson NE (rb): Matched to 6945
+Match result for Keaton Mitchell BAL (rb): Matched to 9511
+Match result for Sean Tucker TB (rb): Matched to 9506
+Match result for DJ Giddens IND (rb): Matched to 12471
+Match result for Jarquez Hunter LAR (rb): Matched to 11569
+Match result for Kyle Juszczyk SF (rb): No match
+No match found for Kyle Juszczyk SF (rb)
+Match result for Ollie Gordon II MIA (rb): Matched to 12495
+Match result for Clyde Edwards-Helaire NO (rb): Matched to 6820
+Match result for Chris Brooks GB (rb): Matched to 11370
+Match result for Alec Ingold MIA (rb): No match
+No match found for Alec Ingold MIA (rb)
+Match result for Emari Demercado ARI (rb): Matched to 11199
+Match result for Sincere McCormick LV (rb): Matched to 8220
+Match result for Ty Chandler MIN (rb): Matched to 8230
+Match result for A.J. Dillon PHI (rb): Matched to 6828
+Match result for Chris Rodriguez Jr. WAS (rb): Matched to 10219
+Match result for Khalil Herbert IND (rb): Matched to 7608
+Match result for Jordan James SF (rb): Matched to 12467
+Match result for Damien Martinez SEA (rb): Matched to 12462
+Match result for Tyler Goodson IND (rb): Matched to 8207
+Match result for Pierre Strong Jr. CLE (rb): Matched to 8116
+Match result for Kimani Vidal LAC (rb): Matched to 11647
+Match result for Hunter Luepke DAL (rb): Matched to 978
+Match result for Michael Burton DEN (rb): No match
+No match found for Michael Burton DEN (rb)
+Match result for Kalel Mullings TEN (rb): Matched to 12516
+Match result for Audric Estime DEN (rb): Matched to 11579
+Match result for Rasheen Ali BAL (rb): Matched to 11570
+Match result for Jashaun Corbin ATL (rb): Matched to 8194
+Match result for Carlos Washington Jr. ATL (rb): Matched to 11186
+Match result for Zamir White LV (rb): Matched to 8139
+Match result for C.J. Ham MIN (rb): No match
+No match found for C.J. Ham MIN (rb)
+Match result for Jase McClellan TB (rb): Matched to 11590
+Match result for Craig Reynolds DET (rb): Matched to 6659
+Match result for Carson Steele KC (rb): Matched to 11582
+Match result for Michael Carter ARI (rb): Matched to 7607
+Match result for Patrick Ricard BAL (rb): Matched to 7425
+Match result for DeeJay Dallas ARI (rb): Matched to 6931
+Match result for Jeremy McNichols WAS (rb): Matched to 4219
+Match result for Patrick Taylor Jr. SF (rb): Matched to 6963
+Match result for Robbie Ouzts SEA (rb): No match
+No match found for Robbie Ouzts SEA (rb)
+Match result for Marcus Yarns NO (rb): Matched to 12546
+Match result for Donovan Edwards NYJ (rb): Matched to 12515
+Match result for Tyler Badie DEN (rb): Matched to 8208
+Match result for Travis Homer CHI (rb): Matched to 6012
+Match result for Scott Matlock LAC (rb): No match
+No match found for Scott Matlock LAC (rb)
+Match result for Julius Chestnut TEN (rb): Matched to 8254
+Match result for Deuce Vaughn DAL (rb): Matched to 9505
+Match result for Dylan Laube LV (rb): Matched to 11574
+Match result for Sione Vaki DET (rb): Matched to 11729
+Match result for Keilan Robinson PHI (rb): Matched to 11773
+Match result for Hassan Haskins LAC (rb): Matched to 8123
+Match result for LeQuint Allen Jr. JAC (rb): Matched to 12544
+Match result for Ronnie Rivers LAR (rb): Matched to 8195
+Match result for Eric Gray NYG (rb): Matched to 10223
+Match result for Raheem Blackshear CAR (rb): Matched to 8255
+Match result for Avery Williams PHI (rb): Matched to 7809
+Match result for Trayveon Williams CLE (rb): Matched to 6144
+Match result for Jeff Wilson Jr. SF (rb): Matched to 5284
+Match result for Myles Gaskin BAL (rb): Matched to 5980
+Match result for Mike Boone MIA (rb): Matched to 5209
+Match result for D'Ernest Johnson BAL (rb): Matched to 6694
+Match result for Andrew Beck NYJ (rb): Matched to 6323
+Match result for Jakob Johnson HOU (rb): No match
+No match found for Jakob Johnson HOU (rb)
+Match result for Cam Akers NO (rb): Matched to 6938
+Match result for Ke'Shawn Vaughn SF (rb): Matched to 6885
+Match result for Darrynton Evans BUF (rb): Matched to 7064
+Match result for JaMycal Hasty NE (rb): Matched to 6996
+Match result for J.J. Taylor HOU (rb): Matched to 6973
+Match result for Salvon Ahmed IND (rb): Matched to 6918
+Match result for Reggie Gilliam BUF (rb): Matched to 7204
+Match result for Jonathan Ward NYG (rb): Matched to 7087
+Match result for Trey Sermon PIT (rb): Matched to 7593
+Match result for Jermar Jefferson TEN (rb): Matched to 7599
+Match result for Gary Brightwell CIN (rb): Matched to 7529
+Match result for Demetric Felton Jr. WAS (rb): Matched to 7609
+Match result for Kene Nwangwu NYJ (rb): Matched to 7720
+Match result for Jaret Patterson LAC (rb): Matched to 7537
+Match result for Deon Jackson DET (rb): Matched to 7551
+Match result for Velus Jones Jr. NO (rb): No match
+No match found for Velus Jones Jr. NO (rb)
+Match result for Tyrion Davis-Price GB (rb): Matched to 8211
+Match result for Keaontay Ingram KC (rb): Matched to 8221
+Match result for Zonovan Knight ARI (rb): No match
+No match found for Zonovan Knight ARI (rb)
+Match result for Brittain Brown CHI (rb): Matched to 8423
+Match result for Malik Davis DAL (rb): Matched to 8800
+Match result for Evan Hull PIT (rb): Matched to 9220
+Match result for Israel Abanikanda GB (rb): Matched to 9227
+Match result for Lew Nichols III PIT (rb): Matched to 9510
+Match result for Deneric Prince NE (rb): Matched to 10870
+Match result for Elijah Dotson ATL (rb): Matched to 11114
+Match result for Ben VanSumeren PHI (rb): No match
+No match found for Ben VanSumeren PHI (rb)
+Match result for Brady Russell SEA (rb): No match
+No match found for Brady Russell SEA (rb)
+Match result for Jordan Mims TEN (rb): Matched to 11378
+Match result for Owen Wright TB (rb): Matched to 11384
+Match result for Jonathon Brooks CAR (rb): Matched to 11583
+Match result for Jawhar Jordan HOU (rb): Matched to 11588
+Match result for Dante Miller NYG (rb): Matched to 11654
+Match result for Blake Watson DEN (rb): Matched to 11568
+Match result for Jacob Saylors DET (rb): Matched to 11237
+Match result for Michael Wiley KC (rb): Matched to 11943
+Match result for British Brooks HOU (rb): Matched to 12171
+Match result for Cody Schrader LAR (rb): Matched to 11644
+Match result for Terrell Jennings NE (rb): Matched to 12412
+Match result for Aaron Shampklin MIA (rb): Matched to 8809
+Match result for Kendall Milton CIN (rb): Matched to 11649
+Match result for Frank Gore Jr. BUF (rb): Matched to 232
+Match result for Chris Collier LV (rb): Matched to 11963
+Match result for George Holani SEA (rb): Matched to 12048
+Match result for Phil Mafah DAL (rb): Matched to 12738
+Match result for Adam Prentice DEN (rb): No match
+No match found for Adam Prentice DEN (rb)
+Scraping position: wr
+Found 286 rows for wr
+Match result for Ja'Marr Chase CIN (wr): Matched to 7564
+Match result for Justin Jefferson MIN (wr): Matched to 6794
+Match result for CeeDee Lamb DAL (wr): Matched to 6786
+Match result for Malik Nabers NYG (wr): Matched to 11632
+Match result for Amon-Ra St. Brown DET (wr): Matched to 7547
+Match result for Puka Nacua LAR (wr): Matched to 9493
+Match result for Brian Thomas Jr. JAC (wr): Matched to 11631
+Match result for Nico Collins HOU (wr): Matched to 7569
+Match result for Drake London ATL (wr): Matched to 8112
+Match result for A.J. Brown PHI (wr): Matched to 5859
+Match result for Tyreek Hill MIA (wr): Matched to 3321
+Match result for Mike Evans TB (wr): Matched to 2216
+Match result for Ladd McConkey LAC (wr): Matched to 11635
+Match result for Tee Higgins CIN (wr): Matched to 6801
+Match result for Rashee Rice KC (wr): Matched to 10229
+Match result for Terry McLaurin WAS (wr): Matched to 5927
+Match result for Jaxon Smith-Njigba SEA (wr): Matched to 9488
+Match result for Davante Adams LAR (wr): Matched to 2133
+Match result for Marvin Harrison Jr. ARI (wr): Matched to 11628
+Match result for Xavier Worthy KC (wr): Matched to 11624
+Match result for Zay Flowers BAL (wr): Matched to 9997
+Match result for DJ Moore CHI (wr): Matched to 4983
+Match result for Courtland Sutton DEN (wr): Matched to 5045
+Match result for Garrett Wilson NYJ (wr): Matched to 8146
+Match result for Jerry Jeudy CLE (wr): Matched to 6783
+Match result for Travis Hunter JAC (wr): Matched to 12530
+Match result for DeVonta Smith PHI (wr): Matched to 7525
+Match result for Jameson Williams DET (wr): Matched to 8148
+Match result for DK Metcalf PIT (wr): Matched to 5846
+Match result for Tetairoa McMillan CAR (wr): Matched to 12526
+Match result for Jauan Jennings SF (wr): Matched to 7049
+Match result for George Pickens DAL (wr): Matched to 8137
+Match result for Calvin Ridley TEN (wr): Matched to 4981
+Match result for Jaylen Waddle MIA (wr): Matched to 7526
+Match result for Khalil Shakir BUF (wr): Matched to 8134
+Match result for Rome Odunze CHI (wr): Matched to 11620
+Match result for Jakobi Meyers LV (wr): Matched to 5947
+Match result for Deebo Samuel Sr. WAS (wr): Matched to 5872
+Match result for Ricky Pearsall SF (wr): Matched to 11638
+Match result for Cooper Kupp SEA (wr): Matched to 4039
+Match result for Emeka Egbuka TB (wr): Matched to 12514
+Match result for Stefon Diggs NE (wr): Matched to 2449
+Match result for Chris Olave NO (wr): Matched to 8144
+Match result for Matthew Golden GB (wr): Matched to 12501
+Match result for Michael Pittman Jr. IND (wr): Matched to 6819
+Match result for Keon Coleman BUF (wr): Matched to 11637
+Match result for Josh Downs IND (wr): Matched to 9500
+Match result for Rashid Shaheed NO (wr): Matched to 8676
+Match result for Marvin Mims Jr. DEN (wr): Matched to 9494
+Match result for Jalen McMillan TB (wr): Matched to 11618
+Match result for Keenan Allen LAC (wr): Matched to 1479
+Match result for Jayden Higgins HOU (wr): Matched to 12484
+Match result for Adam Thielen CAR (wr): Matched to 1689
+Match result for Jayden Reed GB (wr): Matched to 10222
+Match result for Christian Kirk HOU (wr): Matched to 4950
+Match result for Rashod Bateman BAL (wr): Matched to 7571
+Match result for Wan'Dale Robinson NYG (wr): Matched to 8126
+Match result for Romeo Doubs GB (wr): Matched to 8121
+Match result for Cedric Tillman CLE (wr): Matched to 10444
+Match result for Marquise Brown KC (wr): No match
+No match found for Marquise Brown KC (wr)
+Match result for Joshua Palmer BUF (wr): Matched to 7670
+Match result for DeMario Douglas NE (wr): Matched to 9501
+Match result for Xavier Legette CAR (wr): Matched to 11626
+Match result for Jack Bech LV (wr): Matched to 12483
+Match result for Luther Burden III CHI (wr): Matched to 12519
+Match result for Michael Wilson ARI (wr): Matched to 10232
+Match result for Tre' Harris LAC (wr): Matched to 12509
+Match result for Dyami Brown JAC (wr): Matched to 7587
+Match result for Darius Slayton NYG (wr): Matched to 6149
+Match result for Jalen Nailor MIN (wr): Matched to 8180
+Match result for Kyle Williams NE (wr): Matched to 638
+Match result for Ray-Ray McCloud III ATL (wr): Matched to 5096
+Match result for Quentin Johnston LAC (wr): Matched to 9754
+Match result for Josh Reynolds NYJ (wr): Matched to 4171
+Match result for Tyler Lockett TEN (wr): Matched to 2374
+Match result for Dontayvion Wicks GB (wr): Matched to 9486
+Match result for Alec Pierce IND (wr): Matched to 8142
+Match result for DeAndre Hopkins BAL (wr): Matched to 1426
+Match result for Tutu Atwell LAR (wr): Matched to 7562
+Match result for Nick Westbrook-Ikhine MIA (wr): Matched to 7496
+Match result for Brandin Cooks NO (wr): Matched to 2197
+Match result for Calvin Austin III PIT (wr): Matched to 8125
+Match result for Adonai Mitchell IND (wr): Matched to 11625
+Match result for Demarcus Robinson SF (wr): Matched to 3286
+Match result for Jalen Coker CAR (wr): Matched to 11646
+Match result for Jordan Whittington LAR (wr): Matched to 11623
+Match result for Chris Godwin TB (wr): Matched to 4037
+Match result for Darnell Mooney ATL (wr): Matched to 7090
+Match result for Diontae Johnson CLE (wr): Matched to 5937
+Match result for Jaylin Noel HOU (wr): Matched to 12536
+Match result for Allen Lazard NYJ (wr): Matched to 5185
+Match result for Noah Brown WAS (wr): Matched to 4234
+Match result for Jalen Tolbert DAL (wr): Matched to 8117
+Match result for Andrei Iosivas CIN (wr): Matched to 10226
+Match result for Troy Franklin DEN (wr): Matched to 11627
+Match result for KaVontae Turpin DAL (wr): Matched to 8917
+Match result for Tai Felton MIN (wr): Matched to 12496
+Match result for Curtis Samuel BUF (wr): Matched to 4082
+Match result for Greg Dortch ARI (wr): Matched to 5970
+Match result for KhaDarel Hodge ATL (wr): Matched to 5773
+Match result for Devaughn Vele DEN (wr): Matched to 11834
+Match result for Tre Tucker LV (wr): Matched to 10213
+Match result for Dont'e Thornton Jr. LV (wr): Matched to 12541
+Match result for Malik Washington MIA (wr): Matched to 11610
+Match result for Savion Williams GB (wr): Matched to 12482
+Match result for Jermaine Burton CIN (wr): Matched to 11640
+Match result for Pat Bryant DEN (wr): Matched to 12492
+Match result for Tory Horton SEA (wr): Matched to 12497
+Match result for Marquez Valdes-Scantling SEA (wr): Matched to 5086
+Match result for Roman Wilson PIT (wr): Matched to 11630
+Match result for Elic Ayomanor TEN (wr): Matched to 12499
+Match result for Robert Woods PIT (wr): Matched to 1352
+Match result for Jalen Royals KC (wr): Matched to 12505
+Match result for Chimere Dike TEN (wr): Matched to 12540
+Match result for Malachi Corley NYJ (wr): Matched to 11617
+Match result for Kayshon Boutte NE (wr): Matched to 9504
+Match result for Mack Hollins NE (wr): Matched to 4177
+Match result for Van Jefferson TEN (wr): Matched to 6853
+Match result for Tim Patrick DET (wr): Matched to 4351
+Match result for Isaac TeSlaa DET (wr): Matched to 12535
+Match result for Elijah Moore BUF (wr): Matched to 7596
+Match result for Parker Washington JAC (wr): Matched to 9487
+Match result for Luke McCaffrey WAS (wr): Matched to 11650
+Match result for Olamide Zaccheaus CHI (wr): Matched to 6271
+Match result for Kendrick Bourne NE (wr): Matched to 4454
+Match result for Jamal Agnew ATL (wr): Matched to 4198
+Match result for Tim Jones MIN (wr): Matched to 8013
+Match result for Jahan Dotson PHI (wr): Matched to 8119
+Match result for Jamari Thrash CLE (wr): Matched to 11633
+Match result for Zay Jones ARI (wr): Matched to 4080
+Match result for Kalif Raymond DET (wr): Matched to 3634
+Match result for Jaylin Lane WAS (wr): Matched to 12641
+Match result for JuJu Smith-Schuster KC (wr): Matched to 4040
+Match result for Arian Smith NYJ (wr): Matched to 12539
+Match result for Jake Bobo SEA (wr): Matched to 10867
+Match result for Ja'Lynn Polk NE (wr): Matched to 11619
+Match result for Tez Johnson TB (wr): Matched to 12485
+Match result for Jalin Hyatt NYG (wr): Matched to 9497
+Match result for Derius Davis LAC (wr): Matched to 10234
+Match result for Justin Watson HOU (wr): Matched to 5374
+Match result for Dante Pettis NO (wr): Matched to 4992
+Match result for Devontez Walker BAL (wr): Matched to 11629
+Match result for Sterling Shepard TB (wr): Matched to 3200
+Match result for Malik Heath GB (wr): Matched to 11210
+Match result for Xavier Restrepo TEN (wr): Matched to 12520
+Match result for Johnny Wilson PHI (wr): Matched to 11636
+Match result for David Moore CAR (wr): Matched to 4274
+Match result for Lil'Jordan Humphrey NYG (wr): Matched to 5938
+Match result for Jonathan Mingo DAL (wr): Matched to 10225
+Match result for John Metchie III PHI (wr): Matched to 8147
+Match result for Tylan Wallace BAL (wr): Matched to 7595
+Match result for Tommy Mellott LV (wr): No match
+No match found for Tommy Mellott LV (wr)
+Match result for Javon Baker NE (wr): Matched to 11645
+Match result for Hunter Renfrow CAR (wr): Matched to 5955
+Match result for Tyquan Thornton KC (wr): Matched to 8188
+Match result for Jordan Watkins SF (wr): Matched to 12634
+Match result for Jacob Cowing SF (wr): Matched to 11616
+Match result for Michael Gallup WAS (wr): Matched to 5038
+Match result for Austin Trammell JAC (wr): Matched to 7746
+Match result for Jalen Reagor LAC (wr): Matched to 6798
+Match result for Nick Nash ATL (wr): Matched to 12478
+Match result for Bryce Oliver TEN (wr): Matched to 11959
+Match result for Ben Skowronek PIT (wr): Matched to 7757
+Match result for Scotty Miller PIT (wr): Matched to 6290
+Match result for Trent Sherfield Sr. DEN (wr): Matched to 5154
+Match result for Britain Covey LAR (wr): Matched to 8414
+Match result for Ashton Dulin IND (wr): Matched to 6427
+Match result for Anthony Gould IND (wr): Matched to 11762
+Match result for Xavier Gipson NYJ (wr): Matched to 11306
+Match result for KeAndre Lambert-Smith LAC (wr): Matched to 12670
+Match result for Ryan Flournoy DAL (wr): Matched to 11783
+Match result for Charlie Jones CIN (wr): Matched to 10228
+Match result for Mecole Hardman Jr. GB (wr): Matched to 5917
+Match result for Ihmir Smith-Marsette NYG (wr): Matched to 7559
+Match result for Erik Ezukanma MIA (wr): Matched to 8114
+Match result for Dee Eskridge MIA (wr): Matched to 7612
+Match result for Laviska Shenault Jr. BUF (wr): Matched to 6814
+Match result for Zach Pascal NYG (wr): Matched to 4319
+Match result for Kevin Austin Jr. NO (wr): Matched to 8200
+Match result for Bub Means NO (wr): Matched to 11748
+Match result for Simi Fehoko ARI (wr): Matched to 7812
+Match result for Efton Chism III NE (wr): Matched to 12542
+Match result for Devin Duvernay CHI (wr): Matched to 6847
+Match result for Ainias Smith PHI (wr): Matched to 11615
+Match result for David Bell CLE (wr): Matched to 8118
+Match result for Cedrick Wilson Jr. NO (wr): Matched to 5113
+Match result for Tyler Scott CHI (wr): Matched to 9490
+Match result for Xavier Smith LAR (wr): Matched to 11168
+Match result for Braxton Berrios HOU (wr): Matched to 5121
+Match result for Isaiah Neyor GB (wr): Matched to 13074
+Match result for Jha'Quan Jackson TEN (wr): Matched to 11808
+Match result for Brandon Aiyuk SF (wr): Matched to 6803
+Match result for Christian Watson GB (wr): Matched to 8167
+Match result for Steven Sims Jr. SEA (wr): Matched to 6402
+Match result for Nikko Remigio KC (wr): Matched to 11320
+Match result for DeAndre Carter CLE (wr): Matched to 2750
+Match result for Tom Kennedy DET (wr): Matched to 6588
+Match result for Mason Kinsey TEN (wr): Matched to 7436
+Match result for Trey Palmer TB (wr): Matched to 9492
+Match result for LaJohntay Wester BAL (wr): Matched to 12699
+Match result for Isaiah Williams CIN (wr): Matched to 11608
+Match result for Jimmy Horn Jr. CAR (wr): Matched to 12523
+Match result for Chris Moore WAS (wr): Matched to 3269
+Match result for Laquon Treadwell IND (wr): Matched to 3155
+Match result for River Cracraft WAS (wr): Matched to 4854
+Match result for Trent Taylor SF (wr): Matched to 4218
+Match result for Keith Kirkwood BAL (wr): Matched to 5134
+Match result for Phillip Dorsett II LV (wr): Matched to 2334
+Match result for Equanimeous St. Brown SF (wr): Matched to 5323
+Match result for Miles Boykin CHI (wr): Matched to 5965
+Match result for Robbie Chosen SF (wr): Matched to 3423
+Match result for Gunner Olszewski NYG (wr): Matched to 6699
+Match result for Trenton Irwin JAC (wr): Matched to 6598
+Match result for KJ Hamler BUF (wr): Matched to 6805
+Match result for Tyler Johnson NYJ (wr): Matched to 6960
+Match result for Quintez Cephus HOU (wr): Matched to 6895
+Match result for Donovan Peoples-Jones NO (wr): Matched to 6824
+Match result for Collin Johnson LV (wr): Matched to 6857
+Match result for K.J. Osborn WAS (wr): Matched to 7066
+Match result for James Proche II TEN (wr): Matched to 6957
+Match result for Isaiah Hodgins SF (wr): Matched to 6920
+Match result for Marquez Callaway LV (wr): Matched to 6989
+Match result for Malik Taylor DET (wr): Matched to 6239
+Match result for Trishton Jackson ARI (wr): Matched to 7009
+Match result for Kristian Wilkerson BUF (wr): Matched to 7438
+Match result for Terrace Marshall Jr. PHI (wr): Matched to 7565
+Match result for Dez Fitzpatrick LAC (wr): Matched to 7729
+Match result for Jacob Harris TB (wr): Matched to 7703
+Match result for Cody White SEA (wr): Matched to 7039
+Match result for Michael Bandy DEN (wr): Matched to 8076
+Match result for Tarik Black MIA (wr): Matched to 8005
+Match result for D.J. Montgomery IND (wr): Matched to 6453
+Match result for David Sills ATL (wr): Matched to 6154
+Match result for Skyy Moore KC (wr): Matched to 8168
+Match result for Montrell Washington NYG (wr): Matched to 8475
+Match result for Samori Toure CHI (wr): Matched to 8235
+Match result for Dareke Young SEA (wr): Matched to 8527
+Match result for Brandon Smith NYJ (wr): Matched to 7865
+Match result for Lance McCutcheon PIT (wr): Matched to 8745
+Match result for Jalen Virgil BUF (wr): Matched to 8416
+Match result for Kendric Pryor CIN (wr): Matched to 8783
+Match result for Andre Baccellia ARI (wr): Matched to 7233
+Match result for Dennis Houston TB (wr): Matched to 8801
+Match result for Brandon Johnson PIT (wr): Matched to 8756
+Match result for Tay Martin WAS (wr): Matched to 8250
+Match result for Braylon Sanders WAS (wr): Matched to 8178
+Match result for Maurice Alexander CHI (wr): Matched to 8921
+Match result for Tank Dell HOU (wr): Matched to 9502
+Match result for Ronnie Bell DET (wr): Matched to 10221
+Match result for Jalen Brooks DAL (wr): Matched to 11034
+Match result for Xavier Hutchinson HOU (wr): Matched to 10218
+Match result for A.T. Perry DEN (wr): Matched to 10863
+Match result for Jason Brownlee KC (wr): Matched to 11311
+Match result for Rakim Jarrett TB (wr): Matched to 9495
+Match result for Malik Cunningham BAL (wr): Matched to 10860
+Match result for Mitchell Tinsley CIN (wr): Matched to 11068
+Match result for Irvin Charles NYJ (wr): Matched to 8861
+Match result for Elijah Cooks PHI (wr): Matched to 11139
+Match result for Shedrick Jackson LV (wr): Matched to 11257
+Match result for Ryan Miller TB (wr): Matched to 11421
+Match result for Lucky Jackson MIN (wr): Matched to 11520
+Match result for Chris Blair ATL (wr): Matched to 7521
+Match result for Dylan Drummond ATL (wr): Matched to 11474
+Match result for Brenden Rice LAC (wr): Matched to 11621
+Match result for Casey Washington ATL (wr): Matched to 11806
+Match result for Cornelius Johnson GB (wr): Matched to 11815
+Match result for Tahj Washington MIA (wr): Matched to 11821
+Match result for Tejhaun Palmer ARI (wr): Matched to 11802
+Match result for Bryce Ford-Wheaton NYG (wr): Matched to 9499
+Match result for Mason Tipton NO (wr): Matched to 11895
+Match result for Kameron Johnson TB (wr): Matched to 11994
+Match result for Xavier Weaver ARI (wr): Matched to 11921
+Match result for Alex Bachman LV (wr): Matched to 6386
+Match result for Kaden Davis CLE (wr): Matched to 8755
+Match result for Joshua Cephus JAC (wr): Matched to 12114
+Match result for Jalen Cropper DAL (wr): Matched to 11506
+Match result for Jaylen Johnson LAC (wr): Matched to 11874
+Match result for Tyrell Shavers BUF (wr): Matched to 11377
+Match result for Brycen Tremayne CAR (wr): Matched to 11157
+Match result for Anthony Miller BAL (wr): Matched to 5013
+Match result for Ricky White III SEA (wr): Matched to 12475
+Match result for Kaden Prather BUF (wr): Matched to 12721
+Match result for Konata Mumpfield LAR (wr): Matched to 12718
+Match result for Dominic Lovett DET (wr): Matched to 12732
+Match result for Junior Bergen SF (wr): Matched to 12743
+Match result for Seth Williams LV (wr): Matched to 7534
+Scraping position: te
+Found 153 rows for te
+Match result for Trey McBride ARI (te): Matched to 8130
+Match result for Brock Bowers LV (te): Matched to 11604
+Match result for George Kittle SF (te): Matched to 4217
+Match result for Sam LaPorta DET (te): Matched to 10859
+Match result for T.J. Hockenson MIN (te): Matched to 5844
+Match result for Mark Andrews BAL (te): Matched to 5012
+Match result for David Njoku CLE (te): Matched to 4033
+Match result for Travis Kelce KC (te): Matched to 1466
+Match result for Evan Engram DEN (te): Matched to 4066
+Match result for Dallas Goedert PHI (te): Matched to 5022
+Match result for Tucker Kraft GB (te): Matched to 9484
+Match result for Dalton Kincaid BUF (te): Matched to 10236
+Match result for Jake Ferguson DAL (te): Matched to 8110
+Match result for Tyler Warren IND (te): Matched to 12518
+Match result for Hunter Henry NE (te): Matched to 3214
+Match result for Kyle Pitts Sr. ATL (te): Matched to 7553
+Match result for Zach Ertz WAS (te): Matched to 1339
+Match result for Colston Loveland CHI (te): Matched to 12517
+Match result for Cade Otton TB (te): Matched to 8111
+Match result for Brenton Strange JAC (te): Matched to 9480
+Match result for Darren Waller MIA (te): Matched to 2505
+Match result for Mike Gesicki CIN (te): Matched to 4993
+Match result for Pat Freiermuth PIT (te): Matched to 7600
+Match result for Chig Okonkwo TEN (te): Matched to 8210
+Match result for Dalton Schultz HOU (te): Matched to 5001
+Match result for Mason Taylor NYJ (te): Matched to 12498
+Match result for Theo Johnson NYG (te): Matched to 11597
+Match result for Jonnu Smith PIT (te): Matched to 4144
+Match result for Tyler Higbee LAR (te): Matched to 3271
+Match result for Elijah Arroyo SEA (te): Matched to 12521
+Match result for Ja'Tavion Sanders CAR (te): Matched to 11600
+Match result for Juwan Johnson NO (te): Matched to 7002
+Match result for Isaiah Likely BAL (te): Matched to 8131
+Match result for AJ Barner SEA (te): Matched to 11603
+Match result for Noah Gray KC (te): Matched to 7828
+Match result for Noah Fant CIN (te): Matched to 5857
+Match result for Will Dissly LAC (te): Matched to 5010
+Match result for Michael Mayer LV (te): Matched to 9482
+Match result for Tyler Conklin LAC (te): Matched to 5133
+Match result for Cole Kmet CHI (te): Matched to 6826
+Match result for Austin Hooper NE (te): Matched to 3202
+Match result for Dawson Knox BUF (te): Matched to 5906
+Match result for Harold Fannin Jr. CLE (te): Matched to 12506
+Match result for Ben Sinnott WAS (te): Matched to 11596
+Match result for Foster Moreau NO (te): Matched to 5985
+Match result for Oronde Gadsden II LAC (te): Matched to 12493
+Match result for Tommy Tremble CAR (te): Matched to 7694
+Match result for Elijah Higgins ARI (te): Matched to 10231
+Match result for Luke Musgrave GB (te): Matched to 9481
+Match result for Terrance Ferguson LAR (te): Matched to 12487
+Match result for Josh Oliver MIN (te): Matched to 5973
+Match result for Cade Stover HOU (te): Matched to 11599
+Match result for Gunnar Helm TEN (te): Matched to 12502
+Match result for Luke Schoonmaker DAL (te): Matched to 10871
+Match result for Charlie Kolar BAL (te): Matched to 8127
+Match result for Adam Trautman DEN (te): Matched to 6869
+Match result for Daniel Bellinger NYG (te): Matched to 8225
+Match result for Grant Calcaterra PHI (te): Matched to 8177
+Match result for Charlie Woerner ATL (te): Matched to 7075
+Match result for Jeremy Ruckert NYJ (te): Matched to 8145
+Match result for Josh Whyle TEN (te): Matched to 10212
+Match result for Colby Parkinson LAR (te): Matched to 6865
+Match result for Darnell Washington PIT (te): Matched to 9479
+Match result for Julian Hill MIA (te): Matched to 11371
+Match result for Brevyn Spann-Ford DAL (te): Matched to 11593
+Match result for Payne Durham TB (te): Matched to 10227
+Match result for Jaheim Bell NE (te): Matched to 11605
+Match result for Tanner Hudson CIN (te): Matched to 5409
+Match result for Devin Culp TB (te): Matched to 11820
+Match result for Drew Sample CIN (te): Matched to 6001
+Match result for John Bates WAS (te): Matched to 7716
+Match result for Stone Smartt NYJ (te): Matched to 8583
+Match result for Johnny Mundt JAC (te): Matched to 4314
+Match result for Mitchell Evans CAR (te): Matched to 12473
+Match result for Lucas Krull DEN (te): Matched to 8249
+Match result for Jackson Hawes BUF (te): Matched to 12658
+Match result for Kylen Granson PHI (te): Matched to 7602
+Match result for Tip Reiman ARI (te): Matched to 11716
+Match result for Eric Saubert SEA (te): Matched to 4189
+Match result for Mo Alie-Cox IND (te): Matched to 4054
+Match result for Will Mallory IND (te): Matched to 10220
+Match result for Taysom Hill NO (te): Matched to 4381
+Match result for Brock Wright DET (te): Matched to 7891
+Match result for Tucker Fisk LAC (te): Matched to 8885
+Match result for Harrison Bryant HOU (te): Matched to 6850
+Match result for Ian Thomas LV (te): Matched to 4995
+Match result for Durham Smythe CHI (te): Matched to 5008
+Match result for Luke Farrell SF (te): Matched to 7842
+Match result for Davis Allen LAR (te): Matched to 10214
+Match result for Pharaoh Brown MIA (te): Matched to 4443
+Match result for John Stephens Jr. DAL (te): Matched to 11511
+Match result for Jared Wiley KC (te): Matched to 11595
+Match result for Brenden Bates CLE (te): Matched to 12374
+Match result for Cam Grandy CIN (te): Matched to 12062
+Match result for Drew Ogletree IND (te): Matched to 8489
+Match result for Tanner Conner MIA (te): Matched to 8849
+Match result for Blake Whiteheart CLE (te): Matched to 11201
+Match result for Gavin Bartholomew MIN (te): Matched to 12700
+Match result for Chris Manhertz NYG (te): Matched to 3048
+Match result for Hunter Long JAC (te): Matched to 7535
+Match result for Nate Adkins DEN (te): Matched to 11433
+Match result for David Martin-Robinson TEN (te): Matched to 12357
+Match result for Feleipe Franks ATL (te): Matched to 7531
+Match result for Zach Davidson BUF (te): Matched to 7943
+Match result for Connor Heyward PIT (te): Matched to 8181
+Match result for Jack Stoll NO (te): Matched to 7946
+Match result for Quintin Morris JAC (te): Matched to 7536
+Match result for Robert Tonyan KC (te): Matched to 4602
+Match result for Nick Vannett MIN (te): Matched to 3258
+Match result for Irv Smith Jr. HOU (te): Matched to 6126
+Match result for Tyree Jackson WAS (te): Matched to 6040
+Match result for Stephen Carlson CHI (te): Matched to 6451
+Match result for Josiah Deguara ARI (te): Matched to 7050
+Match result for Dalton Keene HOU (te): Matched to 7082
+Match result for Albert Okwuegbunam Jr. LV (te): Matched to 6843
+Match result for Sean McKeon IND (te): Matched to 6964
+Match result for Lawrence Cager WAS (te): Matched to 7106
+Match result for Kenny Yeboah DET (te): Matched to 7597
+Match result for Giovanni Ricci MIN (te): No match
+No match found for Giovanni Ricci MIN (te)
+Match result for Shane Zylstra DET (te): Matched to 8041
+Match result for Tyler Mabry CAR (te): Matched to 7427
+Match result for Jelani Woods IND (te): Matched to 8219
+Match result for Greg Dulcich NYG (te): Matched to 8172
+Match result for Ko Kieft TB (te): Matched to 8484
+Match result for Teagan Quitoriano ATL (te): Matched to 8227
+Match result for Cole Turner WAS (te): Matched to 8214
+Match result for John FitzPatrick GB (te): Matched to 8500
+Match result for Nick Muse PHI (te): Matched to 8523
+Match result for James Mitchell CAR (te): Matched to 8170
+Match result for Jake Tonges SF (te): Matched to 8698
+Match result for Nikola Kalinic ATL (te): Matched to 8107
+Match result for Cameron Latu PHI (te): Matched to 10210
+Match result for Justin Shorter LV (te): No match
+No match found for Justin Shorter LV (te)
+Match result for Zack Kuntz NYJ (te): Matched to 9483
+Match result for Brayden Willis SF (te): Matched to 10224
+Match result for Ben Sims GB (te): Matched to 11082
+Match result for Princeton Fant DAL (te): Matched to 11508
+Match result for Travis Vokolek ARI (te): Matched to 11381
+Match result for Cole Fotheringham NE (te): Matched to 8840
+Match result for Erick All Jr. CIN (te): Matched to 11592
+Match result for Tanner McLachlan CIN (te): Matched to 11598
+Match result for Colson Yankoff WAS (te): Matched to 11942
+Match result for Thomas Odukoya TEN (te): Matched to 8924
+Match result for E.J. Jenkins PHI (te): Matched to 11304
+Match result for Baylor Cupp BAL (te): Matched to 12256
+Match result for Jack Westover NE (te): Matched to 12045
+Match result for Luke Lachey HOU (te): Matched to 12725
+Match result for Thomas Fidone II NYG (te): Matched to 12715
+Match result for Caleb Lohner DEN (te): Matched to 12735
+Match result for Moliki Matavao NO (te): Matched to 12480
+Match result for Matt Sokol BUF (te): Matched to 6233
+Match result for Tre' McKitty HOU (te): Matched to 7554
+Match result for Mitchell Wilcox MIA (te): Matched to 6894
+Scraping position: k
+Found 37 rows for k
+Match result for Jake Elliott PHI (k): Matched to 4195
+Match result for Chase McLaughlin TB (k): Matched to 6650
+Match result for Tyler Bass BUF (k): Matched to 7042
+Match result for Jake Bates DET (k): Matched to 11539
+Match result for Matt Gay WAS (k): Matched to 6083
+Match result for Cameron Dicker LAC (k): Matched to 8259
+Match result for Harrison Butker KC (k): Matched to 4227
+Match result for Tyler Loop BAL (k): Matched to 12711
+Match result for Evan McPherson CIN (k): Matched to 7839
+Match result for Brandon Aubrey DAL (k): Matched to 11533
+Match result for Cam Little JAC (k): Matched to 11786
+Match result for Wil Lutz DEN (k): Matched to 3678
+Match result for Brandon McManus GB (k): Matched to 1433
+Match result for Ka'imi Fairbairn HOU (k): Matched to 3451
+Match result for Jason Sanders MIA (k): Matched to 5119
+Match result for Chris Boswell PIT (k): Matched to 1945
+Match result for Joshua Karty LAR (k): Matched to 11789
+Match result for Will Reichard MIN (k): Matched to 11792
+Match result for Cairo Santos CHI (k): Matched to 2020
+Match result for Chad Ryland ARI (k): Matched to 10955
+Match result for Younghoe Koo ATL (k): Matched to 4666
+Match result for Jason Myers SEA (k): Matched to 2747
+Match result for Spencer Shrader IND (k): Matched to 12185
+Match result for Daniel Carlson LV (k): Matched to 5095
+Match result for Blake Grupe NO (k): Matched to 11058
+Match result for Graham Gano NYG (k): Matched to 503
+Match result for Andy Borregales NE (k): Matched to 12713
+Match result for Jake Moody SF (k): Matched to 10937
+Match result for Dustin Hopkins CLE (k): Matched to 1348
+Match result for Nick Folk NYJ (k): Matched to 650
+Match result for Joey Slye TEN (k): Matched to 6528
+Match result for Ryan Fitzgerald CAR (k): Matched to 12961
+Match result for Matthew Wright CAR (k): Matched to 6268
+Match result for Parker Romo NE (k): Matched to 8670
+Match result for Harrison Mevis NYJ (k): Matched to 12015
+Match result for Caden Davis BUF (k): Matched to 13149
+Match result for Jude McAtamney NYG (k): Matched to 12385
+Scraping position: dst
+Found 32 rows for dst
+Processing defense: Pittsburgh Steelers
+Extracted team hint: PITTSBURGH -> PIT
+Final team hint: PIT
+Looking for defense with team PIT, found 0 total defenses
+Available defense teams: []
+No defense found for team: PIT
+Match result for Pittsburgh Steelers (dst): No match
+No match found for Pittsburgh Steelers (dst)
+Processing defense: Denver Broncos
+Extracted team hint: DENVER -> DEN
+Final team hint: DEN
+Looking for defense with team DEN, found 0 total defenses
+Available defense teams: []
+No defense found for team: DEN
+Match result for Denver Broncos (dst): No match
+No match found for Denver Broncos (dst)
+Processing defense: Washington Commanders
+Extracted team hint: WASHINGTON -> WAS
+Final team hint: WAS
+Looking for defense with team WAS, found 0 total defenses
+Available defense teams: []
+No defense found for team: WAS
+Match result for Washington Commanders (dst): No match
+No match found for Washington Commanders (dst)
+Processing defense: Arizona Cardinals
+Extracted team hint: ARIZONA -> ARI
+Final team hint: ARI
+Looking for defense with team ARI, found 0 total defenses
+Available defense teams: []
+No defense found for team: ARI
+Match result for Arizona Cardinals (dst): No match
+No match found for Arizona Cardinals (dst)
+Processing defense: Cincinnati Bengals
+Extracted team hint: CINCINNATI -> CIN
+Final team hint: CIN
+Looking for defense with team CIN, found 0 total defenses
+Available defense teams: []
+No defense found for team: CIN
+Match result for Cincinnati Bengals (dst): No match
+No match found for Cincinnati Bengals (dst)
+Processing defense: New England Patriots
+Extracted team hint: NEWENGLAND -> NE
+Final team hint: NE
+Looking for defense with team NE, found 0 total defenses
+Available defense teams: []
+No defense found for team: NE
+Match result for New England Patriots (dst): No match
+No match found for New England Patriots (dst)
+Processing defense: Philadelphia Eagles
+Extracted team hint: PHILADELPHIA -> PHI
+Final team hint: PHI
+Looking for defense with team PHI, found 0 total defenses
+Available defense teams: []
+No defense found for team: PHI
+Match result for Philadelphia Eagles (dst): No match
+No match found for Philadelphia Eagles (dst)
+Processing defense: Minnesota Vikings
+Extracted team hint: MINNESOTA -> MIN
+Final team hint: MIN
+Looking for defense with team MIN, found 0 total defenses
+Available defense teams: []
+No defense found for team: MIN
+Match result for Minnesota Vikings (dst): No match
+No match found for Minnesota Vikings (dst)
+Processing defense: San Francisco 49ers
+Extracted team hint: SANFRANCISCO -> SF
+Final team hint: SF
+Looking for defense with team SF, found 0 total defenses
+Available defense teams: []
+No defense found for team: SF
+Match result for San Francisco 49ers (dst): No match
+No match found for San Francisco 49ers (dst)
+Processing defense: Chicago Bears
+Extracted team hint: CHICAGO -> CHI
+Final team hint: CHI
+Looking for defense with team CHI, found 0 total defenses
+Available defense teams: []
+No defense found for team: CHI
+Match result for Chicago Bears (dst): No match
+No match found for Chicago Bears (dst)
+Processing defense: Los Angeles Rams
+Final team hint: LAR
+Looking for defense with team LAR, found 0 total defenses
+Available defense teams: []
+No defense found for team: LAR
+Match result for Los Angeles Rams (dst): No match
+No match found for Los Angeles Rams (dst)
+Processing defense: Houston Texans
+Extracted team hint: HOUSTON -> HOU
+Final team hint: HOU
+Looking for defense with team HOU, found 0 total defenses
+Available defense teams: []
+No defense found for team: HOU
+Match result for Houston Texans (dst): No match
+No match found for Houston Texans (dst)
+Processing defense: Miami Dolphins
+Extracted team hint: MIAMI -> MIA
+Final team hint: MIA
+Looking for defense with team MIA, found 0 total defenses
+Available defense teams: []
+No defense found for team: MIA
+Match result for Miami Dolphins (dst): No match
+No match found for Miami Dolphins (dst)
+Processing defense: Kansas City Chiefs
+Extracted team hint: KANSASCITY -> KC
+Final team hint: KC
+Looking for defense with team KC, found 0 total defenses
+Available defense teams: []
+No defense found for team: KC
+Match result for Kansas City Chiefs (dst): No match
+No match found for Kansas City Chiefs (dst)
+Processing defense: New York Giants
+Final team hint: NYG
+Looking for defense with team NYG, found 0 total defenses
+Available defense teams: []
+No defense found for team: NYG
+Match result for New York Giants (dst): No match
+No match found for New York Giants (dst)
+Processing defense: Tampa Bay Buccaneers
+Extracted team hint: TAMPABAY -> TB
+Final team hint: TB
+Looking for defense with team TB, found 0 total defenses
+Available defense teams: []
+No defense found for team: TB
+Match result for Tampa Bay Buccaneers (dst): No match
+No match found for Tampa Bay Buccaneers (dst)
+Processing defense: Atlanta Falcons
+Extracted team hint: ATLANTA -> ATL
+Final team hint: ATL
+Looking for defense with team ATL, found 0 total defenses
+Available defense teams: []
+No defense found for team: ATL
+Match result for Atlanta Falcons (dst): No match
+No match found for Atlanta Falcons (dst)
+Processing defense: Seattle Seahawks
+Extracted team hint: SEATTLE -> SEA
+Final team hint: SEA
+Looking for defense with team SEA, found 0 total defenses
+Available defense teams: []
+No defense found for team: SEA
+Match result for Seattle Seahawks (dst): No match
+No match found for Seattle Seahawks (dst)
+Processing defense: Cleveland Browns
+Extracted team hint: CLEVELAND -> CLE
+Final team hint: CLE
+Looking for defense with team CLE, found 0 total defenses
+Available defense teams: []
+No defense found for team: CLE
+Match result for Cleveland Browns (dst): No match
+No match found for Cleveland Browns (dst)
+Processing defense: Jacksonville Jaguars
+Extracted team hint: JACKSONVILLE -> JAX
+Final team hint: JAX
+Looking for defense with team JAX, found 0 total defenses
+Available defense teams: []
+No defense found for team: JAX
+Match result for Jacksonville Jaguars (dst): No match
+No match found for Jacksonville Jaguars (dst)
+Processing defense: Dallas Cowboys
+Extracted team hint: DALLAS -> DAL
+Final team hint: DAL
+Looking for defense with team DAL, found 0 total defenses
+Available defense teams: []
+No defense found for team: DAL
+Match result for Dallas Cowboys (dst): No match
+No match found for Dallas Cowboys (dst)
+Processing defense: Green Bay Packers
+Extracted team hint: GREENBAY -> GB
+Final team hint: GB
+Looking for defense with team GB, found 0 total defenses
+Available defense teams: []
+No defense found for team: GB
+Match result for Green Bay Packers (dst): No match
+No match found for Green Bay Packers (dst)
+Processing defense: Buffalo Bills
+Extracted team hint: BUFFALO -> BUF
+Final team hint: BUF
+Looking for defense with team BUF, found 0 total defenses
+Available defense teams: []
+No defense found for team: BUF
+Match result for Buffalo Bills (dst): No match
+No match found for Buffalo Bills (dst)
+Processing defense: Detroit Lions
+Extracted team hint: DETROIT -> DET
+Final team hint: DET
+Looking for defense with team DET, found 0 total defenses
+Available defense teams: []
+No defense found for team: DET
+Match result for Detroit Lions (dst): No match
+No match found for Detroit Lions (dst)
+Processing defense: Indianapolis Colts
+Extracted team hint: INDIANAPOLIS -> IND
+Final team hint: IND
+Looking for defense with team IND, found 0 total defenses
+Available defense teams: []
+No defense found for team: IND
+Match result for Indianapolis Colts (dst): No match
+No match found for Indianapolis Colts (dst)
+Processing defense: Las Vegas Raiders
+Extracted team hint: LASVEGAS -> LV
+Final team hint: LV
+Looking for defense with team LV, found 0 total defenses
+Available defense teams: []
+No defense found for team: LV
+Match result for Las Vegas Raiders (dst): No match
+No match found for Las Vegas Raiders (dst)
+Processing defense: Los Angeles Chargers
+Final team hint: LAC
+Looking for defense with team LAC, found 0 total defenses
+Available defense teams: []
+No defense found for team: LAC
+Match result for Los Angeles Chargers (dst): No match
+No match found for Los Angeles Chargers (dst)
+Processing defense: Baltimore Ravens
+Extracted team hint: BALTIMORE -> BAL
+Final team hint: BAL
+Looking for defense with team BAL, found 0 total defenses
+Available defense teams: []
+No defense found for team: BAL
+Match result for Baltimore Ravens (dst): No match
+No match found for Baltimore Ravens (dst)
+Processing defense: New York Jets
+Final team hint: NYJ
+Looking for defense with team NYJ, found 0 total defenses
+Available defense teams: []
+No defense found for team: NYJ
+Match result for New York Jets (dst): No match
+No match found for New York Jets (dst)
+Processing defense: Carolina Panthers
+Extracted team hint: CAROLINA -> CAR
+Final team hint: CAR
+Looking for defense with team CAR, found 0 total defenses
+Available defense teams: []
+No defense found for team: CAR
+Match result for Carolina Panthers (dst): No match
+No match found for Carolina Panthers (dst)
+Processing defense: New Orleans Saints
+Extracted team hint: NEWORLEANS -> NO
+Final team hint: NO
+Looking for defense with team NO, found 0 total defenses
+Available defense teams: []
+No defense found for team: NO
+Match result for New Orleans Saints (dst): No match
+No match found for New Orleans Saints (dst)
+Processing defense: Tennessee Titans
+Extracted team hint: TENNESSEE -> TEN
+Final team hint: TEN
+Looking for defense with team TEN, found 0 total defenses
+Available defense teams: []
+No defense found for team: TEN
+Match result for Tennessee Titans (dst): No match
+No match found for Tennessee Titans (dst)
+Final array size: 753
+Defenses in array: 0
+{
+  "ok": true,
+  "count": 753,
+  "sample": [
+    {
+      "source": "fantasypros",
+      "season": 2025,
+      "week": 1,
+      "scoring": "PPR",
+      "player_id": "6904",
+      "position": "QB",
+      "points": 22,
+      "raw": {
+        "player": "Jalen Hurts PHI",
+        "att": "9.1",
+        "cmp": "18.7",
+        "yds": "37.6",
+        "tds": "0.9",
+        "ints": "0.6",
+        "fl": "0.2",
+        "fpts": "22.0",
+        "_pos": "qb"
+      }
+    },
+    {
+      "source": "fantasypros",
+      "season": 2025,
+      "week": 1,
+      "scoring": "PPR",
+      "player_id": "4984",
+      "position": "QB",
+      "points": 21.8,
+      "raw": {
+        "player": "Josh Allen BUF",
+        "att": "6.5",
+        "cmp": "20.8",
+        "yds": "31.9",
+        "tds": "0.6",
+        "ints": "0.7",
+        "fl": "0.2",
+        "fpts": "21.8",
+        "_pos": "qb"
+      }
+    },
+    {
+      "source": "fantasypros",
+      "season": 2025,
+      "week": 1,
+      "scoring": "PPR",
+      "player_id": "4881",
+      "position": "QB",
+      "points": 21.6,
+      "raw": {
+        "player": "Lamar Jackson BAL",
+        "att": "8.3",
+        "cmp": "19.6",
+        "yds": "49.4",
+        "tds": "0.2",
+        "ints": "0.6",
+        "fl": "0.3",
+        "fpts": "21.6",
+        "_pos": "qb"
+      }
+    },
+    {
+      "source": "fantasypros",
+      "season": 2025,
+      "week": 1,
+      "scoring": "PPR",
+      "player_id": "11566",
+      "position": "QB",
+      "points": 21.4,
+      "raw": {
+        "player": "Jayden Daniels WAS",
+        "att": "8.8",
+        "cmp": "20.7",
+        "yds": "47.4",
+        "tds": "0.4",
+        "ints": "0.7",
+        "fl": "0.2",
+        "fpts": "21.4",
+        "_pos": "qb"
+      }
+    },
+    {
+      "source": "fantasypros",
+      "season": 2025,
+      "week": 1,
+      "scoring": "PPR",
+      "player_id": "6770",
+      "position": "QB",
+      "points": 20,
+      "raw": {
+        "player": "Joe Burrow CIN",
+        "att": "3.0",
+        "cmp": "24.5",
+        "yds": "11.1",
+        "tds": "0.1",
+        "ints": "0.7",
+        "fl": "0.2",
+        "fpts": "20.0",
+        "_pos": "qb"
+      }
+    }
+  ]
+}
