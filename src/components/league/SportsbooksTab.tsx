@@ -507,7 +507,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
               </div>
               
               {/* Market Analysis */}
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              {/* <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <h4 className="font-semibold text-sm mb-2 flex items-center gap-2 text-blue-700">
                   <Brain className="h-4 w-4" />
                   AI Market Analysis
@@ -518,7 +518,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
                   <div>Time to Game: {Math.round(betOffer.marketConditions.timeUntilGame / 24)} days</div>
                   <div>Team Popularity: {(betOffer.marketConditions.teamPopularity * 100).toFixed(1)}%</div>
                 </div>
-              </div>
+              </div> */}
               
               {/* Spread Adjustment */}
               <div className="space-y-3">
@@ -541,10 +541,10 @@ export default function SportsbooksTab({ leagueId }: Props) {
                 />
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <p>Original spread: {betOffer.originalSpread > 0 ? `+${betOffer.originalSpread.toFixed(1)}` : betOffer.originalSpread.toFixed(1)}</p>
-                  <p className="flex items-center gap-1 text-blue-600">
+                  {/* <p className="flex items-center gap-1 text-blue-600">
                     <Target className="h-3 w-3" />
                     AI recommended: {betOffer.optimalSpread > 0 ? `+${betOffer.optimalSpread.toFixed(1)}` : betOffer.optimalSpread.toFixed(1)}
-                  </p>
+                  </p> */}
                 </div>
               </div>
               
@@ -588,7 +588,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
               </div>
               
               {/* Advanced Options Toggle */}
-              <div className="space-y-3">
+              {/* <div className="space-y-3">
                 <Button
                   type="button"
                   variant="outline"
@@ -610,7 +610,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
                     </div>
                   </div>
                 )}
-              </div>
+              </div> */}
               
               <div className="space-y-3">
                 <Label htmlFor="tokenAmount" className="text-sm font-semibold">
@@ -658,9 +658,9 @@ export default function SportsbooksTab({ leagueId }: Props) {
             <p className="mb-2">
               <strong>How it works:</strong> Click "Bet on [Team]" to place a wager on either side of the spread.
             </p>
-            <p className="mb-2">
+            {/* <p className="mb-2">
               Our AI analyzes market conditions and suggests optimal spreads to maximize bet acceptance.
-            </p>
+            </p> */}
             <p className="mb-2">
               You can adjust the spread to make your bet more attractive to other users.
             </p>
