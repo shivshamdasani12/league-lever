@@ -304,31 +304,67 @@ export const getBetAnalytics = async (userId: string, leagueId: string) => {
       
       bets.forEach(bet => {
         if (bet.status === 'settled' && bet.outcome) {
-          const isUserWinner = (bet.outcome === 'won' && bet.created_by === userId) ||
-                              (bet.outcome === 'lost' && bet.accepted_by === userId);
+          // Determine if the user won or lost this bet
+          let userWon = false;
+          let userLost = false;
+          
+          console.log(`Processing bet ${bet.id}:`, {
+            outcome: bet.outcome,
+            created_by: bet.created_by,
+            accepted_by: bet.accepted_by,
+            user_id: userId,
+            token_amount: bet.token_amount,
+            isCreator: bet.created_by === userId,
+            isAcceptor: bet.accepted_by === userId
+          });
           
           if (bet.outcome === 'won') {
-            analytics.wins++;
-            if (isUserWinner) {
+            // If user created the bet and it was won, user won
+            if (bet.created_by === userId) {
+              userWon = true;
+              analytics.wins++;
               analytics.total_won += bet.token_amount;
               analytics.largest_win = Math.max(analytics.largest_win, bet.token_amount);
               currentStreak = Math.max(currentStreak, 0) + 1;
-            }
-          } else if (bet.outcome === 'lost') {
-            analytics.losses++;
-            if (!isUserWinner) {
+              console.log(`User WON as creator: +${bet.token_amount} tokens`);
+            } else if (bet.accepted_by === userId) {
+              // If user accepted the bet and it was won, user lost
+              userLost = true;
+              analytics.losses++;
               analytics.total_lost += bet.token_amount;
               analytics.largest_loss = Math.max(analytics.largest_loss, bet.token_amount);
               currentStreak = Math.min(currentStreak, 0) - 1;
+              console.log(`User LOST as acceptor: -${bet.token_amount} tokens`);
+            }
+          } else if (bet.outcome === 'lost') {
+            // If user created the bet and it was lost, user lost
+            if (bet.created_by === userId) {
+              userLost = true;
+              analytics.losses++;
+              analytics.total_lost += bet.token_amount;
+              analytics.largest_loss = Math.max(analytics.largest_loss, bet.token_amount);
+              currentStreak = Math.min(currentStreak, 0) - 1;
+              console.log(`User LOST as creator: -${bet.token_amount} tokens`);
+            } else if (bet.accepted_by === userId) {
+              // If user accepted the bet and it was lost, user won
+              userWon = true;
+              analytics.wins++;
+              analytics.total_won += bet.token_amount;
+              analytics.largest_win = Math.max(analytics.largest_win, bet.token_amount);
+              currentStreak = Math.max(currentStreak, 0) + 1;
+              console.log(`User WON as acceptor: +${bet.token_amount} tokens`);
             }
           } else if (bet.outcome === 'push') {
             analytics.pushes++;
             currentStreak = 0;
+            // For pushes, no tokens are won or lost
+            console.log(`Push - no tokens won or lost`);
           }
           
           bestStreak = Math.max(bestStreak, Math.abs(currentStreak));
         }
         
+        // Track total wagered (only count bets the user created)
         if (bet.created_by === userId) {
           analytics.total_wagered += bet.token_amount;
         }
@@ -339,7 +375,18 @@ export const getBetAnalytics = async (userId: string, leagueId: string) => {
         analytics.win_rate = (analytics.wins / (analytics.wins + analytics.losses)) * 100;
       }
       
+      // Net profit = total won - total lost
       analytics.net_profit = analytics.total_won - analytics.total_lost;
+      
+      console.log('Final analytics calculation:', {
+        total_bets: analytics.total_bets,
+        wins: analytics.wins,
+        losses: analytics.losses,
+        total_won: analytics.total_won,
+        total_lost: analytics.total_lost,
+        net_profit: analytics.net_profit,
+        total_wagered: analytics.total_wagered
+      });
       
       if (analytics.total_bets > 0) {
         analytics.average_bet_size = analytics.total_wagered / analytics.total_bets;
