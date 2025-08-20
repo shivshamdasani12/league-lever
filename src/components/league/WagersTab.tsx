@@ -244,6 +244,25 @@ export default function WagersTab({ leagueId }: Props) {
     return tokenAmount * 2; // Default 2x payout
   };
 
+  // Function to get the payout from the acceptor's perspective
+  const getAcceptorPayout = (bet: BetRow) => {
+    const payoutRatio = bet.terms?.payoutRatio || 2.0;
+    const originalWinAmount = bet.token_amount * payoutRatio;
+    const originalRiskAmount = bet.token_amount;
+    
+    // The acceptor takes the opposite side, so they risk the original win amount to win the original risk amount
+    const acceptorRiskAmount = originalWinAmount; // What acceptor risks (original win amount)
+    const acceptorWinAmount = originalRiskAmount; // What acceptor wins (original risk amount)
+    const totalPot = acceptorRiskAmount + acceptorWinAmount; // Total potential payout
+    
+    return {
+      riskAmount: acceptorRiskAmount, // What acceptor risks (what they lose if they lose)
+      winAmount: acceptorWinAmount, // What acceptor wins
+      totalPot: totalPot, // Total potential payout
+      payoutRatio: payoutRatio
+    };
+  };
+
   // Function to get payout display text
   const getPayoutDisplay = (bet: BetRow) => {
     console.log('getPayoutDisplay called with bet:', bet);
@@ -272,10 +291,29 @@ export default function WagersTab({ leagueId }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Payout System Explanation */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="p-4">
+          <div className="text-center">
+            <h3 className="font-semibold text-blue-800 mb-2">🎯 Understanding Wager Payouts</h3>
+            <div className="text-sm text-blue-700 space-y-1">
+              <div><strong>Example:</strong> If you offer a wager risking 10 tokens to win 20 tokens...</div>
+              <div>• <strong>You risk:</strong> 10 tokens | <strong>You win:</strong> 20 tokens</div>
+              <div>• <strong>Acceptor risks:</strong> 20 tokens | <strong>Acceptor wins:</strong> 10 tokens</div>
+              <div>• <strong>Total potential payout:</strong> 30 tokens (10 risked + 20 risked)</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
       {/* Wagers Tabs */}
       <Card className="bg-card border shadow-card">
         <CardHeader>
           <CardTitle className="text-xl font-bold">Your Wagers</CardTitle>
+          <div className="text-sm text-muted-foreground mt-2">
+            <strong>How it works:</strong> When you offer a wager, you risk X tokens to win Y tokens. 
+            When someone accepts, they risk Y tokens to win X tokens (opposite side). The total potential payout is always X+Y tokens.
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -350,26 +388,43 @@ export default function WagersTab({ leagueId }: Props) {
                           
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
-                              <span className="text-muted-foreground">Cost to Accept:</span>
-                              <div className="font-semibold text-lg text-blue-700">{bet.token_amount} tokens</div>
+                              <span className="text-muted-foreground">Risk Amount:</span>
+                              <div className="font-semibold text-lg text-blue-700">{getAcceptorPayout(bet).riskAmount} tokens</div>
+                              <div className="text-xs text-muted-foreground">What you lose if you lose</div>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Potential Payout:</span>
+                              <span className="text-muted-foreground">Win Amount:</span>
                               <div className="font-semibold text-lg text-green-700">
-                                {calculatePayout(bet.token_amount, bet.terms?.payoutRatio)} tokens
+                                {getAcceptorPayout(bet).winAmount} tokens
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {getPayoutDisplay(bet)}
+                                What you win if you win
                               </div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Total Potential Payout:</span>
+                              <div className="font-semibold text-lg text-purple-700">{getAcceptorPayout(bet).totalPot} tokens</div>
+                              <div className="text-xs text-muted-foreground">Risk + Win amounts</div>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Offered by:</span>
                               <div className="font-medium">{getUserDisplayName(bet.created_by)}</div>
                             </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-2">
                             <div>
                               <span className="text-muted-foreground">Created:</span>
                               <div className="font-medium">{formatDate(bet.created_at)}</div>
                             </div>
+                          </div>
+                          
+                          {/* Original Bettor's Position */}
+                          <div className="pt-2 border-t bg-gray-50 p-2 rounded">
+                            <span className="text-black text-sm font-medium">Original Bettor:</span>
+                            <span className="text-black text-sm ml-2">
+                              <strong>Spread:</strong> {bet.type} | <strong>Risk:</strong> {bet.token_amount} tokens | <strong>Win:</strong> {getAcceptorPayout(bet).winAmount} tokens | <strong>Total Payout:</strong> {getAcceptorPayout(bet).totalPot} tokens
+                            </span>
                           </div>
                           
                           {bet.terms?.description && (
@@ -434,16 +489,17 @@ export default function WagersTab({ leagueId }: Props) {
                         
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
-                            <span className="text-muted-foreground">Bet Amount:</span>
+                            <span className="text-muted-foreground">Your Risk:</span>
                             <div className="font-semibold text-lg text-blue-700">{bet.token_amount} tokens</div>
+                            <div className="text-xs text-muted-foreground">What you lose if you lose</div>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Potential Payout:</span>
+                            <span className="text-muted-foreground">Your Win:</span>
                             <div className="font-semibold text-lg text-green-700">
-                                {calculatePayout(bet.token_amount, bet.terms?.payoutRatio)} tokens
+                                {getAcceptorPayout(bet).winAmount} tokens
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {getPayoutDisplay(bet)}
+                                What you win if you win
                               </div>
                             </div>
                             <div>
@@ -463,7 +519,7 @@ export default function WagersTab({ leagueId }: Props) {
                           </div>
                           <div>
                             <span className="text-muted-foreground">Total Pot:</span>
-                            <div className="font-semibold text-lg text-purple-700">{bet.token_amount * 2} tokens</div>
+                            <div className="font-semibold text-lg text-purple-700">{getAcceptorPayout(bet).totalPot} tokens</div>
                           </div>
                         </div>
                         
@@ -512,16 +568,17 @@ export default function WagersTab({ leagueId }: Props) {
                           
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
-                              <span className="text-muted-foreground">Original Bet:</span>
+                              <span className="text-muted-foreground">Your Risk:</span>
                               <div className="font-semibold text-lg text-blue-700">{bet.token_amount} tokens</div>
+                              <div className="text-xs text-muted-foreground">What you would have lost</div>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Potential Payout:</span>
+                              <span className="text-muted-foreground">Your Win:</span>
                               <div className="font-semibold text-lg text-green-700">
                                 {calculatePayout(bet.token_amount, bet.terms?.payoutRatio)} tokens
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {getPayoutDisplay(bet)}
+                                What you would have won
                               </div>
                             </div>
                             <div>
@@ -610,6 +667,10 @@ export default function WagersTab({ leagueId }: Props) {
                 <p className="text-xs text-blue-500 mt-1">
                   You're taking the opposite side of this bet
                 </p>
+                <div className="mt-2 p-2 bg-blue-100 rounded text-xs text-blue-700">
+                  <strong>Example:</strong> If original bet risks 10 tokens to win 25, 
+                  you risk 10 tokens to win 25. Total potential payout: 35 tokens.
+                </div>
               </div>
               
               {/* Spread Adjustment */}
@@ -666,14 +727,16 @@ export default function WagersTab({ leagueId }: Props) {
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Potential payout: {counterOfferData.tokenAmount * counterOfferData.payoutRatio} tokens
+                  <strong>Your win amount:</strong> {counterOfferData.tokenAmount * counterOfferData.payoutRatio} tokens
+                  <br />
+                  <strong>Total potential payout:</strong> {counterOfferData.tokenAmount + (counterOfferData.tokenAmount * counterOfferData.payoutRatio)} tokens
                 </div>
               </div>
               
               {/* Token Amount */}
               <div className="space-y-3">
                 <Label htmlFor="counterTokenAmount" className="text-sm font-semibold">
-                  Token Amount
+                  Your Risk Amount
                 </Label>
                 <Input
                   id="counterTokenAmount"
@@ -685,7 +748,17 @@ export default function WagersTab({ leagueId }: Props) {
                   placeholder="Enter token amount"
                 />
                 <div className="text-xs text-muted-foreground">
-                  Minimum: 1 token
+                  This is what you lose if you lose. You'll win {counterOfferData.tokenAmount * counterOfferData.payoutRatio} tokens if you're right.
+                </div>
+              </div>
+              
+              {/* Summary */}
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <h4 className="font-semibold text-sm mb-2 text-green-700">Bet Summary</h4>
+                <div className="text-sm text-green-600 space-y-1">
+                  <div><strong>You risk:</strong> {counterOfferData.tokenAmount} tokens</div>
+                  <div><strong>You win:</strong> {counterOfferData.tokenAmount * counterOfferData.payoutRatio} tokens</div>
+                  <div><strong>Total potential payout:</strong> {counterOfferData.tokenAmount + (counterOfferData.tokenAmount * counterOfferData.payoutRatio)} tokens</div>
                 </div>
               </div>
               
