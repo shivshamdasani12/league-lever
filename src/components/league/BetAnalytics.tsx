@@ -8,7 +8,7 @@ import {
   Target, 
   DollarSign, 
   Trophy, 
-  Fire,
+  Flame,
   BarChart3,
   Calendar,
   Coins
@@ -23,10 +23,20 @@ interface Props {
 export default function BetAnalytics({ leagueId }: Props) {
   const { user } = useAuth();
 
+  // Guard clause to prevent crash when user is not loaded
+  if (!user) {
+    return (
+      <div className="text-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+        <p className="text-muted-foreground mt-2">Loading user...</p>
+      </div>
+    );
+  }
+
   const { data: analytics, isLoading, error } = useQuery({
-    queryKey: ['bet-analytics', leagueId, user?.id],
-    enabled: !!leagueId && !!user?.id,
-    queryFn: () => getBetAnalytics(user!.id, leagueId),
+    queryKey: ['bet-analytics', leagueId, user.id],
+    enabled: !!leagueId && !!user.id,
+    queryFn: () => getBetAnalytics(user.id, leagueId),
   });
 
   if (isLoading) {
@@ -122,7 +132,7 @@ export default function BetAnalytics({ leagueId }: Props) {
                   {analytics.current_streak > 0 ? '+' : ''}{analytics.current_streak}
                 </p>
               </div>
-              <Fire className="h-8 w-8 text-orange-600" />
+              <Flame className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
@@ -212,7 +222,7 @@ export default function BetAnalytics({ leagueId }: Props) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Fire className="h-5 w-5" />
+            <Flame className="h-5 w-5" />
             Streak Information
           </CardTitle>
         </CardHeader>

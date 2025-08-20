@@ -261,16 +261,8 @@ const createTransactionRecords = async (
 // Get bet history analytics for a user
 export const getBetAnalytics = async (userId: string, leagueId: string) => {
   try {
-    const { data: bets, error } = await supabase
-      .from('bets')
-      .select('*')
-      .eq('league_id', leagueId)
-      .or(`created_by.eq.${userId},accepted_by.eq.${userId}`)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    
-    const analytics = {
+    // Default analytics object
+    const defaultAnalytics = {
       total_bets: 0,
       wins: 0,
       losses: 0,
@@ -286,8 +278,25 @@ export const getBetAnalytics = async (userId: string, leagueId: string) => {
       current_streak: 0,
       best_streak: 0
     };
-    
-    if (bets && bets.length > 0) {
+
+    try {
+      const { data: bets, error } = await supabase
+        .from('bets')
+        .select('*')
+        .eq('league_id', leagueId)
+        .or(`created_by.eq.${userId},accepted_by.eq.${userId}`)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.warn('Error fetching bets for analytics:', error);
+        return defaultAnalytics;
+      }
+      
+      if (!bets || bets.length === 0) {
+        return defaultAnalytics;
+      }
+      
+      const analytics = { ...defaultAnalytics };
       analytics.total_bets = bets.length;
       
       let currentStreak = 0;
@@ -325,18 +334,46 @@ export const getBetAnalytics = async (userId: string, leagueId: string) => {
         }
       });
       
-      analytics.win_rate = analytics.wins / (analytics.wins + analytics.losses) * 100;
+      // Calculate derived values safely
+      if (analytics.wins + analytics.losses > 0) {
+        analytics.win_rate = (analytics.wins / (analytics.wins + analytics.losses)) * 100;
+      }
+      
       analytics.net_profit = analytics.total_won - analytics.total_lost;
-      analytics.average_bet_size = analytics.total_wagered / analytics.total_bets;
+      
+      if (analytics.total_bets > 0) {
+        analytics.average_bet_size = analytics.total_wagered / analytics.total_bets;
+      }
+      
       analytics.current_streak = currentStreak;
       analytics.best_streak = bestStreak;
+      
+      return analytics;
+      
+    } catch (fetchError) {
+      console.warn('Error in bet analytics calculation:', fetchError);
+      return defaultAnalytics;
     }
-    
-    return analytics;
     
   } catch (error) {
     console.error('Error getting bet analytics:', error);
-    throw error;
+    // Return default analytics instead of throwing
+    return {
+      total_bets: 0,
+      wins: 0,
+      losses: 0,
+      pushes: 0,
+      win_rate: 0,
+      total_wagered: 0,
+      total_won: 0,
+      total_lost: 0,
+      net_profit: 0,
+      average_bet_size: 0,
+      largest_win: 0,
+      largest_loss: 0,
+      current_streak: 0,
+      best_streak: 0
+    };
   }
 };
 
