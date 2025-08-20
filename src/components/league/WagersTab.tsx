@@ -3,8 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -32,10 +30,6 @@ interface User {
 export default function WagersTab({ leagueId }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [betType, setBetType] = useState("");
-  const [betAmount, setBetAmount] = useState<number>(10);
-  const [betTerms, setBetTerms] = useState("");
-  const [creatingBet, setCreatingBet] = useState(false);
   const [activeTab, setActiveTab] = useState("offered");
 
   const betsQuery = useQuery({
@@ -64,37 +58,6 @@ export default function WagersTab({ leagueId }: Props) {
       return (data ?? []) as User[];
     },
   });
-
-  const createBet = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!betType.trim()) return;
-    setCreatingBet(true);
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData.user?.id;
-      if (!uid) throw new Error("Not authenticated");
-      
-      const { error } = await supabase.from("bets").insert({
-        league_id: leagueId,
-        created_by: uid,
-        type: betType.trim(),
-        token_amount: Number(betAmount) || 0,
-        terms: betTerms.trim() ? { description: betTerms.trim() } : null,
-        status: "offered"
-      });
-      
-      if (error) throw error;
-      setBetType("");
-      setBetAmount(10);
-      setBetTerms("");
-      toast({ title: "Bet offered", description: "Your bet is now available to accept." });
-      await qc.invalidateQueries({ queryKey: ["bets", leagueId] });
-    } catch (err: any) {
-      toast({ title: "Error creating bet", description: err.message });
-    } finally {
-      setCreatingBet(false);
-    }
-  };
 
   const acceptBet = async (bet: BetRow) => {
     try {
@@ -152,61 +115,6 @@ export default function WagersTab({ leagueId }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Bet Offering Section - FanDuel Style */}
-      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 shadow-lg">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
-            <span className="text-3xl">🎯</span>
-            Offer a New Bet
-          </CardTitle>
-          <p className="text-muted-foreground">Challenge your league mates with a custom wager</p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={createBet} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="betType" className="text-sm font-semibold">Bet Description</Label>
-                <Input 
-                  id="betType" 
-                  placeholder="e.g., My team scores 25+ points this week" 
-                  value={betType} 
-                  onChange={(e) => setBetType(e.target.value)}
-                  className="h-12 text-base"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="betAmount" className="text-sm font-semibold">Token Amount</Label>
-                <Input 
-                  id="betAmount" 
-                  type="number" 
-                  min={1} 
-                  value={betAmount} 
-                  onChange={(e) => setBetAmount(parseInt(e.target.value || "0", 10))}
-                  className="h-12 text-base"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="betTerms" className="text-sm font-semibold">Additional Terms (Optional)</Label>
-              <Input 
-                id="betTerms" 
-                placeholder="e.g., Must be accepted within 24 hours" 
-                value={betTerms} 
-                onChange={(e) => setBetTerms(e.target.value)}
-                className="h-12 text-base"
-              />
-            </div>
-            <Button 
-              type="submit" 
-              disabled={!betType.trim() || creatingBet}
-              className="w-full h-12 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              {creatingBet ? "Offering Bet..." : "🎯 Offer Bet"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
       {/* Wagers Tabs */}
       <Card className="bg-card border shadow-card">
         <CardHeader>
@@ -263,7 +171,7 @@ export default function WagersTab({ leagueId }: Props) {
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">🎯</div>
                   <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Offered Wagers</h3>
-                  <p className="text-sm text-muted-foreground">Create a bet above to get started!</p>
+                  <p className="text-sm text-muted-foreground">Go to the Sportsbook tab to place bets on matchups!</p>
                 </div>
               )}
               

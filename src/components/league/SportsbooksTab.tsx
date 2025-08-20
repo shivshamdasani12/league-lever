@@ -1,18 +1,39 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { fetchLeagueMatchupsByWeek, LeagueWeekRow, fetchRosterDetails, fetchApiProjections, PlayerProjection } from "@/lib/queries/league";
 import { fetchRosters } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
-import { TrendingUp, Users, Trophy, ArrowRight } from "lucide-react";
+import { TrendingUp, Users, Trophy, ArrowRight, DollarSign } from "lucide-react";
 import { useMemo } from "react";
 
 interface Props {
   leagueId: string;
 }
 
+interface BetOffer {
+  matchupIndex: number;
+  side: 'teamA' | 'teamB';
+  tokenAmount: number;
+  betType: string;
+}
+
 export default function SportsbooksTab({ leagueId }: Props) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [betOffer, setBetOffer] = useState<BetOffer | null>(null);
+  const [tokenAmount, setTokenAmount] = useState<number>(10);
+  const [isCreatingBet, setIsCreatingBet] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   // Fetch week 1 matchups
   const { data: week1Matchups = [] } = useQuery({
     queryKey: ['league-matchups-by-week', leagueId, 1],
@@ -134,6 +155,71 @@ export default function SportsbooksTab({ leagueId }: Props) {
     });
   }, [matchupPairs, rosters, projections]);
 
+  // Handle bet offering
+  const handleBetOffer = (matchupIndex: number, side: 'teamA' | 'teamB') => {
+    const matchup = matchupsWithSpreads[matchupIndex];
+    if (!matchup) return;
+
+    const sideName = side === 'teamA' ? matchup.teamAInfo.displayName : matchup.teamBInfo?.displayName;
+    const spreadText = matchup.isTeamAFavored 
+      ? (side === 'teamA' ? `-${matchup.spreadDisplay}` : `+${matchup.spreadDisplay}`)
+      : (side === 'teamA' ? `+${matchup.spreadDisplay}` : `-${matchup.spreadDisplay}`);
+
+    setBetOffer({
+      matchupIndex,
+      side,
+      tokenAmount: 10,
+      betType: `${sideName} ${spreadText} vs ${side === 'teamA' ? matchup.teamBInfo?.displayName : matchup.teamAInfo.displayName}`
+    });
+    setTokenAmount(10);
+    setIsDialogOpen(true);
+  };
+
+  // Create the bet
+  const createBet = async () => {
+    if (!betOffer || tokenAmount < 1) return;
+    
+    setIsCreatingBet(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) throw new Error("Not authenticated");
+      
+      const { error } = await supabase.from("bets").insert({
+        league_id: leagueId,
+        created_by: uid,
+        type: betOffer.betType,
+        token_amount: tokenAmount,
+        terms: { 
+          matchupIndex: betOffer.matchupIndex,
+          side: betOffer.side,
+          week: 1,
+          season: 2025
+        },
+        status: "offered"
+      });
+      
+      if (error) throw error;
+      
+      toast({ 
+        title: "Bet offered!", 
+        description: `Your bet of ${tokenAmount} tokens is now available in the Wagers tab.` 
+      });
+      
+      // Reset and close dialog
+      setBetOffer(null);
+      setTokenAmount(10);
+      setIsDialogOpen(false);
+      
+      // Invalidate bets query to refresh wagers tab
+      await qc.invalidateQueries({ queryKey: ["bets", leagueId] });
+    } catch (err: any) {
+      toast({ title: "Error creating bet", description: err.message });
+    } finally {
+      setIsCreatingBet(false);
+    }
+  };
+
   if (week1Matchups.length === 0) {
     return (
       <div className="text-center py-8">
@@ -149,7 +235,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
       {/* Header */}
       <div className="text-center">
         <h2 className="text-2xl font-bold text-primary mb-2">Week 1 Sportsbook</h2>
-        <p className="text-muted-foreground">Projected spreads based on FantasyPros projections</p>
+        <p className="text-muted-foreground">Place bets on either side of the spread • Projected spreads based on FantasyPros</p>
       </div>
 
       {/* Matchups Grid */}
@@ -170,19 +256,19 @@ export default function SportsbooksTab({ leagueId }: Props) {
             
             <CardContent className="p-6">
               <div className="grid grid-cols-3 gap-6 items-center">
-                                 {/* Team A */}
-                 <div className="text-center space-y-3">
-                   <div className="flex flex-col items-center gap-2">
-                     <Avatar className="h-16 w-16 border-2 border-primary/20">
-                       <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
-                         {getRosterInfo(matchup.a.roster_id).displayName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                       </AvatarFallback>
-                     </Avatar>
-                     <div>
-                       <h3 className="font-bold text-lg">{getRosterInfo(matchup.a.roster_id).displayName}</h3>
-                       <p className="text-sm text-muted-foreground">@{getRosterInfo(matchup.a.roster_id).ownerUsername}</p>
-                     </div>
-                   </div>
+                {/* Team A */}
+                <div className="text-center space-y-3">
+                  <div className="flex flex-col items-center gap-2">
+                    <Avatar className="h-16 w-16 border-2 border-primary/20">
+                      <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
+                        {getRosterInfo(matchup.a.roster_id).displayName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h3 className="font-bold text-lg">{getRosterInfo(matchup.a.roster_id).displayName}</h3>
+                      <p className="text-sm text-muted-foreground">@{getRosterInfo(matchup.a.roster_id).ownerUsername}</p>
+                    </div>
+                  </div>
                   
                   <div className="space-y-2">
                     <div className="text-center">
@@ -198,6 +284,15 @@ export default function SportsbooksTab({ leagueId }: Props) {
                       </Badge>
                     )}
                   </div>
+
+                  {/* Bet Button for Team A */}
+                  <Button 
+                    onClick={() => handleBetOffer(index, 'teamA')}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                  >
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Bet on {getRosterInfo(matchup.a.roster_id).displayName}
+                  </Button>
                 </div>
 
                 {/* VS / Spread */}
@@ -215,29 +310,29 @@ export default function SportsbooksTab({ leagueId }: Props) {
                       <div className="text-xs text-muted-foreground">Spread</div>
                     </div>
                     
-                                         <Badge variant="outline" className="bg-muted/50">
-                       {matchup.isTeamAFavored ? `${matchup.teamAInfo.displayName} Favored` : `${matchup.teamBInfo?.displayName || 'Opponent'} Favored`}
-                     </Badge>
+                    <Badge variant="outline" className="bg-muted/50">
+                      {matchup.isTeamAFavored ? `${matchup.teamAInfo.displayName} Favored` : `${matchup.teamBInfo?.displayName || 'Opponent'} Favored`}
+                    </Badge>
                   </div>
                 </div>
 
-                                 {/* Team B */}
-                 <div className="text-center space-y-3">
-                   <div className="flex flex-col items-center gap-2">
-                     <Avatar className="h-16 w-16 border-2 border-primary/20">
-                       <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
-                         {matchup.b ? getRosterInfo(matchup.b.roster_id).displayName.split(' ').map(n => n[0]).join('').slice(0, 2) : 'BYE'}
-                       </AvatarFallback>
-                     </Avatar>
-                     <div>
-                       <h3 className="text-lg font-bold">
-                         {matchup.b ? getRosterInfo(matchup.b.roster_id).displayName : 'BYE'}
-                       </h3>
-                       <p className="text-sm text-muted-foreground">
-                         {matchup.b ? `@${getRosterInfo(matchup.b.roster_id).ownerUsername}` : 'No opponent'}
-                       </p>
-                     </div>
-                   </div>
+                {/* Team B */}
+                <div className="text-center space-y-3">
+                  <div className="flex flex-col items-center gap-2">
+                    <Avatar className="h-16 w-16 border-2 border-primary/20">
+                      <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
+                        {matchup.b ? getRosterInfo(matchup.b.roster_id).displayName.split(' ').map(n => n[0]).join('').slice(0, 2) : 'BYE'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h3 className="text-lg font-bold">
+                        {matchup.b ? getRosterInfo(matchup.b.roster_id).displayName : 'BYE'}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {matchup.b ? `@${getRosterInfo(matchup.b.roster_id).ownerUsername}` : 'No opponent'}
+                      </p>
+                    </div>
+                  </div>
                   
                   <div className="space-y-2">
                     <div className="text-center">
@@ -253,6 +348,17 @@ export default function SportsbooksTab({ leagueId }: Props) {
                       </Badge>
                     )}
                   </div>
+
+                  {/* Bet Button for Team B */}
+                  {matchup.b && (
+                    <Button 
+                      onClick={() => handleBetOffer(index, 'teamB')}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                    >
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Bet on {getRosterInfo(matchup.b.roster_id).displayName}
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -271,16 +377,72 @@ export default function SportsbooksTab({ leagueId }: Props) {
         ))}
       </div>
 
+      {/* Bet Confirmation Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Confirm Your Bet</DialogTitle>
+          </DialogHeader>
+          
+          {betOffer && (
+            <div className="space-y-4">
+              <div className="bg-muted/30 p-4 rounded-lg">
+                <h4 className="font-semibold text-sm mb-2">Bet Details</h4>
+                <p className="text-sm text-muted-foreground">{betOffer.betType}</p>
+              </div>
+              
+              <div className="space-y-3">
+                <Label htmlFor="tokenAmount" className="text-sm font-semibold">
+                  How many tokens do you want to bet?
+                </Label>
+                <Input
+                  id="tokenAmount"
+                  type="number"
+                  min="1"
+                  value={tokenAmount}
+                  onChange={(e) => setTokenAmount(parseInt(e.target.value) || 0)}
+                  className="h-12 text-base"
+                  placeholder="Enter token amount"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Minimum bet: 1 token
+                </p>
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={createBet}
+                  disabled={isCreatingBet || tokenAmount < 1}
+                  className="flex-1 bg-primary hover:bg-primary/90"
+                >
+                  {isCreatingBet ? "Creating..." : `Bet ${tokenAmount} Tokens`}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Info Box */}
       <Card className="bg-muted/30 border-dashed">
         <CardContent className="p-4">
           <div className="text-center text-sm text-muted-foreground">
             <p className="mb-2">
-              <strong>Note:</strong> These spreads are calculated using projected fantasy points and are for display purposes only.
+              <strong>How it works:</strong> Click "Bet on [Team]" to place a wager on either side of the spread.
             </p>
-            <p>
+            <p className="mb-2">
               Positive spread means the team is favored by that many points. 
               Negative spread means the team is an underdog by that many points.
+            </p>
+            <p>
+              Your bet will appear in the Wagers tab once confirmed.
             </p>
           </div>
         </CardContent>
