@@ -135,7 +135,7 @@ export default function WagersTab({ leagueId }: Props) {
       const uid = userData.user?.id;
       if (!uid) throw new Error("Not authenticated");
       
-      // Create the opposite position bet type
+      // Create the opposite position bet type with the adjusted spread
       const originalBetType = counterOfferData.originalBet.type;
       const oppositeBetType = getOppositePosition(originalBetType, { adjustedSpread: counterOfferData.adjustedSpread });
       
@@ -215,8 +215,29 @@ export default function WagersTab({ leagueId }: Props) {
     return betType; // Return original if we can't parse it
   };
 
+  // Function to get the position that the acceptor will be taking (with adjusted spreads)
+  const getAcceptorPosition = (bet: BetRow) => {
+    // If the bet has an adjusted spread in terms, use that
+    if (bet.terms?.adjustedSpread !== undefined) {
+      const adjustedSpread = bet.terms.adjustedSpread;
+      const spreadText = adjustedSpread > 0 ? `+${adjustedSpread.toFixed(1)}` : `${adjustedSpread.toFixed(1)}`;
+      
+      // Parse the original bet type to get team names
+      const match = bet.type.match(/^(.+?)\s+[+-]\d+\.?\d*\s+vs\s+(.+)$/);
+      if (match) {
+        const [, team1, team2] = match;
+        // The acceptor takes the opposite side, so flip the teams
+        return `${team2} ${spreadText} vs ${team1}`;
+      }
+    }
+    
+    // Fallback to the opposite position calculation
+    return getOppositePosition(bet.type, bet.terms);
+  };
+
   // Function to calculate payout based on custom payout ratio
   const calculatePayout = (tokenAmount: number, payoutRatio?: number) => {
+    console.log('calculatePayout called with:', { tokenAmount, payoutRatio, terms: payoutRatio });
     if (payoutRatio && payoutRatio > 1.0) {
       return tokenAmount * payoutRatio;
     }
@@ -225,7 +246,9 @@ export default function WagersTab({ leagueId }: Props) {
 
   // Function to get payout display text
   const getPayoutDisplay = (bet: BetRow) => {
+    console.log('getPayoutDisplay called with bet:', bet);
     const payoutRatio = bet.terms?.payoutRatio;
+    console.log('Extracted payoutRatio:', payoutRatio);
     if (payoutRatio && payoutRatio > 1.0) {
       return `${payoutRatio.toFixed(1)}x payout`;
     }
@@ -316,7 +339,7 @@ export default function WagersTab({ leagueId }: Props) {
                       <div className="flex items-start justify-between">
                         <div className="flex-1 space-y-3">
                           <div className="flex items-center gap-3">
-                            <h3 className="text-lg font-semibold text-foreground">{getOppositePosition(bet.type, bet.terms)}</h3>
+                            <h3 className="text-lg font-semibold text-foreground">{getAcceptorPosition(bet)}</h3>
                             {getStatusBadge(bet.status)}
                             {bet.terms?.isCounterOffer && (
                               <Badge variant="outline" className="border-orange-300 text-orange-700 bg-orange-50">
@@ -405,7 +428,7 @@ export default function WagersTab({ leagueId }: Props) {
                     <CardContent className="p-6">
                       <div className="space-y-3">
                         <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold text-foreground">{bet.type}</h3>
+                          <h3 className="text-lg font-semibold text-foreground">{getAcceptorPosition(bet)}</h3>
                           {getStatusBadge(bet.status)}
                         </div>
                         
@@ -476,7 +499,7 @@ export default function WagersTab({ leagueId }: Props) {
                       <CardContent className="p-6">
                         <div className="space-y-3">
                           <div className="flex items-center gap-3">
-                            <h3 className="text-lg font-semibold text-foreground">{bet.type}</h3>
+                            <h3 className="text-lg font-semibold text-foreground">{getAcceptorPosition(bet)}</h3>
                             {getStatusBadge(bet.status)}
                             {bet.outcome && (
                               <Badge variant={bet.outcome === 'won' ? 'default' : 
