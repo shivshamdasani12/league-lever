@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import React from "react"; // Added missing import for React
 
 interface Props { leagueId: string }
 
@@ -82,6 +83,26 @@ export default function WagersTab({ leagueId }: Props) {
     }
   };
 
+  // Function to settle a bet (move from active to settled)
+  const settleBet = async (bet: BetRow, outcome: 'won' | 'lost') => {
+    try {
+      const { error } = await supabase
+        .from("bets")
+        .update({ 
+          status: "settled", 
+          settled_at: new Date().toISOString(),
+          outcome: outcome
+        })
+        .eq("id", bet.id);
+      
+      if (error) throw error;
+      toast({ title: "Bet settled", description: `Bet marked as ${outcome}.` });
+      await qc.invalidateQueries({ queryKey: ["bets", leagueId] });
+    } catch (err: any) {
+      toast({ title: "Error settling bet", description: err.message });
+    }
+  };
+
   const getUserDisplayName = (userId: string) => {
     // For now, just show a shortened user ID since we can't access other users' profiles
     return `@${userId.slice(0, 8)}...`;
@@ -113,8 +134,8 @@ export default function WagersTab({ leagueId }: Props) {
     });
   };
 
-  // Function to get the opposite position for display
-  const getOppositePosition = (betType: string) => {
+  // Function to get the opposite position for display with adjusted spreads
+  const getOppositePosition = (betType: string, terms?: any) => {
     // Parse the bet type to extract the spread and create opposite position
     // Example: "Team A +1.9 vs Team B" becomes "Team B -1.9 vs Team A"
     const match = betType.match(/^(.+?)\s+([+-]\d+\.?\d*)\s+vs\s+(.+)$/);
@@ -123,6 +144,17 @@ export default function WagersTab({ leagueId }: Props) {
       const oppositeSpread = spread.startsWith('+') ? spread.replace('+', '-') : spread.replace('-', '+');
       return `${team2} ${oppositeSpread} vs ${team1}`;
     }
+    
+    // If we can't parse the bet type, try to use the terms data
+    if (terms?.adjustedSpread !== undefined) {
+      // This is a more complex bet, try to reconstruct the opposite position
+      const adjustedSpread = terms.adjustedSpread;
+      const spreadText = adjustedSpread > 0 ? `+${adjustedSpread.toFixed(1)}` : `${adjustedSpread.toFixed(1)}`;
+      
+      // For now, return a simplified version
+      return `Opposite Side ${spreadText}`;
+    }
+    
     return betType; // Return original if we can't parse it
   };
 
@@ -130,6 +162,40 @@ export default function WagersTab({ leagueId }: Props) {
   const calculatePayout = (tokenAmount: number) => {
     return tokenAmount * 2;
   };
+
+  // Function to check if a bet should be matured (moved to past wagers)
+  const shouldMatureBet = (bet: BetRow) => {
+    if (bet.status !== 'active') return false;
+    
+    // For now, let's assume bets mature after a certain time period
+    // In a real implementation, this would check against actual game results
+    const acceptedDate = new Date(bet.accepted_at!);
+    const now = new Date();
+    const daysSinceAccepted = (now.getTime() - acceptedDate.getTime()) / (1000 * 60 * 60 * 24);
+    
+    // Mature after 7 days (for demo purposes)
+    return daysSinceAccepted >= 7;
+  };
+
+  // Auto-mature bets that should be settled
+  const matureBets = async () => {
+    const activeBets = filterBetsByStatus("active");
+    const betsToMature = activeBets.filter(shouldMatureBet);
+    
+    for (const bet of betsToMature) {
+      // For demo purposes, randomly assign outcome
+      // In real implementation, this would check actual game results
+      const outcome = Math.random() > 0.5 ? 'won' : 'lost';
+      await settleBet(bet, outcome);
+    }
+  };
+
+  // Run maturation check when component mounts or when active bets change
+  React.useEffect(() => {
+    if (filterBetsByStatus("active").length > 0) {
+      matureBets();
+    }
+  }, [betsQuery.data]);
 
   return (
     <div className="space-y-6">
@@ -200,7 +266,7 @@ export default function WagersTab({ leagueId }: Props) {
                       <div className="flex items-start justify-between">
                         <div className="flex-1 space-y-3">
                           <div className="flex items-center gap-3">
-                            <h3 className="text-lg font-semibold text-foreground">{getOppositePosition(bet.type)}</h3>
+                            <h3 className="text-lg font-semibold text-foreground">{getOppositePosition(bet.type, bet.terms)}</h3>
                             {getStatusBadge(bet.status)}
                           </div>
                           
@@ -303,6 +369,31 @@ export default function WagersTab({ leagueId }: Props) {
                             <div className="font-medium text-sm">{bet.terms.description}</div>
                           </div>
                         )}
+
+                        {/* Manual Settlement Buttons (for demo/testing) */}
+                        <div className="pt-3 border-t">
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => settleBet(bet, 'won')}
+                              className="text-green-600 border-green-300 hover:bg-green-50"
+                            >
+                              Mark as Won
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => settleBet(bet, 'lost')}
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                            >
+                              Mark as Lost
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Demo: Manually settle bets for testing
+                          </p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchLeagueMatchupsByWeek, LeagueWeekRow, fetchRosterDetails, fetchApiProjections, PlayerProjection } from "@/lib/queries/league";
 import { fetchRosters } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
-import { TrendingUp, Users, Trophy, ArrowRight, DollarSign } from "lucide-react";
+import { TrendingUp, Users, Trophy, ArrowRight, DollarSign, Settings } from "lucide-react";
 import { useMemo } from "react";
 
 interface Props {
@@ -24,6 +24,8 @@ interface BetOffer {
   side: 'teamA' | 'teamB';
   tokenAmount: number;
   betType: string;
+  adjustedSpread: number;
+  originalSpread: number;
 }
 
 export default function SportsbooksTab({ leagueId }: Props) {
@@ -31,6 +33,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
   const qc = useQueryClient();
   const [betOffer, setBetOffer] = useState<BetOffer | null>(null);
   const [tokenAmount, setTokenAmount] = useState<number>(10);
+  const [adjustedSpread, setAdjustedSpread] = useState<number>(0);
   const [isCreatingBet, setIsCreatingBet] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -161,18 +164,50 @@ export default function SportsbooksTab({ leagueId }: Props) {
     if (!matchup) return;
 
     const sideName = side === 'teamA' ? matchup.teamAInfo.displayName : matchup.teamBInfo?.displayName;
-    const spreadText = matchup.isTeamAFavored 
-      ? (side === 'teamA' ? `-${matchup.spreadDisplay}` : `+${matchup.spreadDisplay}`)
-      : (side === 'teamA' ? `+${matchup.spreadDisplay}` : `-${matchup.spreadDisplay}`);
-
+    const originalSpread = matchup.spread;
+    
+    // Set initial adjusted spread to the original spread
+    setAdjustedSpread(originalSpread);
+    
+    // Calculate the spread for the side being bet on
+    let spreadForSide: number;
+    if (side === 'teamA') {
+      spreadForSide = originalSpread;
+    } else {
+      spreadForSide = -originalSpread;
+    }
+    
+    const spreadText = spreadForSide > 0 ? `+${spreadForSide.toFixed(1)}` : `${spreadForSide.toFixed(1)}`;
+    
     setBetOffer({
       matchupIndex,
       side,
       tokenAmount: 10,
-      betType: `${sideName} ${spreadText} vs ${side === 'teamA' ? matchup.teamBInfo?.displayName : matchup.teamAInfo.displayName}`
+      betType: `${sideName} ${spreadText} vs ${side === 'teamA' ? matchup.teamBInfo?.displayName : matchup.teamAInfo.displayName}`,
+      adjustedSpread: spreadForSide,
+      originalSpread: originalSpread
     });
     setTokenAmount(10);
     setIsDialogOpen(true);
+  };
+
+  // Update bet type when spread is adjusted
+  const updateBetType = (newSpread: number) => {
+    if (!betOffer) return;
+    
+    const matchup = matchupsWithSpreads[betOffer.matchupIndex];
+    if (!matchup) return;
+    
+    const sideName = betOffer.side === 'teamA' ? matchup.teamAInfo.displayName : matchup.teamBInfo?.displayName;
+    const opponentName = betOffer.side === 'teamA' ? matchup.teamBInfo?.displayName : matchup.teamAInfo.displayName;
+    
+    const spreadText = newSpread > 0 ? `+${newSpread.toFixed(1)}` : `${newSpread.toFixed(1)}`;
+    
+    setBetOffer({
+      ...betOffer,
+      betType: `${sideName} ${spreadText} vs ${opponentName}`,
+      adjustedSpread: newSpread
+    });
   };
 
   // Create the bet
@@ -194,7 +229,9 @@ export default function SportsbooksTab({ leagueId }: Props) {
           matchupIndex: betOffer.matchupIndex,
           side: betOffer.side,
           week: 1,
-          season: 2025
+          season: 2025,
+          originalSpread: betOffer.originalSpread,
+          adjustedSpread: betOffer.adjustedSpread
         },
         status: "offered"
       });
@@ -209,6 +246,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
       // Reset and close dialog
       setBetOffer(null);
       setTokenAmount(10);
+      setAdjustedSpread(0);
       setIsDialogOpen(false);
       
       // Invalidate bets query to refresh wagers tab
@@ -235,7 +273,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
       {/* Header */}
       <div className="text-center">
         <h2 className="text-2xl font-bold text-primary mb-2">Week 1 Sportsbook</h2>
-        <p className="text-muted-foreground">Place bets on either side of the spread • Projected spreads based on FantasyPros</p>
+        <p className="text-muted-foreground">Place bets on either side of the spread • Adjust spreads to your preference</p>
       </div>
 
       {/* Matchups Grid */}
@@ -307,7 +345,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
                       <div className="text-lg font-bold text-primary">
                         {matchup.spread > 0 ? `+${matchup.spreadDisplay}` : `-${matchup.spreadDisplay}`}
                       </div>
-                      <div className="text-xs text-muted-foreground">Spread</div>
+                      <div className="text-xs text-muted-foreground">Projected Spread</div>
                     </div>
                     
                     <Badge variant="outline" className="bg-muted/50">
@@ -392,6 +430,29 @@ export default function SportsbooksTab({ leagueId }: Props) {
               </div>
               
               <div className="space-y-3">
+                <Label htmlFor="adjustedSpread" className="text-sm font-semibold flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Adjust Spread (Optional)
+                </Label>
+                <Input
+                  id="adjustedSpread"
+                  type="number"
+                  step="0.1"
+                  value={adjustedSpread}
+                  onChange={(e) => {
+                    const newSpread = parseFloat(e.target.value) || 0;
+                    setAdjustedSpread(newSpread);
+                    updateBetType(newSpread);
+                  }}
+                  className="h-12 text-base"
+                  placeholder="Enter adjusted spread"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Original spread: {betOffer.originalSpread > 0 ? `+${betOffer.originalSpread.toFixed(1)}` : betOffer.originalSpread.toFixed(1)}
+                </p>
+              </div>
+              
+              <div className="space-y-3">
                 <Label htmlFor="tokenAmount" className="text-sm font-semibold">
                   How many tokens do you want to bet?
                 </Label>
@@ -436,6 +497,9 @@ export default function SportsbooksTab({ leagueId }: Props) {
           <div className="text-center text-sm text-muted-foreground">
             <p className="mb-2">
               <strong>How it works:</strong> Click "Bet on [Team]" to place a wager on either side of the spread.
+            </p>
+            <p className="mb-2">
+              You can adjust the spread to make your bet more attractive to other users.
             </p>
             <p className="mb-2">
               Positive spread means the team is favored by that many points. 
