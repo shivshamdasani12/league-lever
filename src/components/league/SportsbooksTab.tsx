@@ -560,10 +560,26 @@ export default function SportsbooksTab({ leagueId }: Props) {
                   step="0.1"
                   min="1.0"
                   max="5.0"
-                  value={payoutRatio}
+                  value={payoutRatio.toFixed(1)}
                   onChange={(e) => {
-                    const newRatio = parseFloat(e.target.value) || 2.0;
-                    setPayoutRatio(Math.max(1.0, Math.min(5.0, newRatio)));
+                    const inputValue = e.target.value;
+                    if (inputValue === '') {
+                      setPayoutRatio(2.0);
+                    } else {
+                      const newRatio = parseFloat(inputValue);
+                      if (!isNaN(newRatio)) {
+                        setPayoutRatio(Math.max(1.0, Math.min(5.0, newRatio)));
+                      }
+                    }
+                  }}
+                  onBlur={(e) => {
+                    // Ensure we have a valid number on blur
+                    const value = parseFloat(e.target.value);
+                    if (isNaN(value) || value < 1.0) {
+                      setPayoutRatio(2.0);
+                    } else if (value > 5.0) {
+                      setPayoutRatio(5.0);
+                    }
                   }}
                   className="h-12 text-base"
                   placeholder="Enter payout ratio (1.0-5.0)"
