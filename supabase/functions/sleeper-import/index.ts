@@ -112,6 +112,14 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Failed to resolve league id' }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Ensure creator is a league member (owner)
+    const { error: memberUpsertErr } = await adminClient
+      .from('league_members')
+      .upsert({ league_id: league_uuid, user_id: user.id, role: 'owner' }, { onConflict: 'league_id,user_id' });
+    if (memberUpsertErr) {
+      console.warn('Failed to upsert league member:', memberUpsertErr);
+    }
+
     // Upsert users
     if (Array.isArray(users)) {
       const rows = users.map(u => ({

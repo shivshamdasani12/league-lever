@@ -14,10 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      bets: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          created_by: string
+          id: string
+          league_id: string
+          outcome: string | null
+          settled_at: string | null
+          status: string
+          terms: Json | null
+          token_amount: number
+          type: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          league_id: string
+          outcome?: string | null
+          settled_at?: string | null
+          status?: string
+          terms?: Json | null
+          token_amount?: number
+          type: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          league_id?: string
+          outcome?: string | null
+          settled_at?: string | null
+          status?: string
+          terms?: Json | null
+          token_amount?: number
+          type?: string
+        }
+        Relationships: []
+      }
+      invitations: {
+        Row: {
+          code: string
+          created_at: string
+          email: string
+          id: string
+          invited_by: string
+          league_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          email: string
+          id?: string
+          invited_by: string
+          league_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string
+          league_id?: string
+        }
+        Relationships: []
+      }
       league_members: {
         Row: {
           created_at: string | null
           id: string
+          joined_at: string | null
           league_id: string
           role: string
           updated_at: string | null
@@ -26,6 +99,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          joined_at?: string | null
           league_id: string
           role?: string
           updated_at?: string | null
@@ -34,6 +108,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          joined_at?: string | null
           league_id?: string
           role?: string
           updated_at?: string | null
@@ -244,6 +319,30 @@ export type Database = {
           team?: string | null
           updated_at?: string | null
           weight?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -520,6 +619,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          bet_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          league_id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          bet_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          league_id: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          bet_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          league_id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
