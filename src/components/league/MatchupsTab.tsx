@@ -15,6 +15,7 @@ import { fetchWeeks, fetchLeagueMatchupsByWeek, LeagueWeekRow, fetchRosterDetail
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
 import { useEnsureLeagueMatchups } from "@/hooks/useEnsureLeagueMatchups";
 import { useEnsureLeaguePlayers } from "@/hooks/useEnsureLeaguePlayers";
+import { ImportMatchupsButton } from "@/components/ImportMatchupsButton";
 
 interface Props { 
   leagueId: string;
@@ -396,6 +397,7 @@ useEnsureLeaguePlayers(leagueId);
         </div>
         
         <div className="flex items-center gap-4">
+          {!hasWeeks && <ImportMatchupsButton leagueId={leagueId} />}
           {hasWeeks && (
             <div className="text-sm text-muted-foreground">
               {matchupPairs.length} Matchup{matchupPairs.length !== 1 ? 's' : ''}
