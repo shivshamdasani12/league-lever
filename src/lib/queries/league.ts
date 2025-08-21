@@ -125,12 +125,6 @@ export interface PlayerProjection {
 }
 
 export async function fetchApiProjections(leagueId: string, week: number, season: number = 2025, scoring: string = 'PPR') {
-  console.log('=== fetchApiProjections DEBUG ===');
-  console.log('League ID:', leagueId);
-  console.log('Week:', week);
-  console.log('Season:', season);
-  console.log('Scoring:', scoring);
-  
   try {
     // Get player IDs relevant to this league
     const { data: playerIds } = await supabase
@@ -139,150 +133,59 @@ export async function fetchApiProjections(leagueId: string, week: number, season
       .eq('league_id', leagueId);
 
     if (!playerIds || playerIds.length === 0) {
-      console.log('No player IDs found for league');
       return [];
     }
 
     const relevantPlayerIds = playerIds.map(p => p.player_id);
-    console.log('Relevant player IDs:', relevantPlayerIds.length);
-    console.log('Sample player IDs:', relevantPlayerIds.slice(0, 5));
 
-    // First, let's check what projections exist for this week/season/scoring
-    const { data: allProjections, error: allProjError } = await supabase
-      .from('projections')
-      .select(`
-        player_id, 
-        points, 
-        raw, 
-        updated_at,
-        position,
-        source
-      `)
+    // Read from player_projections (our writer)
+    let projectionRowsRes = await supabase
+      .from('player_projections')
+      .select('player_id, points, updated_at')
       .eq('season', season)
       .eq('week', week)
-      .eq('scoring', scoring);
-
-    if (allProjError) {
-      console.error('All projections query error:', allProjError);
-      throw allProjError;
-    }
-
-    console.log('All projections for week/season/scoring:', allProjections?.length || 0);
-    console.log('Sample all projections:', allProjections?.slice(0, 3));
-
-    // Check if there are defense projections
-    const defenseProjections = allProjections?.filter(p => p.position === 'DEF' || p.position === 'DST') || [];
-    console.log('Defense projections found:', defenseProjections.length);
-    console.log('Sample defense projections:', defenseProjections.slice(0, 3));
-
-    // Also check what positions exist in the projections
-    const positionsInProjections = [...new Set(allProjections?.map(p => p.position) || [])];
-    console.log('All positions in projections:', positionsInProjections);
-
-    // Query the projections table for league players
-    const { data: projectionData, error: projError } = await supabase
-      .from('projections')
-      .select(`
-        player_id, 
-        points, 
-        raw, 
-        updated_at,
-        position,
-        source
-      `)
-      .eq('season', season)
-      .eq('week', week)
-      .eq('scoring', scoring)
-      .in('player_id', relevantPlayerIds)
-      .order('points', { ascending: false, nullsFirst: true });
-    
-    if (projError) {
-      console.error('Projections query error:', projError);
-      throw projError;
-    }
-
-    console.log('League-specific projections found:', projectionData?.length || 0);
-    console.log('Sample league projections:', projectionData?.slice(0, 3));
-
-    // Check if we're missing defense projections
-    const leagueDefenseProjections = projectionData?.filter(p => p.position === 'DEF' || p.position === 'DST') || [];
-    console.log('League defense projections found:', leagueDefenseProjections.length);
-    
-    if (defenseProjections.length > 0 && leagueDefenseProjections.length === 0) {
-      console.log('WARNING: Defense projections exist but none found for league players');
-      console.log('This suggests defense IDs in league_player_ids_v might not match defense IDs in projections');
-    }
-
-    // Get player details separately
-    const { data: playerData } = await supabase
-      .from('players')
-      .select('player_id, full_name, position, team')
       .in('player_id', relevantPlayerIds);
 
-    const playerMap = new Map((playerData || []).map(p => [p.player_id, p]));
+    if (projectionRowsRes.error) throw projectionRowsRes.error;
 
-    // Transform to match PlayerProjection interface
-    const result = (projectionData || []).map(proj => {
-      const player = playerMap.get(proj.player_id);
-      return {
-        player_id: proj.player_id,
-        projection_points: proj.points || 0, // Use 'points' from projections table
-        updated_at: proj.updated_at,
-        full_name: player?.full_name || null,
-        team: player?.team || null,
-        player_position: player?.position || proj.position,
-        projection_data: proj.raw || null
-      } as PlayerProjection;
-    });
+    let projectionRows = projectionRowsRes.data || [];
 
-    console.log('Final result count:', result.length);
-    console.log('Sample final result:', result.slice(0, 3));
-
-    // If we're missing defense projections, try to add them
-    if (defenseProjections.length > 0 && leagueDefenseProjections.length === 0) {
-      // Try to get defense projections by looking for team-based IDs
-      const { data: defenseProjData, error: defProjError } = await supabase
+    // Fallback: if empty, try legacy projections table
+    if (projectionRows.length === 0) {
+      const legacy = await supabase
         .from('projections')
-        .select(`
-          player_id, 
-          points, 
-          raw, 
-          updated_at,
-          position,
-          source
-        `)
+        .select('player_id, points, updated_at')
         .eq('season', season)
         .eq('week', week)
         .eq('scoring', scoring)
-        .in('position', ['DEF', 'DST'])
-        .order('points', { ascending: false, nullsFirst: true });
-      
-      if (!defProjError && defenseProjData && defenseProjData.length > 0) {
-        console.log('Found defense projections outside of league players:', defenseProjData.length);
-        console.log('Sample defense projections:', defenseProjData.slice(0, 3));
-        
-        // Add these defense projections to the result
-        const defenseResults = defenseProjData.map(proj => ({
-          player_id: proj.player_id,
-          projection_points: proj.points || 0,
-          updated_at: proj.updated_at,
-          full_name: `Team ${proj.player_id}`, // Use team ID as name for defenses
-          team: proj.player_id, // Team ID for defenses
-          player_position: proj.position,
-          projection_data: proj.raw || null
-        } as PlayerProjection));
-        
-        // Combine regular projections with defense projections
-        const combinedResult = [...result, ...defenseResults];
-        console.log('Combined result count (including defenses):', combinedResult.length);
-        return combinedResult;
-      }
+        .in('player_id', relevantPlayerIds);
+      if (legacy.error) throw legacy.error;
+      projectionRows = legacy.data || [];
     }
 
-    console.log('=== END DEBUG ===');
-    
+    // Fetch player details for mapping name/position/team
+    const { data: playerRows, error: playersErr } = await supabase
+      .from('players')
+      .select('player_id, full_name, position, team')
+      .in('player_id', projectionRows.map(p => p.player_id));
+
+    if (playersErr) throw playersErr;
+
+    const playerMap = new Map((playerRows || []).map(p => [p.player_id, p]));
+
+    const result: PlayerProjection[] = projectionRows.map(p => {
+      const meta = playerMap.get(p.player_id);
+      return {
+        player_id: p.player_id,
+        projection_points: Number(p.points) || 0,
+        updated_at: p.updated_at || null,
+        full_name: meta?.full_name ?? null,
+        team: meta?.team ?? null,
+        player_position: meta?.position ?? null,
+      };
+    });
+
     return result;
-    
   } catch (error) {
     console.error('Error in fetchApiProjections:', error);
     throw error;

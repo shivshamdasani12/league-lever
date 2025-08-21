@@ -84,11 +84,7 @@ export default function GeneralTab({ leagueId, leagueName, teamsCount }: Props) 
               <div className="text-muted-foreground">Members</div>
               <div className="font-medium">{teamsCount}</div>
             </div>
-            <div className="flex items-end justify-end space-x-2">
-              <Button variant="secondary" onClick={handleSync} disabled={isSyncing}>
-                {isSyncing ? "Syncing..." : "Sync Sleeper Data"}
-              </Button>
-            </div>
+              {/* Sync button removed to keep data automatic */}
           </div>
         </CardContent>
       </Card>

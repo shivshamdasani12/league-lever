@@ -96,6 +96,18 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
     }
   }, [selectedWeek, params, setSearchParams]);
 
+  // Fallback: if no weeks exist yet (preseason), default to week 1 so imports can run
+  useEffect(() => {
+    if (!weeksQ.isLoading && (!weeksQ.data || weeksQ.data.length === 0) && (week == null)) {
+      setWeek(1);
+      setSearchParams((prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('week', '1');
+        return p;
+      }, { replace: true });
+    }
+  }, [weeksQ.isLoading, weeksQ.data, week, setSearchParams]);
+
   const { importing: importingWeek } = useEnsureLeagueMatchups(leagueId, week);
 
   const { data: rows = [] } = useQuery({
