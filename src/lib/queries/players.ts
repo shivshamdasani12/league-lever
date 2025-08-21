@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 export interface PlayerRow {
   player_id: string;
   full_name: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
   position: string | null;
   team: string | null;
   fantasy_positions: string[] | null;

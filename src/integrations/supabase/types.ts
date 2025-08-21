@@ -16,11 +16,15 @@ export type Database = {
     Tables: {
       bets: {
         Row: {
+          accepted_at: string | null
+          accepted_by: string | null
           created_at: string | null
           created_by: string | null
           id: string
           league_id: string | null
+          outcome: string | null
           season: number | null
+          settled_at: string | null
           status: string
           terms: Json | null
           token_amount: number
@@ -29,11 +33,15 @@ export type Database = {
           week: number | null
         }
         Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           league_id?: string | null
+          outcome?: string | null
           season?: number | null
+          settled_at?: string | null
           status?: string
           terms?: Json | null
           token_amount?: number
@@ -42,11 +50,15 @@ export type Database = {
           week?: number | null
         }
         Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           league_id?: string | null
+          outcome?: string | null
           season?: number | null
+          settled_at?: string | null
           status?: string
           terms?: Json | null
           token_amount?: number
@@ -127,6 +139,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          joined_at: string | null
           league_id: string | null
           role: string
           user_id: string | null
@@ -134,6 +147,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          joined_at?: string | null
           league_id?: string | null
           role?: string
           user_id?: string | null
@@ -141,6 +155,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          joined_at?: string | null
           league_id?: string | null
           role?: string
           user_id?: string | null
@@ -530,6 +545,39 @@ export type Database = {
           },
         ]
       }
+      transactions: {
+        Row: {
+          amount: number
+          bet_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          league_id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          bet_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          league_id: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          bet_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          league_id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       league_matchups_v: {
@@ -659,6 +707,10 @@ export type Database = {
           points: number
           updated_at: string
         }[]
+      }
+      increment_token_balance: {
+        Args: { amount: number; user_id: string }
+        Returns: number
       }
     }
     Enums: {

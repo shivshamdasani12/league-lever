@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
+import { triggerSleeperSyncAll } from "@/lib/queries/league";
 
 interface Props { leagueId: string; leagueName: string; teamsCount: number; }
 
@@ -14,6 +15,20 @@ export default function GeneralTab({ leagueId, leagueName, teamsCount }: Props) 
   const [inviteEmail, setInviteEmail] = useState("");
   const [createdCode, setCreatedCode] = useState("");
   const [creatingInvite, setCreatingInvite] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      await triggerSleeperSyncAll(leagueId);
+      toast({ title: "Sync started", description: "Syncing league data. Refresh in a few seconds." });
+      await qc.invalidateQueries();
+    } catch (err: any) {
+      toast({ title: "Sync failed", description: err.message });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Restore members query
   const membersQ = useQuery({
@@ -70,7 +85,9 @@ export default function GeneralTab({ leagueId, leagueName, teamsCount }: Props) 
               <div className="font-medium">{teamsCount}</div>
             </div>
             <div className="flex items-end justify-end space-x-2">
-              {/* Removed non-functional buttons - season schedule imports automatically */}
+              <Button variant="secondary" onClick={handleSync} disabled={isSyncing}>
+                {isSyncing ? "Syncing..." : "Sync Sleeper Data"}
+              </Button>
             </div>
           </div>
         </CardContent>

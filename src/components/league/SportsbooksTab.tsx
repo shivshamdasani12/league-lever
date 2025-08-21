@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchLeagueMatchupsByWeek, LeagueWeekRow, fetchRosterDetails, fetchApiProjections, PlayerProjection } from "@/lib/queries/league";
+import { fetchLeagueMatchupsByWeek, fetchRosterDetails, fetchApiProjections, PlayerProjection } from "@/lib/queries/league";
 import { fetchRosters } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
 import { calculateOptimalSpread } from "@/lib/services/betSettlement";
@@ -171,7 +171,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
 
   // Group matchups into pairs
   const matchupPairs = useMemo(() => {
-    const groups: Record<string, LeagueWeekRow[]> = {};
+    const groups: Record<string, any[]> = {};
     week1Matchups.forEach(matchup => {
       const key = `${matchup.week}_${matchup.matchup_id}`;
       if (!groups[key]) groups[key] = [];
