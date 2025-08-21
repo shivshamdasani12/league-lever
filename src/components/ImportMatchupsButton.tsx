@@ -31,11 +31,6 @@ export const ImportMatchupsButton = ({ leagueId }: ImportMatchupsButtonProps) =>
         });
         return;
       }
-
-      toast({
-        title: "Success!",
-        description: `Imported matchups for ${data?.weeks_imported || 'multiple'} weeks`,
-      });
     } catch (error) {
       console.error('Error calling function:', error);
       toast({
