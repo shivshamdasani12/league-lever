@@ -14,6 +14,7 @@ import { useSearchParams } from "react-router-dom";
 import { fetchWeeks, fetchLeagueMatchupsByWeek, LeagueWeekRow, fetchRosterDetails, fetchRosters, fetchApiProjections, PlayerProjection } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
 import { useEnsureLeagueMatchups } from "@/hooks/useEnsureLeagueMatchups";
+import { useEnsureLeaguePlayers } from "@/hooks/useEnsureLeaguePlayers";
 
 interface Props { 
   leagueId: string;
@@ -54,6 +55,8 @@ export default function MatchupsTab({ leagueId, onRosterSelect }: Props) {
   const [activeTab, setActiveTab] = useState("projections");
   
 
+
+useEnsureLeaguePlayers(leagueId);
 
   const weeksQ = useQuery({
     queryKey: ["league-weeks", leagueId],

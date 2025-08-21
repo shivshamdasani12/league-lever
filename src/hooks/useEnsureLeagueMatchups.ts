@@ -4,6 +4,22 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 
 /**
+ * Ensure league membership for the current user (owner/member) via Edge Function
+ */
+async function ensureMembership(leagueId: string) {
+  try {
+    const { data, error } = await supabase.functions.invoke("ensure-league-membership", {
+      body: { league_id: leagueId },
+    });
+    if (error) throw new Error(error.message);
+    return data as any;
+  } catch (e) {
+    console.warn("ensureMembership failed:", e);
+    return null;
+  }
+}
+
+/**
  * Triggers import for a specific league and week.
  * Used by MatchupsTab to ensure data exists for the selected week.
  */
@@ -40,16 +56,34 @@ export function useEnsureLeagueMatchups(leagueId?: string | null, week?: number 
 
       ranRef.current[key] = true;
       setImporting(true);
+
+      // Ensure membership before attempting import
+      await ensureMembership(leagueId);
       
       console.log(`Importing data for league ${leagueId}, week ${week}`);
       
       // Import specific week from Sleeper API
-      const { data, error } = await supabase.functions.invoke("sleeper-import-matchups", {
-        body: { league_id: leagueId, weeks: [week] },
-      });
-      if (error) throw new Error(error.message);
+      const attemptImport = async () => {
+        const { data, error } = await supabase.functions.invoke("sleeper-import-matchups", {
+          body: { league_id: leagueId, weeks: [week] },
+        });
+        if (error) throw new Error(error.message);
+        return data as any;
+      };
+
+      let result: any;
+      try {
+        result = await attemptImport();
+      } catch (err: any) {
+        // If membership issue, try to ensure and retry once
+        if (String(err?.message || "").toLowerCase().includes("not a league member")) {
+          await ensureMembership(leagueId);
+          result = await attemptImport();
+        } else {
+          throw err;
+        }
+      }
       
-      const result = data as any;
       console.log("Import result:", result);
       
       if (result?.ok && result?.rows_upserted > 0) {

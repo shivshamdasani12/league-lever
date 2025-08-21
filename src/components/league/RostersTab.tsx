@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Users, Trophy, User, MapPin, TrendingUp, Activity, Shield, Award, Target, Zap, BarChart3 } from "lucide-react";
 import { fetchRosters, LeagueRosterRow, fetchApiProjections, PlayerProjection } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
+import { useEnsureLeaguePlayers } from "@/hooks/useEnsureLeaguePlayers";
 
 interface Props { 
   leagueId: string;
@@ -86,6 +87,8 @@ export default function RostersTab({ leagueId, selectedRosterId: propSelectedRos
   const [selectedRosterId, setSelectedRosterId] = useState<string | null>(propSelectedRosterId || null);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerRow | null>(null);
   const [isPlayerBioOpen, setIsPlayerBioOpen] = useState(false);
+
+useEnsureLeaguePlayers(leagueId);
 
   const { data: rosters, isLoading, isError, error } = useQuery({
     queryKey: ["league-rosters", leagueId],

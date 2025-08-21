@@ -37,7 +37,7 @@ export async function fetchPlayersByIds(ids: string[]) {
     // Start with basic fields that should exist
     const { data, error } = await supabase
       .from("players")
-      .select("player_id, full_name, position, team, fantasy_positions, status, current_week_stats, current_week_projection, per_game_stats, injury_status, practice_participation, updated_at")
+      .select("player_id, full_name, name, position, team, fantasy_positions, status, current_week_stats, current_week_projection, per_game_stats, injury_status, practice_participation, updated_at")
       .in("player_id", ids);
 
     if (error) {
