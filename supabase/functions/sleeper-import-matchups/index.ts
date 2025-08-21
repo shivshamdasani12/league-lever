@@ -253,8 +253,6 @@ serve(async (req) => {
             points: typeof m.points === "number" ? m.points : Number(m.points ?? 0),
             starters: m.starters ?? null,
             players: m.players ?? null,
-            is_playoffs: Boolean(m.playoff_matchup ?? m.is_playoffs ?? false),
-            is_consolation: Boolean(m.is_consolation ?? false),
           }));
         
         allRows.push(...rows);
