@@ -245,7 +245,7 @@ export type Database = {
           id: string
           injury_status: string | null
           last_name: string | null
-          name: string
+          name: string | null
           number: string | null
           per_game_stats: Json | null
           player_id: string | null
@@ -275,7 +275,7 @@ export type Database = {
           id?: string
           injury_status?: string | null
           last_name?: string | null
-          name: string
+          name?: string | null
           number?: string | null
           per_game_stats?: Json | null
           player_id?: string | null
@@ -305,7 +305,7 @@ export type Database = {
           id?: string
           injury_status?: string | null
           last_name?: string | null
-          name?: string
+          name?: string | null
           number?: string | null
           per_game_stats?: Json | null
           player_id?: string | null
