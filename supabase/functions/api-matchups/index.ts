@@ -91,8 +91,8 @@ Deno.serve(async (req) => {
 
     // Get projections for the week if available
     const { data: projections } = await userClient
-      .from('player_projections')
-      .select('player_id, projection_points')
+      .from('projections')
+      .select('player_id, points as projection_points')
       .eq('week', week);
 
     const projectionMap = new Map((projections || []).map(p => [p.player_id, p.projection_points]));

@@ -14,6 +14,94 @@ export type Database = {
   }
   public: {
     Tables: {
+      bets: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          league_id: string | null
+          season: number | null
+          status: string
+          terms: Json | null
+          token_amount: number
+          type: string
+          updated_at: string | null
+          week: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          league_id?: string | null
+          season?: number | null
+          status?: string
+          terms?: Json | null
+          token_amount?: number
+          type: string
+          updated_at?: string | null
+          week?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          league_id?: string | null
+          season?: number | null
+          status?: string
+          terms?: Json | null
+          token_amount?: number
+          type?: string
+          updated_at?: string | null
+          week?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bets_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invitations: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          email: string | null
+          expires_at: string | null
+          id: string
+          league_id: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          expires_at?: string | null
+          id?: string
+          league_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          expires_at?: string | null
+          id?: string
+          league_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_locks: {
         Row: {
           created_at: string | null
