@@ -348,12 +348,93 @@ export type Database = {
       }
     }
     Views: {
+      league_matchups_v: {
+        Row: {
+          avatar_a: string | null
+          avatar_b: string | null
+          display_name_a: string | null
+          display_name_b: string | null
+          league_id: string | null
+          players_a: Json | null
+          players_b: Json | null
+          points_a: number | null
+          points_b: number | null
+          roster_id_a: number | null
+          roster_id_b: number | null
+          starters_a: Json | null
+          starters_b: Json | null
+          username_a: string | null
+          username_b: string | null
+          week: number | null
+          winner_roster_id: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sleeper_matchups_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       league_player_ids_v: {
         Row: {
           league_id: string | null
           player_id: string | null
         }
         Relationships: []
+      }
+      league_rosters_v: {
+        Row: {
+          avatar: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          is_commissioner: boolean | null
+          league_id: string | null
+          metadata: Json | null
+          owner_sleeper_user_id: string | null
+          players: Json | null
+          roster_id: number | null
+          settings: Json | null
+          starters: Json | null
+          updated_at: string | null
+          username: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sleeper_rosters_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      league_standings_v: {
+        Row: {
+          avatar: string | null
+          display_name: string | null
+          league_id: string | null
+          losses: number | null
+          pa: number | null
+          pf: number | null
+          roster_id: number | null
+          ties: number | null
+          username: string | null
+          win_pct: number | null
+          wins: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sleeper_rosters_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
