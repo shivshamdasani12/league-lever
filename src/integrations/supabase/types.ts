@@ -14,155 +14,106 @@ export type Database = {
   }
   public: {
     Tables: {
-      bets: {
-        Row: {
-          accepted_at: string | null
-          accepted_by: string | null
-          created_at: string | null
-          created_by: string | null
-          id: string
-          league_id: string | null
-          outcome: string | null
-          season: number | null
-          settled_at: string | null
-          status: string
-          terms: Json | null
-          token_amount: number
-          type: string
-          updated_at: string | null
-          week: number | null
-        }
-        Insert: {
-          accepted_at?: string | null
-          accepted_by?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          league_id?: string | null
-          outcome?: string | null
-          season?: number | null
-          settled_at?: string | null
-          status?: string
-          terms?: Json | null
-          token_amount?: number
-          type: string
-          updated_at?: string | null
-          week?: number | null
-        }
-        Update: {
-          accepted_at?: string | null
-          accepted_by?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          league_id?: string | null
-          outcome?: string | null
-          season?: number | null
-          settled_at?: string | null
-          status?: string
-          terms?: Json | null
-          token_amount?: number
-          type?: string
-          updated_at?: string | null
-          week?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bets_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "leagues"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      invitations: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          email: string | null
-          expires_at: string | null
-          id: string
-          league_id: string | null
-          status: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          email?: string | null
-          expires_at?: string | null
-          id?: string
-          league_id?: string | null
-          status?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          email?: string | null
-          expires_at?: string | null
-          id?: string
-          league_id?: string | null
-          status?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invitations_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "leagues"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      job_locks: {
-        Row: {
-          created_at: string | null
-          job: string
-          locked_at: string
-          locked_until: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          job: string
-          locked_at?: string
-          locked_until?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          job?: string
-          locked_at?: string
-          locked_until?: string | null
-        }
-        Relationships: []
-      }
       league_members: {
         Row: {
           created_at: string | null
           id: string
-          joined_at: string | null
-          league_id: string | null
+          league_id: string
           role: string
-          user_id: string | null
+          updated_at: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
-          joined_at?: string | null
-          league_id?: string | null
+          league_id: string
           role?: string
-          user_id?: string | null
+          updated_at?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
-          joined_at?: string | null
-          league_id?: string | null
+          league_id?: string
           role?: string
-          user_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      leagues: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          external_id: string | null
+          id: string
+          name: string
+          provider: string | null
+          scoring_settings: Json | null
+          season: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          external_id?: string | null
+          id?: string
+          name: string
+          provider?: string | null
+          scoring_settings?: Json | null
+          season?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          external_id?: string | null
+          id?: string
+          name?: string
+          provider?: string | null
+          scoring_settings?: Json | null
+          season?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      matchups: {
+        Row: {
+          created_at: string | null
+          id: string
+          league_id: string
+          points_a: number | null
+          points_b: number | null
+          roster_a_id: string
+          roster_b_id: string
+          updated_at: string | null
+          week: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          league_id: string
+          points_a?: number | null
+          points_b?: number | null
+          roster_a_id: string
+          roster_b_id: string
+          updated_at?: string | null
+          week: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          league_id?: string
+          points_a?: number | null
+          points_b?: number | null
+          roster_a_id?: string
+          roster_b_id?: string
+          updated_at?: string | null
+          week?: number
         }
         Relationships: [
           {
-            foreignKeyName: "league_members_league_id_fkey"
+            foreignKeyName: "matchups_league_id_fkey"
             columns: ["league_id"]
             isOneToOne: false
             referencedRelation: "leagues"
@@ -170,52 +121,8 @@ export type Database = {
           },
         ]
       }
-      leagues: {
-        Row: {
-          avatar: string | null
-          created_at: string | null
-          created_by: string | null
-          external_id: string
-          id: string
-          name: string
-          provider: string
-          scoring_settings: Json | null
-          season: number | null
-          settings_json: Json | null
-          updated_at: string | null
-        }
-        Insert: {
-          avatar?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          external_id: string
-          id?: string
-          name: string
-          provider: string
-          scoring_settings?: Json | null
-          season?: number | null
-          settings_json?: Json | null
-          updated_at?: string | null
-        }
-        Update: {
-          avatar?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          external_id?: string
-          id?: string
-          name?: string
-          provider?: string
-          scoring_settings?: Json | null
-          season?: number | null
-          settings_json?: Json | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       player_projections: {
         Row: {
-          created_at: string | null
-          id: string
           player_id: string
           points: number | null
           season: number
@@ -223,8 +130,6 @@ export type Database = {
           week: number
         }
         Insert: {
-          created_at?: string | null
-          id?: string
           player_id: string
           points?: number | null
           season: number
@@ -232,8 +137,6 @@ export type Database = {
           week: number
         }
         Update: {
-          created_at?: string | null
-          id?: string
           player_id?: string
           points?: number | null
           season?: number
@@ -255,15 +158,18 @@ export type Database = {
           full_name: string | null
           hashtag: string | null
           height: string | null
+          id: string
           injury_status: string | null
           last_name: string | null
+          name: string
           number: string | null
           per_game_stats: Json | null
-          player_id: string
+          player_id: string | null
           position: string | null
           practice_participation: string | null
           search_rank: number | null
           search_rank_ppr: number | null
+          sleeper_id: string | null
           sport: string | null
           status: string | null
           team: string | null
@@ -282,15 +188,18 @@ export type Database = {
           full_name?: string | null
           hashtag?: string | null
           height?: string | null
+          id?: string
           injury_status?: string | null
           last_name?: string | null
+          name: string
           number?: string | null
           per_game_stats?: Json | null
-          player_id: string
+          player_id?: string | null
           position?: string | null
           practice_participation?: string | null
           search_rank?: number | null
           search_rank_ppr?: number | null
+          sleeper_id?: string | null
           sport?: string | null
           status?: string | null
           team?: string | null
@@ -309,50 +218,23 @@ export type Database = {
           full_name?: string | null
           hashtag?: string | null
           height?: string | null
+          id?: string
           injury_status?: string | null
           last_name?: string | null
+          name?: string
           number?: string | null
           per_game_stats?: Json | null
-          player_id?: string
+          player_id?: string | null
           position?: string | null
           practice_participation?: string | null
           search_rank?: number | null
           search_rank_ppr?: number | null
+          sleeper_id?: string | null
           sport?: string | null
           status?: string | null
           team?: string | null
           updated_at?: string | null
           weight?: string | null
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string | null
-          email: string | null
-          full_name: string | null
-          id: string
-          token_balance: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string | null
-          email?: string | null
-          full_name?: string | null
-          id: string
-          token_balance?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string | null
-          email?: string | null
-          full_name?: string | null
-          id?: string
-          token_balance?: number | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -398,49 +280,37 @@ export type Database = {
         }
         Relationships: []
       }
-      sleeper_league_users: {
+      rosters: {
         Row: {
-          app_user_id: string | null
-          avatar: string | null
           created_at: string | null
-          display_name: string | null
           id: string
-          is_commissioner: boolean | null
-          league_id: string | null
-          metadata: Json | null
-          sleeper_user_id: string
+          league_id: string
+          players: Json | null
+          roster_id: string
           updated_at: string | null
-          username: string | null
+          user_id: string
         }
         Insert: {
-          app_user_id?: string | null
-          avatar?: string | null
           created_at?: string | null
-          display_name?: string | null
           id?: string
-          is_commissioner?: boolean | null
-          league_id?: string | null
-          metadata?: Json | null
-          sleeper_user_id: string
+          league_id: string
+          players?: Json | null
+          roster_id: string
           updated_at?: string | null
-          username?: string | null
+          user_id: string
         }
         Update: {
-          app_user_id?: string | null
-          avatar?: string | null
           created_at?: string | null
-          display_name?: string | null
           id?: string
-          is_commissioner?: boolean | null
-          league_id?: string | null
-          metadata?: Json | null
-          sleeper_user_id?: string
+          league_id?: string
+          players?: Json | null
+          roster_id?: string
           updated_at?: string | null
-          username?: string | null
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "sleeper_league_users_league_id_fkey"
+            foreignKeyName: "rosters_league_id_fkey"
             columns: ["league_id"]
             isOneToOne: false
             referencedRelation: "leagues"
@@ -448,13 +318,44 @@ export type Database = {
           },
         ]
       }
+      sleeper_league_users: {
+        Row: {
+          avatar: string | null
+          created_at: string | null
+          display_name: string | null
+          is_commissioner: boolean | null
+          league_id: string
+          sleeper_user_id: string
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          is_commissioner?: boolean | null
+          league_id: string
+          sleeper_user_id: string
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          is_commissioner?: boolean | null
+          league_id?: string
+          sleeper_user_id?: string
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
       sleeper_matchups: {
         Row: {
           created_at: string | null
-          id: string
-          league_id: string | null
+          league_id: string
           matchup_id: number | null
-          metadata: Json | null
           players: Json | null
           points: number | null
           roster_id: number
@@ -464,10 +365,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          id?: string
-          league_id?: string | null
+          league_id: string
           matchup_id?: number | null
-          metadata?: Json | null
           players?: Json | null
           points?: number | null
           roster_id: number
@@ -477,10 +376,8 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          id?: string
-          league_id?: string | null
+          league_id?: string
           matchup_id?: number | null
-          metadata?: Json | null
           players?: Json | null
           points?: number | null
           roster_id?: number
@@ -488,22 +385,12 @@ export type Database = {
           updated_at?: string | null
           week?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "sleeper_matchups_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "leagues"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       sleeper_rosters: {
         Row: {
           created_at: string | null
-          id: string
-          league_id: string | null
-          metadata: Json | null
+          league_id: string
           owner_sleeper_user_id: string | null
           players: Json | null
           roster_id: number
@@ -513,9 +400,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          id?: string
-          league_id?: string | null
-          metadata?: Json | null
+          league_id: string
           owner_sleeper_user_id?: string | null
           players?: Json | null
           roster_id: number
@@ -525,9 +410,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          id?: string
-          league_id?: string | null
-          metadata?: Json | null
+          league_id?: string
           owner_sleeper_user_id?: string | null
           players?: Json | null
           roster_id?: number
@@ -535,48 +418,99 @@ export type Database = {
           starters?: Json | null
           updated_at?: string | null
         }
+        Relationships: []
+      }
+      sleeper_standings: {
+        Row: {
+          created_at: string | null
+          league_id: string
+          losses: number | null
+          owner_name: string | null
+          points_against: number | null
+          points_for: number | null
+          rank: number | null
+          roster_id: number
+          season: number
+          ties: number | null
+          updated_at: string | null
+          wins: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          league_id: string
+          losses?: number | null
+          owner_name?: string | null
+          points_against?: number | null
+          points_for?: number | null
+          rank?: number | null
+          roster_id: number
+          season: number
+          ties?: number | null
+          updated_at?: string | null
+          wins?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          league_id?: string
+          losses?: number | null
+          owner_name?: string | null
+          points_against?: number | null
+          points_for?: number | null
+          rank?: number | null
+          roster_id?: number
+          season?: number
+          ties?: number | null
+          updated_at?: string | null
+          wins?: number | null
+        }
+        Relationships: []
+      }
+      standings: {
+        Row: {
+          created_at: string | null
+          id: string
+          league_id: string
+          losses: number | null
+          points_against: number | null
+          points_for: number | null
+          roster_id: string
+          ties: number | null
+          updated_at: string | null
+          wins: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          league_id: string
+          losses?: number | null
+          points_against?: number | null
+          points_for?: number | null
+          roster_id: string
+          ties?: number | null
+          updated_at?: string | null
+          wins?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          league_id?: string
+          losses?: number | null
+          points_against?: number | null
+          points_for?: number | null
+          roster_id?: string
+          ties?: number | null
+          updated_at?: string | null
+          wins?: number | null
+        }
         Relationships: [
           {
-            foreignKeyName: "sleeper_rosters_league_id_fkey"
+            foreignKeyName: "standings_league_id_fkey"
             columns: ["league_id"]
             isOneToOne: false
             referencedRelation: "leagues"
             referencedColumns: ["id"]
           },
         ]
-      }
-      transactions: {
-        Row: {
-          amount: number
-          bet_id: string
-          created_at: string | null
-          description: string | null
-          id: string
-          league_id: string
-          type: string
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          bet_id: string
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          league_id: string
-          type: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          bet_id?: string
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          league_id?: string
-          type?: string
-          user_id?: string
-        }
-        Relationships: []
       }
     }
     Views: {
@@ -590,15 +524,7 @@ export type Database = {
           roster_id_b: number | null
           week: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sleeper_matchups_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "leagues"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       league_player_ids_v: {
         Row: {
@@ -609,26 +535,15 @@ export type Database = {
       }
       league_rosters_named_v: {
         Row: {
-          is_commissioner: boolean | null
           league_id: string | null
           owner_avatar: string | null
           owner_name: string | null
-          owner_sleeper_user_id: string | null
           owner_username: string | null
           players: Json | null
           roster_id: number | null
-          settings: Json | null
           starters: Json | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sleeper_rosters_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "leagues"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       league_rosters_v: {
         Row: {
@@ -640,20 +555,10 @@ export type Database = {
           roster_id: number | null
           starters: Json | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sleeper_rosters_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "leagues"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       league_standings_v: {
         Row: {
-          avatar: string | null
-          display_name: string | null
           league_id: string | null
           losses: number | null
           owner_name: string | null
@@ -664,15 +569,29 @@ export type Database = {
           win_pct: number | null
           wins: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sleeper_rosters_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "leagues"
-            referencedColumns: ["id"]
-          },
-        ]
+        Insert: {
+          league_id?: string | null
+          losses?: number | null
+          owner_name?: string | null
+          pa?: number | null
+          pf?: number | null
+          roster_id?: number | null
+          ties?: number | null
+          win_pct?: never
+          wins?: number | null
+        }
+        Update: {
+          league_id?: string | null
+          losses?: number | null
+          owner_name?: string | null
+          pa?: number | null
+          pf?: number | null
+          roster_id?: number | null
+          ties?: number | null
+          win_pct?: never
+          wins?: number | null
+        }
+        Relationships: []
       }
       league_weeks_v: {
         Row: {
@@ -680,22 +599,10 @@ export type Database = {
           league_id: string | null
           week: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sleeper_matchups_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "leagues"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
-      add_updated_at_trigger: {
-        Args: { _table: unknown }
-        Returns: undefined
-      }
       get_league_projections: {
         Args: {
           in_league_player_ids: string[]
@@ -707,10 +614,6 @@ export type Database = {
           points: number
           updated_at: string
         }[]
-      }
-      increment_token_balance: {
-        Args: { amount: number; user_id: string }
-        Returns: number
       }
     }
     Enums: {
