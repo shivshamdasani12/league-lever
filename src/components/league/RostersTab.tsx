@@ -12,6 +12,7 @@ import { Users, Trophy, User, MapPin, TrendingUp, Activity, Shield, Award, Targe
 import { fetchRosters, LeagueRosterRow, fetchApiProjections, PlayerProjection } from "@/lib/queries/league";
 import { fetchPlayersByIds, PlayerRow } from "@/lib/queries/players";
 import { useEnsureLeaguePlayers } from "@/hooks/useEnsureLeaguePlayers";
+import { TestIngestButton } from "@/components/TestIngestButton";
 
 interface Props { 
   leagueId: string;
@@ -241,6 +242,7 @@ useEnsureLeaguePlayers(leagueId);
             <Users className="h-4 w-4" />
             <span className="text-sm">Select a roster to view player details</span>
           </div>
+          <TestIngestButton />
         </div>
 
         {/* Roster Selector */}
