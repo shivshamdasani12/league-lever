@@ -135,14 +135,6 @@ useEnsureLeaguePlayers(leagueId);
     if (selectedRosterId && rosters) {
       console.log("=== ROSTERS TAB DEBUG ===");
       console.log("Selected roster ID:", selectedRosterId);
-      console.log("All player IDs:", allPlayerIds);
-      console.log("Player data:", playersQ.data);
-      console.log("Player error:", playersQ.error);
-      console.log("Projections data:", projections);
-      console.log("=========================");
-      console.log("Player map keys:", Object.keys(playerMap));
-      console.log("Sample player data:", Object.values(playerMap)[0]);
-      console.log("Projections data:", projections);
       console.log("Projections count:", projections?.length || 0);
       console.log("Sample projection:", projections?.[0]);
       console.log("=========================");
