@@ -9,6 +9,7 @@ const corsHeaders = {
 
 type Payload = {
   league_id: string;
+  week?: number;
   weeks?: number[];
   all_to_current?: boolean;
 };
@@ -34,7 +35,11 @@ serve(async (req) => {
   }
 
   try {
-    const { league_id, weeks, all_to_current }: Payload = await req.json();
+    const body = await req.json();
+    const league_id: string = body?.league_id;
+    const week: number | undefined = typeof body?.week === 'number' ? body.week : undefined;
+    const weeks: number[] | undefined = Array.isArray(body?.weeks) ? body.weeks : undefined;
+    const all_to_current: boolean | undefined = body?.all_to_current;
     if (!league_id) {
       return new Response(JSON.stringify({ error: "league_id is required" }), {
         status: 400,
@@ -60,8 +65,10 @@ serve(async (req) => {
       console.warn("NFL state fetch threw", e);
     }
 
-    // Block preseason/offseason imports unless manual weeks specified
-    if (!Array.isArray(weeks) && (seasonType !== "regular" || !(typeof currentWeekNum === "number" && currentWeekNum >= 1))) {
+    // Block preseason/offseason auto-import unless manual week(s) specified
+    const hasManualWeeks = Array.isArray(weeks) && weeks.length > 0;
+    const hasManualWeek = typeof week === 'number' && !Number.isNaN(week);
+    if (!hasManualWeeks && !hasManualWeek && (seasonType !== "regular" || !(typeof currentWeekNum === "number" && currentWeekNum >= 1))) {
       console.log("Blocking preseason/offseason auto-import", { seasonType, currentWeekNum, league_id });
       return new Response(JSON.stringify({
         ok: true,
@@ -134,7 +141,9 @@ serve(async (req) => {
     const sleeperLeagueId = String(leagueRow.external_id);
 
     // Compute target weeks
-    let targetWeeks: number[] | undefined = Array.isArray(weeks) && weeks.length > 0 ? weeks.map(Number) : undefined;
+    let targetWeeks: number[] | undefined = Array.isArray(weeks) && weeks.length > 0 
+      ? weeks.map(Number) 
+      : (typeof week === 'number' ? [Number(week)] : undefined);
 
     if (!targetWeeks) {
 

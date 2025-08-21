@@ -139,13 +139,12 @@ Deno.serve(async (req) => {
 
       const fantasyPoints = calculateFantasyPoints(projections, scoringSettings);
 
-      // Add to projections table
+      // Add to player_projections table
       projectionRows.push({
         player_id: playerId,
         season: currentSeason,
         week: currentWeek,
-        projection_points: fantasyPoints,
-        projection_data: projections,
+        points: fantasyPoints,
         updated_at: new Date().toISOString(),
       });
 
