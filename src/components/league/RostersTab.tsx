@@ -138,6 +138,8 @@ useEnsureLeaguePlayers(leagueId);
       console.log("All player IDs:", allPlayerIds);
       console.log("Player data:", playersQ.data);
       console.log("Player error:", playersQ.error);
+      console.log("Projections data:", projections);
+      console.log("=========================");
       console.log("Player map keys:", Object.keys(playerMap));
       console.log("Sample player data:", Object.values(playerMap)[0]);
       console.log("Projections data:", projections);
