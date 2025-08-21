@@ -53,6 +53,8 @@ const Index = () => {
       const { error } = await supabase.from('leagues').insert({
         name: name.trim(),
         created_by: user.id,
+        external_id: `manual-${Date.now()}`,
+        provider: 'manual',
       });
       if (error) throw error;
       toast({ title: 'League created', description: 'Your league has been created.' });

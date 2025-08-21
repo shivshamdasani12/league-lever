@@ -104,11 +104,11 @@ export async function fetchApiMatchups(leagueId: string, week: number) {
 
 export async function fetchApiStandings(leagueId: string, season: number = 2024) {
   const { data, error } = await supabase
-    .from('sleeper_standings')
+    .from('league_standings_v')
     .select('*')
     .eq('league_id', leagueId)
-    .eq('season', season)
-    .order('rank', { ascending: true });
+    .order('win_pct', { ascending: false })
+    .order('pf', { ascending: false });
   
   if (error) throw error;
   return data ?? [];

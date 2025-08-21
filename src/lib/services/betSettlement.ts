@@ -177,16 +177,12 @@ const updateTokenBalances = async (
   payout_amount: number
 ) => {
   try {
-    // Winner gets payout (their original bet + opponent's bet)
+    // Winner gets payout using RPC function
     const { error: winnerError } = await supabase
-      .from('profiles')
-      .update({
-        token_balance: supabase.rpc('increment_token_balance', { 
-          user_id: winner_id, 
-          amount: payout_amount 
-        })
-      })
-      .eq('id', winner_id);
+      .rpc('increment_token_balance', { 
+        user_id: winner_id, 
+        amount: payout_amount 
+      });
     
     if (winnerError) throw winnerError;
     
@@ -208,7 +204,7 @@ const createTransactionRecords = async (
   outcome: string
 ) => {
   try {
-    const transactions: Partial<TokenTransaction>[] = [];
+    const transactions: TokenTransaction[] = [];
     
     if (outcome === 'push') {
       // Both parties get their tokens back
@@ -250,7 +246,7 @@ const createTransactionRecords = async (
     if (transactions.length > 0) {
       const { error } = await supabase
         .from('transactions')
-        .insert(transactions);
+        .insert(transactions as any);
       
       if (error) throw error;
     }

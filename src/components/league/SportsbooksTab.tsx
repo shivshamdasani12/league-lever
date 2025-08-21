@@ -144,7 +144,8 @@ export default function SportsbooksTab({ leagueId }: Props) {
 
     // Count existing bets for this matchup
     const matchupBets = existingBets.filter(bet => {
-      const betMatchupIndex = bet.terms?.matchupIndex;
+      const betTerms = bet.terms as any;
+      const betMatchupIndex = betTerms?.matchupIndex;
       return betMatchupIndex === matchupIndex;
     });
 
@@ -157,7 +158,8 @@ export default function SportsbooksTab({ leagueId }: Props) {
 
     // Calculate team popularity based on existing bets
     const teamPopularity = matchupBets.filter(bet => {
-      const betSide = bet.terms?.side;
+      const betTerms = bet.terms as any;
+      const betSide = betTerms?.side;
       return betSide === side;
     }).length / Math.max(betVolume, 1);
 

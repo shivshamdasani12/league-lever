@@ -29,11 +29,11 @@ export default function JoinAccept() {
     if (!invite_code) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc("accept_invite", { _invite_code: invite_code });
-      if (error) throw error;
-      const leagueId = (data as any)?.league_id as string | undefined;
-      toast({ title: "Invitation accepted", description: "Welcome to the league!" });
-      if (leagueId) navigate(`/leagues/${leagueId}`);
+      // Temporarily disable invite functionality
+      toast({ title: "Feature unavailable", description: "Invite system is being updated." });
+      // const leagueId = undefined;
+      // toast({ title: "Invitation accepted", description: "Welcome to the league!" });
+      // if (leagueId) navigate(`/leagues/${leagueId}`);
     } catch (err: any) {
       toast({ title: "Join failed", description: err.message ?? "Invalid or expired invite." });
     } finally {
