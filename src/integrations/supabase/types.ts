@@ -40,21 +40,32 @@ export type Database = {
           created_at: string | null
           id: string
           league_id: string | null
+          role: string
           user_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           league_id?: string | null
+          role?: string
           user_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           league_id?: string | null
+          role?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "league_members_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leagues: {
         Row: {
@@ -231,7 +242,15 @@ export type Database = {
           updated_at?: string | null
           username?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sleeper_league_users_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sleeper_matchups: {
         Row: {
@@ -270,7 +289,15 @@ export type Database = {
           updated_at?: string | null
           week?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sleeper_matchups_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sleeper_rosters: {
         Row: {
@@ -309,7 +336,15 @@ export type Database = {
           starters?: Json | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sleeper_rosters_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -322,6 +357,10 @@ export type Database = {
       }
     }
     Functions: {
+      add_updated_at_trigger: {
+        Args: { _table: unknown }
+        Returns: undefined
+      }
       get_league_projections: {
         Args: {
           in_league_player_ids: string[]
