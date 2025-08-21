@@ -51,7 +51,7 @@ export default function GeneralTab({ leagueId, leagueName, teamsCount }: Props) 
     setCreatingInvite(true);
     try {
       const code = Math.random().toString(36).slice(2, 10).toUpperCase();
-      const { error } = await supabase.from("invitations").insert({
+      const { error } = await (supabase as any).from("invitations").insert({
         league_id: leagueId,
         email: inviteEmail.trim(),
         code,

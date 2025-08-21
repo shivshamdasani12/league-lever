@@ -74,7 +74,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
     queryKey: ['existing-bets', leagueId],
     enabled: !!leagueId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("bets")
         .select("*")
         .eq("league_id", leagueId)
@@ -143,7 +143,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
     if (!matchup) return null;
 
     // Count existing bets for this matchup
-    const matchupBets = existingBets.filter(bet => {
+    const matchupBets = (existingBets as any[]).filter((bet: any) => {
       const betTerms = bet.terms as any;
       const betMatchupIndex = betTerms?.matchupIndex;
       return betMatchupIndex === matchupIndex;
@@ -296,7 +296,7 @@ export default function SportsbooksTab({ leagueId }: Props) {
       const uid = userData.user?.id;
       if (!uid) throw new Error("Not authenticated");
       
-      const { error } = await supabase.from("bets").insert({
+      const { error } = await (supabase as any).from("bets").insert({
         league_id: leagueId,
         created_by: uid,
         type: betOffer.betType,

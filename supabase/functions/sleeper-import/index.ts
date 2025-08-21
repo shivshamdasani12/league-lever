@@ -38,13 +38,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
+    const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: req.headers.get("Authorization")! } } }
     );
 
-    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: { user }, error: userErr } = await userClient.auth.getUser();
     if (userErr || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -80,7 +85,7 @@ Deno.serve(async (req) => {
       created_by: user.id,
     };
 
-    const { data: upserted, error: upErr } = await supabase
+    const { data: upserted, error: upErr } = await adminClient
       .from('leagues')
       .upsert(leagueRow, { onConflict: 'provider,external_id' })
       .select('id')
@@ -91,7 +96,7 @@ Deno.serve(async (req) => {
 
     let league_uuid: string | null = upserted?.[0]?.id ?? null;
     if (!league_uuid) {
-      const { data: found, error: findErr } = await supabase
+      const { data: found, error: findErr } = await adminClient
         .from('leagues')
         .select('id')
         .eq('provider', 'sleeper')
@@ -115,11 +120,10 @@ Deno.serve(async (req) => {
         username: u.username ?? null,
         display_name: u.display_name ?? null,
         avatar: u.avatar ?? null,
-        is_commissioner: (league?.metadata?.owner_id ?? league?.owner_id) ? String(league.owner_id) === String(u.user_id) : false,
-        app_user_id: null as any,
+        is_commissioner: (league?.metadata?.owner_id ?? league?.owner_id) ? String(league.owner_id) === String(u.user_id) : false
       }));
       if (rows.length) {
-        const { error } = await supabase.from('sleeper_league_users').upsert(rows, { onConflict: 'league_id,sleeper_user_id' });
+        const { error } = await adminClient.from('sleeper_league_users').upsert(rows, { onConflict: 'league_id,sleeper_user_id' });
         if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
     }
@@ -135,7 +139,7 @@ Deno.serve(async (req) => {
         settings: r.settings ?? null,
       }));
       if (rows.length) {
-        const { error } = await supabase.from('sleeper_rosters').upsert(rows, { onConflict: 'league_id,roster_id' });
+        const { error } = await adminClient.from('sleeper_rosters').upsert(rows, { onConflict: 'league_id,roster_id' });
         if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
     }
@@ -151,7 +155,7 @@ Deno.serve(async (req) => {
         players: m.players ?? null,
       }));
       if (rows.length) {
-        const { error } = await supabase.from('sleeper_matchups').upsert(rows, { onConflict: 'league_id,week,roster_id' });
+        const { error } = await adminClient.from('sleeper_matchups').upsert(rows, { onConflict: 'league_id,week,roster_id' });
         if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
     }

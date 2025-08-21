@@ -100,7 +100,7 @@ export const settleBet = async (
     const payout_amount = bet.token_amount * payoutRatio;
     
     // Update bet status
-    const { error: betError } = await supabase
+    const { error: betError } = await (supabase as any)
       .from('bets')
       .update({
         status: 'settled',
@@ -143,7 +143,7 @@ export const settleBet = async (
 const handlePush = async (bet: any) => {
   try {
     // Update bet status
-    await supabase
+  await (supabase as any)
       .from('bets')
       .update({
         status: 'settled',
@@ -178,7 +178,7 @@ const updateTokenBalances = async (
 ) => {
   try {
     // Winner gets payout using RPC function
-    const { error: winnerError } = await supabase
+    const { error: winnerError } = await (supabase as any)
       .rpc('increment_token_balance', { 
         user_id: winner_id, 
         amount: payout_amount 
@@ -244,7 +244,7 @@ const createTransactionRecords = async (
     }
     
     if (transactions.length > 0) {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('transactions')
         .insert(transactions as any);
       
@@ -279,12 +279,12 @@ export const getBetAnalytics = async (userId: string, leagueId: string) => {
     };
 
     try {
-      const { data: bets, error } = await supabase
-        .from('bets')
-        .select('*')
-        .eq('league_id', leagueId)
-        .or(`created_by.eq.${userId},accepted_by.eq.${userId}`)
-        .order('created_at', { ascending: false });
+    const { data: bets, error } = await (supabase as any)
+      .from('bets')
+      .select('*')
+      .eq('league_id', leagueId)
+      .or(`created_by.eq.${userId},accepted_by.eq.${userId}`)
+      .order('created_at', { ascending: false });
       
       if (error) {
         console.warn('Error fetching bets for analytics:', error);

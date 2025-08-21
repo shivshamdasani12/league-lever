@@ -43,7 +43,9 @@ export type Database = {
       }
       leagues: {
         Row: {
+          avatar: string | null
           created_at: string | null
+          created_by: string | null
           description: string | null
           external_id: string | null
           id: string
@@ -51,10 +53,13 @@ export type Database = {
           provider: string | null
           scoring_settings: Json | null
           season: number | null
+          settings_json: Json | null
           updated_at: string | null
         }
         Insert: {
+          avatar?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           external_id?: string | null
           id?: string
@@ -62,10 +67,13 @@ export type Database = {
           provider?: string | null
           scoring_settings?: Json | null
           season?: number | null
+          settings_json?: Json | null
           updated_at?: string | null
         }
         Update: {
+          avatar?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           external_id?: string | null
           id?: string
@@ -73,6 +81,7 @@ export type Database = {
           provider?: string | null
           scoring_settings?: Json | null
           season?: number | null
+          settings_json?: Json | null
           updated_at?: string | null
         }
         Relationships: []

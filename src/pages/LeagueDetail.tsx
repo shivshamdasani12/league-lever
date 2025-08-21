@@ -83,7 +83,7 @@ export default function LeagueDetail() {
     queryKey: ["bets", leagueId],
     enabled: !!leagueId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("bets")
         .select("id,type,status,token_amount,created_by,accepted_by,created_at,accepted_at")
         .eq("league_id", leagueId)
@@ -110,7 +110,7 @@ export default function LeagueDetail() {
     if (!user || !betType.trim()) return;
     setCreatingBet(true);
     try {
-      const { error } = await supabase.from("bets").insert({
+      const { error } = await (supabase as any).from("bets").insert({
         league_id: leagueId,
         created_by: user.id,
         type: betType.trim(),
@@ -134,7 +134,7 @@ export default function LeagueDetail() {
     setCreatingInvite(true);
     try {
       const code = Math.random().toString(36).slice(2, 10).toUpperCase();
-      const { error } = await supabase.from("invitations").insert({
+      const { error } = await (supabase as any).from("invitations").insert({
         league_id: leagueId,
         invited_by: user.id,
         email: inviteEmail.trim(),
@@ -158,7 +158,7 @@ export default function LeagueDetail() {
       return;
     }
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("bets")
         .update({ status: "accepted", accepted_by: user.id, accepted_at: new Date().toISOString() })
         .eq("id", bet.id);

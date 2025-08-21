@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!user) return;
     const t = setTimeout(() => {
-      supabase.from('profiles').upsert({ id: user.id }, { onConflict: 'id' });
+      (supabase as any).from('profiles').upsert({ id: user.id }, { onConflict: 'id' });
     }, 0);
     return () => clearTimeout(t);
   }, [user]);

@@ -53,7 +53,7 @@ export default function WagersTab({ leagueId }: Props) {
     queryKey: ["bets", leagueId],
     enabled: !!leagueId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("bets")
         .select("id,type,status,token_amount,created_by,accepted_by,created_at,accepted_at,settled_at,outcome,terms")
         .eq("league_id", leagueId)
@@ -82,7 +82,7 @@ export default function WagersTab({ leagueId }: Props) {
       const uid = userData.user?.id;
       if (!uid) throw new Error("Not authenticated");
       
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("bets")
         .update({ 
           status: "active", 
@@ -140,7 +140,7 @@ export default function WagersTab({ leagueId }: Props) {
       const oppositeBetType = getOppositePosition(originalBetType, { adjustedSpread: counterOfferData.adjustedSpread });
       
       // Create a new bet with the counter offer terms
-      const { error } = await supabase.from("bets").insert({
+      const { error } = await (supabase as any).from("bets").insert({
         league_id: leagueId,
         created_by: uid,
         type: oppositeBetType,
