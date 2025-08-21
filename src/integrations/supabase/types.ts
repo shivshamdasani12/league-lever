@@ -205,6 +205,36 @@ export type Database = {
           },
         ]
       }
+      player_id_mapping: {
+        Row: {
+          created_at: string | null
+          fantasypros_id: string
+          id: string
+          player_name: string | null
+          position: string | null
+          sleeper_id: string
+          team: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fantasypros_id: string
+          id?: string
+          player_name?: string | null
+          position?: string | null
+          sleeper_id: string
+          team?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fantasypros_id?: string
+          id?: string
+          player_name?: string | null
+          position?: string | null
+          sleeper_id?: string
+          team?: string | null
+        }
+        Relationships: []
+      }
       player_projections: {
         Row: {
           player_id: string
